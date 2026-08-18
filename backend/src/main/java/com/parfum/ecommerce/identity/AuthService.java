@@ -1,0 +1,48 @@
+package com.parfum.ecommerce.identity;
+
+import com.parfum.ecommerce.identity.dto.AuthResponse;
+import com.parfum.ecommerce.identity.dto.LoginRequest;
+import com.parfum.ecommerce.identity.dto.RegisterRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+    }
+
+    public AuthResponse register(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Cet email est déjà utilisé");
+        }
+
+        User user = new User(
+            request.getEmail(),
+            passwordEncoder.encode(request.getPassword())
+        );
+        userRepository.save(user);
+
+        String token = jwtService.generateToken(user.getEmail());
+        return new AuthResponse(token);
+    }
+
+    public AuthResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Email ou mot de passe incorrect"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Email ou mot de passe incorrect");
+        }
+
+        String token = jwtService.generateToken(user.getEmail());
+        return new AuthResponse(token);
+    }
+}
