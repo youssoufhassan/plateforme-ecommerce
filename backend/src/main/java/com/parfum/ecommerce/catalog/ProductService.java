@@ -33,13 +33,15 @@ public class ProductService {
         return toResponse(saved);
     }
 
-    private ProductResponse toResponse(Product product) {
-        return new ProductResponse(
-            product.getId(),
-            product.getName(),
-            product.getDescription(),
-            product.getPrice(),
-            product.getStockQuantity()
-        );
-    }
+   private ProductResponse toResponse(Product product) {
+    return new ProductResponse(
+        product.getId(),
+        product.getName(),
+        product.getDescription(),
+        product.getPrice(),
+        product.getStockQuantity(),
+        product.getImageUrl(),
+        product.getCategory() != null ? product.getCategory().getName() : null
+    );
+}
 }
