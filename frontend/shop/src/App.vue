@@ -1,28 +1,18 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useProductStore } from "./stores/productStore";
-
-const productStore = useProductStore();
-
-onMounted(() => {
-  productStore.loadProducts();
-});
+import { useAuthStore } from "./stores/authStore";
+const authStore = useAuthStore();
 </script>
 
 <template>
-  <main>
-    <h1>Nos produits</h1>
-
-    <p v-if="productStore.loading">Chargement...</p>
-    <p v-else-if="productStore.error">{{ productStore.error }}</p>
-
-    <ul v-else>
-      <li v-for="product in productStore.products" :key="product.id">
-        <h3>{{ product.name }}</h3>
-        <p>{{ product.description }}</p>
-        <strong>{{ product.price }} €</strong>
-        <span> — Stock : {{ product.stockQuantity }}</span>
-      </li>
-    </ul>
-  </main>
+  <nav>
+    <router-link to="/">Produits</router-link>
+    <span v-if="authStore.isLoggedIn()">
+      <button @click="authStore.logout()">Déconnexion</button>
+    </span>
+    <span v-else>
+      <router-link to="/login">Connexion</router-link>
+      <router-link to="/register">Inscription</router-link>
+    </span>
+  </nav>
+  <router-view />
 </template>
