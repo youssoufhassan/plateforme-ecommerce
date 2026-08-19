@@ -6,6 +6,8 @@ export interface Product {
   description: string;
   price: number;
   stockQuantity: number;
+  imageUrl: string;
+  categoryName: string;
 }
 
 export async function fetchProducts(): Promise<Product[]> {
