@@ -30,6 +30,8 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Column(name = "image_url")
+private String imageUrl;
     public Product() {}
 
     // Getters et setters
@@ -46,4 +48,6 @@ public class Product {
     public void setActive(Boolean active) { this.active = active; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
+    public String getImageUrl() { return imageUrl; }
+public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }
