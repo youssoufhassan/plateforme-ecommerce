@@ -3,26 +3,36 @@ import { computed, onMounted, ref } from "vue";
 import { useProductStore } from "../stores/productStore";
 import { useCartStore } from "../stores/cartStore";
 import { useAuthStore } from "../stores/authStore";
+import { useSearchStore } from "../stores/searchStore";
+import { useCategoryStore } from "../stores/categoryStore";
 
 const productStore = useProductStore();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
+const searchStore = useSearchStore();
+const categoryStore = useCategoryStore();
 const activeCategory = ref("Tous");
 
 onMounted(() => {
   productStore.loadProducts();
+  categoryStore.loadCategories();
 });
 
-const categories = computed(() => {
-  const set = new Set(productStore.products.map((p) => p.categoryName));
-  return ["Tous", ...Array.from(set)];
-});
+const categories = computed(() => [
+  "Tous",
+  ...categoryStore.categories.map((c) => c.name),
+]);
 
 const filteredProducts = computed(() => {
-  if (activeCategory.value === "Tous") return productStore.products;
-  return productStore.products.filter(
-    (p) => p.categoryName === activeCategory.value,
-  );
+  let list = productStore.products;
+  if (activeCategory.value !== "Tous") {
+    list = list.filter((p) => p.categoryName === activeCategory.value);
+  }
+  if (searchStore.query.trim()) {
+    const q = searchStore.query.toLowerCase();
+    list = list.filter((p) => p.name.toLowerCase().includes(q));
+  }
+  return list;
 });
 
 async function handleAddToCart(productId: string) {
