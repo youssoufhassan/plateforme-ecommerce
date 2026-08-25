@@ -3,26 +3,36 @@ import { computed, onMounted, ref } from "vue";
 import { useProductStore } from "../stores/productStore";
 import { useCartStore } from "../stores/cartStore";
 import { useAuthStore } from "../stores/authStore";
+import { useSearchStore } from "../stores/searchStore";
+import { useCategoryStore } from "../stores/categoryStore";
 
 const productStore = useProductStore();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
+const searchStore = useSearchStore();
+const categoryStore = useCategoryStore();
 const activeCategory = ref("Tous");
 
 onMounted(() => {
   productStore.loadProducts();
+  categoryStore.loadCategories();
 });
 
-const categories = computed(() => {
-  const set = new Set(productStore.products.map((p) => p.categoryName));
-  return ["Tous", ...Array.from(set)];
-});
+const categories = computed(() => [
+  "Tous",
+  ...categoryStore.categories.map((c) => c.name),
+]);
 
 const filteredProducts = computed(() => {
-  if (activeCategory.value === "Tous") return productStore.products;
-  return productStore.products.filter(
-    (p) => p.categoryName === activeCategory.value,
-  );
+  let list = productStore.products;
+  if (activeCategory.value !== "Tous") {
+    list = list.filter((p) => p.categoryName === activeCategory.value);
+  }
+  if (searchStore.query.trim()) {
+    const q = searchStore.query.toLowerCase();
+    list = list.filter((p) => p.name.toLowerCase().includes(q));
+  }
+  return list;
 });
 
 async function handleAddToCart(productId: string) {
@@ -36,29 +46,30 @@ async function handleAddToCart(productId: string) {
 </script>
 
 <template>
-  <div class="container">
-    <h1>Découvre nos produits</h1>
-    <p style="color: var(--ink-soft)">
-      Parfums et produits venus d'ailleurs, sélectionnés pour toi.
-    </p>
+  <div class="shop-layout">
+    <aside class="filter-sidebar">
+      <h4>Catégorie</h4>
+      <button
+        v-for="cat in categories"
+        :key="cat"
+        class="filter-item"
+        :class="{ active: activeCategory === cat }"
+        @click="activeCategory = cat"
+      >
+        {{ cat }}
+      </button>
+    </aside>
 
-    <p v-if="productStore.loading">Chargement...</p>
-    <p v-else-if="productStore.error">{{ productStore.error }}</p>
+    <main>
+      <h1>Découvre nos produits</h1>
+      <p style="color: var(--ink-soft); margin-top: 0.4rem">
+        Parfums et produits venus d'ailleurs, sélectionnés pour toi.
+      </p>
 
-    <template v-else>
-      <div class="category-pills">
-        <button
-          v-for="cat in categories"
-          :key="cat"
-          class="category-pill"
-          :class="{ active: activeCategory === cat }"
-          @click="activeCategory = cat"
-        >
-          {{ cat }}
-        </button>
-      </div>
+      <p v-if="productStore.loading">Chargement...</p>
+      <p v-else-if="productStore.error">{{ productStore.error }}</p>
 
-      <div class="product-grid">
+      <div v-else class="product-grid" style="margin-top: 1.5rem">
         <div
           class="product-card"
           v-for="product in filteredProducts"
@@ -75,6 +86,6 @@ async function handleAddToCart(productId: string) {
           </div>
         </div>
       </div>
-    </template>
+    </main>
   </div>
 </template>
