@@ -1,0 +1,204 @@
+.account-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.account-tabs {
+  display: flex;
+  gap: var(--space-4);
+  margin: var(--space-4) 0 var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.account-tab {
+  position: relative;
+  padding: 0.7rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.account-tab::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: transparent;
+}
+
+.account-tab:hover {
+  color: var(--ink);
+}
+
+.account-tab.active {
+  color: var(--ink);
+}
+
+.account-tab.active::after {
+  background: var(--ink);
+}
+
+.logout-btn {
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.82rem;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.logout-btn:hover {
+  background: var(--surface-soft);
+  border-color: var(--border-strong);
+}
+
+/* Orders */
+
+.order-card {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: var(--space-3);
+}
+
+.order-number {
+  margin-right: var(--space-2);
+  font-weight: 600;
+}
+
+.order-date {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.order-total {
+  font-weight: 600;
+}
+
+.order-status-track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin: 1.5rem 0;
+}
+
+.order-status-track::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 5%;
+  left: 5%;
+  height: 2px;
+  background: var(--border);
+}
+
+.status-step {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.status-step.done .status-dot {
+  background: var(--ink);
+}
+
+.status-label {
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.status-step.done .status-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.order-items {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+/* Profile */
+
+.profile-note {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 0.85rem;
+}
+
+.profile-form {
+  max-width: 420px;
+}
+
+.profile-field {
+  margin-bottom: var(--space-3);
+}
+
+.profile-field label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.profile-field input {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  background: #fff;
+  color: var(--ink);
+}
+
+.profile-field input:focus {
+  border-color: var(--ink);
+}
+
+.profile-field input:disabled {
+  background: var(--surface-soft);
+  color: var(--ink-soft);
+}
+
+.profile-field-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.profile-field-row .profile-field {
+  flex: 1;
+}

@@ -1,0 +1,173 @@
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2.5rem 1.25rem;
+}
+
+.pcard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pcard-image {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--home-beige);
+}
+
+.pcard-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition);
+}
+
+.pcard:hover .pcard-image img {
+  transform: scale(1.035);
+}
+
+.pcard-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.pcard-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.3rem 0.65rem;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 0.67rem;
+  font-weight: 600;
+}
+
+.pcard-body {
+  padding: 1rem 0.1rem 0;
+}
+
+.pcard-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.pcard-body h3 {
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.pcard-title-link:hover h3 {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pcard-body p {
+  margin: 0 0 0.9rem;
+  color: var(--ink-soft);
+  font-size: 0.79rem;
+  line-height: 1.5;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pcard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pcard-price {
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pcard-add {
+  padding: 0.55rem 0.9rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.77rem;
+  font-weight: 500;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.pcard-add:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.pcard-add:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pcard-add:disabled {
+  background: var(--border-strong);
+  color: var(--ink-soft);
+}
+
+.pcard-add.adding {
+  background: var(--success);
+}
+
+/* Skeleton */
+
+.skeleton-image {
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
+  background: var(--border);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 12px;
+  margin-top: var(--space-2);
+  border-radius: 3px;
+  background: var(--border);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Home products */
+
+.home-products {
+  padding: 7rem 0;
+  background: #fff;
+}
+
+.home-product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem 1.25rem;
+}

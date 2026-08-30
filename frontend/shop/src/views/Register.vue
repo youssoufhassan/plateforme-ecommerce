@@ -21,19 +21,37 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div>
-    <h1>Créer un compte</h1>
-    <form @submit.prevent="handleSubmit">
-      <input v-model="email" type="email" placeholder="Email" required />
-      <input
-        v-model="password"
-        type="password"
-        placeholder="Mot de passe (8 caractères min.)"
-        required
-      />
-      <button type="submit">S'inscrire</button>
-    </form>
-    <p v-if="error">{{ error }}</p>
-    <router-link to="/login">Déjà un compte ?</router-link>
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1>Créer un compte</h1>
+      <p class="auth-subtitle">Rejoins SHAHIN en quelques secondes.</p>
+
+      <form @submit.prevent="handleSubmit" class="profile-form">
+        <div class="profile-field">
+          <label>Email</label>
+          <input
+            v-model="email"
+            type="email"
+            required
+            placeholder="ton@email.com"
+          />
+        </div>
+        <div class="profile-field">
+          <label>Mot de passe</label>
+          <input
+            v-model="password"
+            type="password"
+            required
+            placeholder="8 caractères minimum"
+          />
+        </div>
+        <p v-if="error" class="auth-error">{{ error }}</p>
+        <button type="submit" class="primary">Créer mon compte</button>
+      </form>
+
+      <p class="auth-switch">
+        Déjà un compte ? <router-link to="/login">Se connecter</router-link>
+      </p>
+    </div>
   </div>
 </template>

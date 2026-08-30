@@ -1,0 +1,33 @@
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-soft: #fafafa;
+
+  --ink: #111111;
+  --ink-soft: #6b6b6b;
+  --ink-faint: #9a9a9a;
+
+  --border: #e8e8e8;
+  --border-strong: #d4d4d4;
+
+  --home-dark: #151310;
+  --home-cream: #f4f0e9;
+  --home-beige: #e8dfd2;
+  --home-text: #181614;
+  --home-muted: #77716a;
+
+  --font-display: "Poppins", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --max-width: 1280px;
+
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --space-6: 4rem;
+  --space-7: 6rem;
+
+  --radius: 4px;
+}
