@@ -32,6 +32,10 @@ public class Product {
 
     @Column(name = "image_url")
 private String imageUrl;
+@OneToMany(mappedBy = "product")
+@OrderBy("position ASC")
+private java.util.List<ProductImage> images = new java.util.ArrayList<>();
+
     public Product() {}
 
     // Getters et setters
@@ -50,4 +54,6 @@ private String imageUrl;
     public void setCategory(Category category) { this.category = category; }
     public String getImageUrl() { return imageUrl; }
 public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+public java.util.List<ProductImage> getImages() { return images; }
+
 }
