@@ -41,7 +41,8 @@ public class ProductService {
         product.getPrice(),
         product.getStockQuantity(),
         product.getImageUrl(),
-        product.getCategory() != null ? product.getCategory().getName() : null
+        product.getCategory() != null ? product.getCategory().getName() : null,
+        product.getImages().stream().map(ProductImage::getUrl).toList()
     );
 }
 }
