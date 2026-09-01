@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -16,13 +17,17 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @PostMapping("/checkout")
-    public OrderResponse checkout(Authentication auth) {
-        return orderService.checkout(auth.getName());
-    }
+   @PostMapping("/checkout")
+public OrderResponse checkout(Authentication auth, @RequestBody(required = false) java.util.Map<String, String> body) {
+    UUID addressId = (body != null && body.get("addressId") != null) ? UUID.fromString(body.get("addressId")) : null;
+    return orderService.checkout(auth.getName(), addressId);
+}
 
     @GetMapping
     public List<OrderResponse> getMyOrders(Authentication auth) {
         return orderService.getMyOrders(auth.getName());
+    }
+
+    public record CheckoutRequest(UUID addressId) {
     }
 }

@@ -5,15 +5,18 @@ import com.parfum.ecommerce.cart.CartItem;
 import com.parfum.ecommerce.cart.CartRepository;
 import com.parfum.ecommerce.catalog.Product;
 import com.parfum.ecommerce.catalog.ProductRepository;
+import com.parfum.ecommerce.identity.Address;
 import com.parfum.ecommerce.identity.User;
 import com.parfum.ecommerce.identity.UserRepository;
 import com.parfum.ecommerce.order.dto.OrderItemResponse;
 import com.parfum.ecommerce.order.dto.OrderResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.parfum.ecommerce.identity.AddressRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class OrderService {
@@ -22,17 +25,24 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
 
-    public OrderService(CartRepository cartRepository, OrderRepository orderRepository,
-                         ProductRepository productRepository, UserRepository userRepository) {
-        this.cartRepository = cartRepository;
-        this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
-        this.userRepository = userRepository;
-    }
+    public OrderService(
+        CartRepository cartRepository,
+        OrderRepository orderRepository,
+        ProductRepository productRepository,
+        UserRepository userRepository,
+        AddressRepository addressRepository
+) {
+    this.cartRepository = cartRepository;
+    this.orderRepository = orderRepository;
+    this.productRepository = productRepository;
+    this.userRepository = userRepository;
+    this.addressRepository = addressRepository;
+}
 
     @Transactional
-    public OrderResponse checkout(String userEmail) {
+    public OrderResponse checkout(String userEmail, UUID addressId) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
 
@@ -56,7 +66,11 @@ public class OrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Order order = new Order(user, total);
-
+        if (addressId != null) {
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalArgumentException("Adresse introuvable"));
+        order.setAddress(address);
+    }
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
 

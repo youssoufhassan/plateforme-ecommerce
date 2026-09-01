@@ -1,5 +1,6 @@
 package com.parfum.ecommerce.order;
 
+import com.parfum.ecommerce.identity.Address;
 import com.parfum.ecommerce.identity.User;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -11,6 +12,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "orders")
 public class Order {
+    @ManyToOne
+@JoinColumn(name = "address_id")
+private Address address;
 
     @Id
     @GeneratedValue
@@ -45,4 +49,6 @@ public class Order {
     public BigDecimal getTotalAmount() { return totalAmount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public List<OrderItem> getItems() { return items; }
+    public Address getAddress() { return address; }
+public void setAddress(Address address) { this.address = address; }
 }
