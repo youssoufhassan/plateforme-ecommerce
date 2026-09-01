@@ -61,25 +61,26 @@ async function removeItem(itemId: string) {
 ================================ */
 
 async function handleCheckout() {
-  if (!authStore.isLoggedIn()) {
-    router.push("/login");
-    return;
-  }
-
-  checkoutLoading.value = true;
-
   try {
-    await api.post("/orders/checkout");
+    const order = await api.post("/orders/checkout");
+    const orderId = order.data.id;
 
-    alert("Commande passée avec succès !");
-    await cartStore.loadCart();
+    try {
+      await api.post(`/orders/${orderId}/pay`);
+      alert("Commande passée et payée avec succès !");
+    } catch (payError: any) {
+      alert(
+        "Commande créée, mais le paiement a échoué : " +
+          (payError.response?.data?.message ||
+            "réessayez depuis vos commandes"),
+      );
+    }
 
     router.push("/account");
-  } catch (error) {
-    console.error("Erreur lors de la commande :", error);
-    alert("Impossible de passer la commande.");
-  } finally {
-    checkoutLoading.value = false;
+  } catch (checkoutError: any) {
+    alert(
+      checkoutError.response?.data?.message || "Erreur lors de la commande",
+    );
   }
 }
 </script>
