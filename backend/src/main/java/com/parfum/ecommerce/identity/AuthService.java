@@ -1,6 +1,7 @@
 package com.parfum.ecommerce.identity;
 
 import com.parfum.ecommerce.identity.dto.AuthResponse;
+import com.parfum.ecommerce.identity.dto.ChangePasswordRequest;
 import com.parfum.ecommerce.identity.dto.LoginRequest;
 import com.parfum.ecommerce.identity.dto.RegisterRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,4 +46,15 @@ public class AuthService {
         String token = jwtService.generateToken(user.getEmail());
         return new AuthResponse(token);
     }
+    public void changePassword(String userEmail, ChangePasswordRequest request) {
+    User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+
+    if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+        throw new IllegalArgumentException("Mot de passe actuel incorrect");
+    }
+
+    user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+    userRepository.save(user);
+}
 }
