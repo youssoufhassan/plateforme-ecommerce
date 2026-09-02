@@ -15,6 +15,13 @@ public class User {
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+    @Column(name = "first_name")
+private String firstName;
+
+@Column(name = "last_name")
+private String lastName;
+
+private String phone;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -40,4 +47,10 @@ private Set<Role> roles = new java.util.HashSet<>();
 public void setRoles(Set<Role> roles) { this.roles = roles; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getFirstName() { return firstName; }
+public void setFirstName(String firstName) { this.firstName = firstName; }
+public String getLastName() { return lastName; }
+public void setLastName(String lastName) { this.lastName = lastName; }
+public String getPhone() { return phone; }
+public void setPhone(String phone) { this.phone = phone; }
 }
