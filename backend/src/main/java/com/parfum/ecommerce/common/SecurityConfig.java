@@ -56,7 +56,9 @@ public class SecurityConfig {
 
                 // Adresses protégées
                 .requestMatchers("/api/addresses/**").authenticated()
-
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders/*/shipment").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+.requestMatchers("/api/products/admin/**").hasRole("ADMIN")
                 // Tout le reste protégé
                 .anyRequest().authenticated()
             )
@@ -75,7 +77,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-            "http://localhost:5174"
+            "http://localhost:5174",
+            "http://localhost:5173"
         ));
 
         config.setAllowedMethods(List.of(

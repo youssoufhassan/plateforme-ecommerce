@@ -105,4 +105,8 @@ public class OrderService {
 
         return new OrderResponse(order.getId(), order.getStatus(), order.getTotalAmount(), order.getCreatedAt(), items);
     }
+
+    public List<OrderResponse> getAllOrders() {
+    return orderRepository.findAll().stream().map(this::toResponse).toList();
+}
 }
