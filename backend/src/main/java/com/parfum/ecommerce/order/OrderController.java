@@ -30,4 +30,8 @@ public OrderResponse checkout(Authentication auth, @RequestBody(required = false
 
     public record CheckoutRequest(UUID addressId) {
     }
+    @GetMapping("/admin")
+public List<OrderResponse> getAllOrdersAdmin() {
+    return orderService.getAllOrders();
+}
 }
