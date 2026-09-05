@@ -1,9 +1,15 @@
-```vue
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { fetchMyOrders, type Order } from "../services/orderService";
+import { fetchProfile, updateProfile } from "../services/profileService";
+import {
+  fetchAddresses,
+  createAddress,
+  type Address,
+} from "../services/addressService";
+import { changePassword as changePasswordApi } from "../services/authService";
 import { useAuthStore } from "../stores/authStore";
 
 const authStore = useAuthStore();
@@ -16,10 +22,14 @@ const router = useRouter();
 type AccountTab = "orders" | "profile" | "addresses" | "security";
 
 /* =========================================================
-   ÉTAT
+   ONGLET ACTIF
 ========================================================= */
 
 const activeTab = ref<AccountTab>("orders");
+
+/* =========================================================
+   COMMANDES
+========================================================= */
 
 const orders = ref<Order[]>([]);
 const loadingOrders = ref(false);
@@ -27,8 +37,6 @@ const ordersError = ref("");
 
 /* =========================================================
    PROFIL
-   Pour le moment, les données qui ne viennent pas encore
-   du backend utilisent des valeurs par défaut.
 ========================================================= */
 
 const profile = ref({
@@ -36,21 +44,29 @@ const profile = ref({
   lastName: "",
   email: "",
   phone: "",
-  address: "",
-  city: "",
-  postalCode: "",
 });
-
-/* =========================================================
-   MESSAGE PROFIL
-========================================================= */
 
 const profileMessage = ref("");
 const profileMessageType = ref<"success" | "info" | "error">("info");
 
 /* =========================================================
+   ADRESSES
+========================================================= */
+
+const addresses = ref<Address[]>([]);
+
+const newAddress = ref({
+  street: "",
+  city: "",
+  postalCode: "",
+  country: "France",
+});
+
+const addressMessage = ref("");
+const addressMessageType = ref<"success" | "error">("success");
+
+/* =========================================================
    SÉCURITÉ
-   Fonctionnalité préparée pour le futur backend.
 ========================================================= */
 
 const security = ref({
@@ -60,9 +76,10 @@ const security = ref({
 });
 
 const securityMessage = ref("");
+const securityMessageType = ref<"success" | "error">("success");
 
 /* =========================================================
-   ÉTAPES COMMANDE
+   STATUT COMMANDES
 ========================================================= */
 
 const statusSteps = ["PENDING", "PAID", "PREPARING", "SHIPPED", "DELIVERED"];
@@ -76,22 +93,20 @@ const statusLabels: Record<string, string> = {
 };
 
 /* =========================================================
-   INFORMATIONS UTILISATEUR
+   NOM UTILISATEUR
 ========================================================= */
 
 const userDisplayName = computed(() => {
-  /*
-   * Pour l'instant, on utilise les informations disponibles.
-   * On pourra remplacer cela par authStore.user lorsque
-   * le backend exposera les informations complètes.
-   */
-
   if (profile.value.firstName || profile.value.lastName) {
     return `${profile.value.firstName} ${profile.value.lastName}`.trim();
   }
 
   return "Mon compte";
 });
+
+/* =========================================================
+   INITIALES
+========================================================= */
 
 const userInitials = computed(() => {
   const first = profile.value.firstName?.charAt(0) || "";
@@ -103,7 +118,7 @@ const userInitials = computed(() => {
 });
 
 /* =========================================================
-   STATUS
+   STATUT
 ========================================================= */
 
 function statusIndex(status: string): number {
@@ -121,11 +136,13 @@ function getStatusLabel(status: string): string {
 }
 
 /* =========================================================
-   FORMATAGE
+   FORMAT DATE
 ========================================================= */
 
 function formatDate(date: string): string {
-  if (!date) return "Date inconnue";
+  if (!date) {
+    return "Date inconnue";
+  }
 
   const parsedDate = new Date(date);
 
@@ -140,20 +157,30 @@ function formatDate(date: string): string {
   });
 }
 
+/* =========================================================
+   FORMAT PRIX
+========================================================= */
+
 function formatPrice(value: number): string {
   return Number(value || 0)
     .toFixed(2)
     .replace(".", ",");
 }
 
+/* =========================================================
+   ID COMMANDE
+========================================================= */
+
 function getOrderShortId(id: string): string {
-  if (!id) return "—";
+  if (!id) {
+    return "—";
+  }
 
   return id.slice(0, 8).toUpperCase();
 }
 
 /* =========================================================
-   CHARGEMENT DES COMMANDES
+   CHARGER LES COMMANDES
 ========================================================= */
 
 async function loadOrders() {
@@ -171,36 +198,60 @@ async function loadOrders() {
   }
 }
 
+/* =========================================================
+   CHARGER LE PROFIL
+========================================================= */
+
+async function loadProfile() {
+  try {
+    const data = await fetchProfile();
+
+    profile.value = {
+      firstName: data.firstName || "",
+      lastName: data.lastName || "",
+      email: data.email || "",
+      phone: data.phone || "",
+    };
+  } catch (error) {
+    console.error("Erreur lors du chargement du profil :", error);
+  }
+}
+
+/* =========================================================
+   CHARGER LES ADRESSES
+========================================================= */
+
+async function loadAddresses() {
+  try {
+    addresses.value = await fetchAddresses();
+  } catch (error) {
+    console.error("Erreur lors du chargement des adresses :", error);
+  }
+}
+
+/* =========================================================
+   CHARGEMENT INITIAL
+========================================================= */
+
 onMounted(async () => {
-  /*
-   * Valeurs par défaut temporaires.
-   * Elles seront remplacées par les données du backend
-   * lorsque l'API utilisateur sera disponible.
-   */
-
-  profile.value = {
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    postalCode: "",
-  };
-
-  await loadOrders();
+  await Promise.all([loadOrders(), loadProfile(), loadAddresses()]);
 });
 
 /* =========================================================
-   NAVIGATION
+   CHANGER D'ONGLET
 ========================================================= */
 
 function changeTab(tab: AccountTab) {
   activeTab.value = tab;
 
   profileMessage.value = "";
+  addressMessage.value = "";
   securityMessage.value = "";
 }
+
+/* =========================================================
+   RETOUR ACCUEIL
+========================================================= */
 
 function goToHome() {
   router.push("/");
@@ -217,45 +268,124 @@ function handleLogout() {
 }
 
 /* =========================================================
-   PROFIL
+   SAUVEGARDER LE PROFIL
 ========================================================= */
 
-function saveProfile() {
-  /*
-   * Le backend ne permet pas encore de sauvegarder ces
-   * informations.
-   *
-   * On simule donc une sauvegarde côté interface.
-   */
+async function saveProfile() {
+  profileMessage.value = "";
 
-  profileMessageType.value = "info";
+  try {
+    await updateProfile({
+      firstName: profile.value.firstName,
+      lastName: profile.value.lastName,
+      phone: profile.value.phone,
+    });
 
-  profileMessage.value =
-    "Tes informations sont prêtes. La sauvegarde sera disponible lorsque l'API utilisateur sera mise en place.";
+    profileMessageType.value = "success";
+
+    profileMessage.value = "Tes informations ont été enregistrées.";
+
+    await loadProfile();
+  } catch (error: any) {
+    console.error("Erreur lors de la modification du profil :", error);
+
+    profileMessageType.value = "error";
+
+    profileMessage.value =
+      error?.response?.data?.message ||
+      "Une erreur est survenue lors de la sauvegarde.";
+  }
 }
 
 /* =========================================================
-   SÉCURITÉ
+   CHANGER LE MOT DE PASSE
 ========================================================= */
 
-function changePassword() {
-  securityMessage.value =
-    "La modification du mot de passe sera disponible lorsque l'API de sécurité sera mise en place.";
+async function changePassword() {
+  securityMessage.value = "";
+
+  if (!security.value.currentPassword) {
+    securityMessageType.value = "error";
+    securityMessage.value = "Veuillez saisir votre mot de passe actuel.";
+    return;
+  }
+
+  if (!security.value.newPassword) {
+    securityMessageType.value = "error";
+    securityMessage.value = "Veuillez saisir un nouveau mot de passe.";
+    return;
+  }
+
+  if (security.value.newPassword !== security.value.confirmPassword) {
+    securityMessageType.value = "error";
+    securityMessage.value = "Les deux mots de passe ne correspondent pas.";
+    return;
+  }
+
+  try {
+    await changePasswordApi(
+      security.value.currentPassword,
+      security.value.newPassword,
+    );
+
+    securityMessageType.value = "success";
+
+    securityMessage.value = "Mot de passe modifié avec succès.";
+
+    security.value = {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    };
+  } catch (error: any) {
+    console.error("Erreur lors du changement de mot de passe :", error);
+
+    securityMessageType.value = "error";
+
+    securityMessage.value =
+      error?.response?.data?.message || "Le mot de passe actuel est incorrect.";
+  }
 }
 
 /* =========================================================
-   ADRESSES
+   AJOUTER UNE ADRESSE
 ========================================================= */
 
-function saveAddress() {
-  profileMessageType.value = "info";
+async function saveAddress() {
+  addressMessage.value = "";
 
-  profileMessage.value =
-    "La gestion des adresses sera disponible avec la prochaine version du backend.";
+  try {
+    await createAddress({
+      street: newAddress.value.street,
+      city: newAddress.value.city,
+      postalCode: newAddress.value.postalCode,
+      country: newAddress.value.country,
+    });
+
+    await loadAddresses();
+
+    newAddress.value = {
+      street: "",
+      city: "",
+      postalCode: "",
+      country: "France",
+    };
+
+    addressMessageType.value = "success";
+
+    addressMessage.value = "Adresse ajoutée avec succès.";
+  } catch (error: any) {
+    console.error("Erreur lors de l'ajout de l'adresse :", error);
+
+    addressMessageType.value = "error";
+
+    addressMessage.value =
+      error?.response?.data?.message || "Erreur lors de l'ajout de l'adresse.";
+  }
 }
 
 /* =========================================================
-   COMMANDE
+   STATUT ACTUEL
 ========================================================= */
 
 function getCurrentStatusText(status: string): string {
@@ -494,7 +624,7 @@ function getCurrentStatusText(status: string): string {
 
         <div v-else class="order-list">
           <article v-for="order in orders" :key="order.id" class="order-card">
-            <!-- HEADER COMMANDE -->
+            <!-- HEADER -->
 
             <div class="order-card-header">
               <div>
@@ -573,7 +703,8 @@ function getCurrentStatusText(status: string): string {
                 </div>
 
                 <span class="order-product-price">
-                  {{ formatPrice(item.unitPrice * item.quantity) }} €
+                  {{ formatPrice(item.unitPrice * item.quantity) }}
+                  €
                 </span>
               </div>
             </div>
@@ -596,13 +727,10 @@ function getCurrentStatusText(status: string): string {
           </div>
         </div>
 
-        <div class="account-message info">
-          Les informations personnelles seront synchronisées avec ton compte
-          lorsque l'API utilisateur sera disponible.
-        </div>
-
         <form class="profile-form" @submit.prevent="saveProfile">
           <div class="profile-grid">
+            <!-- PRÉNOM -->
+
             <div class="profile-field">
               <label for="firstName"> Prénom </label>
 
@@ -613,6 +741,8 @@ function getCurrentStatusText(status: string): string {
                 placeholder="Ton prénom"
               />
             </div>
+
+            <!-- NOM -->
 
             <div class="profile-field">
               <label for="lastName"> Nom </label>
@@ -625,16 +755,15 @@ function getCurrentStatusText(status: string): string {
               />
             </div>
 
+            <!-- EMAIL -->
+
             <div class="profile-field full">
               <label for="email"> Adresse e-mail </label>
 
-              <input
-                id="email"
-                v-model="profile.email"
-                type="email"
-                placeholder="ton@email.com"
-              />
+              <input id="email" v-model="profile.email" type="email" disabled />
             </div>
+
+            <!-- TÉLÉPHONE -->
 
             <div class="profile-field full">
               <label for="phone"> Numéro de téléphone </label>
@@ -648,48 +777,7 @@ function getCurrentStatusText(status: string): string {
             </div>
           </div>
 
-          <div class="form-section">
-            <div class="form-section-heading">
-              <h3>Adresse de livraison</h3>
-
-              <p>Utilisée pour tes prochaines commandes.</p>
-            </div>
-
-            <div class="profile-grid">
-              <div class="profile-field full">
-                <label for="address"> Adresse </label>
-
-                <input
-                  id="address"
-                  v-model="profile.address"
-                  type="text"
-                  placeholder="Numéro et rue"
-                />
-              </div>
-
-              <div class="profile-field">
-                <label for="city"> Ville </label>
-
-                <input
-                  id="city"
-                  v-model="profile.city"
-                  type="text"
-                  placeholder="Ville"
-                />
-              </div>
-
-              <div class="profile-field">
-                <label for="postalCode"> Code postal </label>
-
-                <input
-                  id="postalCode"
-                  v-model="profile.postalCode"
-                  type="text"
-                  placeholder="33000"
-                />
-              </div>
-            </div>
-          </div>
+          <!-- MESSAGE -->
 
           <div
             v-if="profileMessage"
@@ -698,6 +786,8 @@ function getCurrentStatusText(status: string): string {
           >
             {{ profileMessage }}
           </div>
+
+          <!-- BOUTON -->
 
           <button type="submit" class="primary-button">
             Enregistrer mes informations
@@ -716,12 +806,18 @@ function getCurrentStatusText(status: string): string {
 
             <h2>Mes adresses</h2>
 
-            <p>Gère tes adresses de livraison et de facturation.</p>
+            <p>Gère tes adresses de livraison.</p>
           </div>
         </div>
 
-        <div class="address-grid">
-          <article class="address-card">
+        <!-- ADRESSES EXISTANTES -->
+
+        <div v-if="addresses.length > 0" class="address-grid">
+          <article
+            v-for="addr in addresses"
+            :key="addr.id"
+            class="address-card"
+          >
             <div class="address-card-header">
               <div>
                 <span class="address-icon">
@@ -740,60 +836,103 @@ function getCurrentStatusText(status: string): string {
                   </svg>
                 </span>
 
-                <h3>Adresse de livraison</h3>
-              </div>
-
-              <span class="address-badge"> Par défaut </span>
-            </div>
-
-            <div class="address-placeholder">
-              <p>Aucune adresse enregistrée.</p>
-
-              <span>
-                La gestion des adresses sera connectée au backend prochainement.
-              </span>
-            </div>
-
-            <button type="button" class="secondary-button" @click="saveAddress">
-              Ajouter une adresse
-            </button>
-          </article>
-
-          <article class="address-card">
-            <div class="address-card-header">
-              <div>
-                <span class="address-icon">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.7"
-                  >
-                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                    <path d="M3 10h18" />
-                  </svg>
-                </span>
-
-                <h3>Adresse de facturation</h3>
+                <h3>
+                  {{ addr.street }}
+                </h3>
               </div>
             </div>
 
-            <div class="address-placeholder">
-              <p>Aucune adresse enregistrée.</p>
+            <p>{{ addr.city }}, {{ addr.postalCode }}</p>
 
-              <span>
-                Cette fonctionnalité sera disponible avec le backend de gestion
-                des adresses.
-              </span>
-            </div>
-
-            <button type="button" class="secondary-button" @click="saveAddress">
-              Ajouter une adresse
-            </button>
+            <p>
+              {{ addr.country }}
+            </p>
           </article>
         </div>
+
+        <!-- AUCUNE ADRESSE -->
+
+        <p v-else style="color: var(--ink-soft); margin-bottom: var(--space-4)">
+          Aucune adresse enregistrée pour l'instant.
+        </p>
+
+        <!-- AJOUT ADRESSE -->
+
+        <form class="profile-form" @submit.prevent="saveAddress">
+          <div class="profile-grid">
+            <!-- RUE -->
+
+            <div class="profile-field full">
+              <label for="street"> Rue </label>
+
+              <input
+                id="street"
+                v-model="newAddress.street"
+                type="text"
+                required
+                placeholder="12 rue de la Paix"
+              />
+            </div>
+
+            <!-- VILLE -->
+
+            <div class="profile-field">
+              <label for="city"> Ville </label>
+
+              <input
+                id="city"
+                v-model="newAddress.city"
+                type="text"
+                required
+                placeholder="Bordeaux"
+              />
+            </div>
+
+            <!-- CODE POSTAL -->
+
+            <div class="profile-field">
+              <label for="postalCode"> Code postal </label>
+
+              <input
+                id="postalCode"
+                v-model="newAddress.postalCode"
+                type="text"
+                required
+                placeholder="33000"
+              />
+            </div>
+
+            <!-- PAYS -->
+
+            <div class="profile-field full">
+              <label for="country"> Pays </label>
+
+              <input
+                id="country"
+                v-model="newAddress.country"
+                type="text"
+                required
+                placeholder="France"
+              />
+            </div>
+          </div>
+
+          <!-- MESSAGE -->
+
+          <div
+            v-if="addressMessage"
+            class="account-message"
+            :class="addressMessageType"
+          >
+            {{ addressMessage }}
+          </div>
+
+          <!-- BOUTON -->
+
+          <button type="submit" class="primary-button">
+            Ajouter cette adresse
+          </button>
+        </form>
       </section>
 
       <!-- =====================================================
@@ -810,6 +949,8 @@ function getCurrentStatusText(status: string): string {
             <p>Gère ton mot de passe et la sécurité de ton compte.</p>
           </div>
         </div>
+
+        <!-- INFO -->
 
         <div class="security-box">
           <div class="security-icon">
@@ -829,11 +970,18 @@ function getCurrentStatusText(status: string): string {
           <div>
             <h3>Modifier mon mot de passe</h3>
 
-            <p>Cette fonctionnalité sera reliée à l'API d'authentification.</p>
+            <p>
+              Utilise un mot de passe suffisamment sécurisé pour protéger ton
+              compte.
+            </p>
           </div>
         </div>
 
+        <!-- FORMULAIRE -->
+
         <form class="security-form" @submit.prevent="changePassword">
+          <!-- ANCIEN MOT DE PASSE -->
+
           <div class="profile-field">
             <label for="currentPassword"> Mot de passe actuel </label>
 
@@ -841,9 +989,12 @@ function getCurrentStatusText(status: string): string {
               id="currentPassword"
               v-model="security.currentPassword"
               type="password"
+              required
               placeholder="••••••••"
             />
           </div>
+
+          <!-- NOUVEAU MOT DE PASSE -->
 
           <div class="profile-field">
             <label for="newPassword"> Nouveau mot de passe </label>
@@ -852,9 +1003,12 @@ function getCurrentStatusText(status: string): string {
               id="newPassword"
               v-model="security.newPassword"
               type="password"
+              required
               placeholder="••••••••"
             />
           </div>
+
+          <!-- CONFIRMATION -->
 
           <div class="profile-field">
             <label for="confirmPassword">
@@ -865,13 +1019,22 @@ function getCurrentStatusText(status: string): string {
               id="confirmPassword"
               v-model="security.confirmPassword"
               type="password"
+              required
               placeholder="••••••••"
             />
           </div>
 
-          <div v-if="securityMessage" class="account-message info">
+          <!-- MESSAGE -->
+
+          <div
+            v-if="securityMessage"
+            class="account-message"
+            :class="securityMessageType"
+          >
             {{ securityMessage }}
           </div>
+
+          <!-- BOUTON -->
 
           <button type="submit" class="primary-button">
             Modifier le mot de passe

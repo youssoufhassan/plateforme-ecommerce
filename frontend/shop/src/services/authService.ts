@@ -12,3 +12,9 @@ export async function register(
   const response = await api.post("/auth/register", { email, password });
   return response.data.token;
 }
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  await api.put("/auth/change-password", { currentPassword, newPassword });
+}

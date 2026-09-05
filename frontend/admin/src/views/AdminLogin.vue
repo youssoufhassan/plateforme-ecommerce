@@ -11,11 +11,23 @@ const router = useRouter();
 
 async function handleSubmit() {
   error.value = "";
+
+  console.log("EMAIL:", email.value);
+  console.log("PASSWORD:", password.value);
+
   try {
     await authStore.login(email.value, password.value);
+    console.log("LOGIN OK");
     router.push("/");
-  } catch (e) {
-    error.value = "Identifiants incorrects ou accès non autorisé.";
+  } catch (e: any) {
+    console.error("LOGIN FAILED");
+    console.error("STATUS:", e.response?.status);
+    console.error("DATA:", e.response?.data);
+    console.error("URL:", e.config?.url);
+    console.error("METHOD:", e.config?.method);
+    console.error("REQUEST DATA:", e.config?.data);
+
+    error.value = `Erreur ${e.response?.status ?? "réseau"}`;
   }
 }
 </script>
