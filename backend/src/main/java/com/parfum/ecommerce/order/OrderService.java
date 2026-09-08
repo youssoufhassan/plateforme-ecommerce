@@ -102,8 +102,27 @@ public class OrderService {
         List<OrderItemResponse> items = order.getItems().stream()
                 .map(i -> new OrderItemResponse(i.getProduct().getName(), i.getQuantity(), i.getUnitPrice()))
                 .toList();
+                String customerFirstName = null;
+String customerLastName = null;
+String customerEmail = null;
 
-        return new OrderResponse(order.getId(), order.getStatus(), order.getTotalAmount(), order.getCreatedAt(), items);
+if (order.getUser() != null) {
+    customerFirstName = order.getUser().getFirstName();
+    customerLastName = order.getUser().getLastName();
+    customerEmail = order.getUser().getEmail();
+}
+
+return new OrderResponse(
+    order.getId(),
+    order.getStatus(),
+    order.getTotalAmount(),
+    order.getCreatedAt(),
+    customerFirstName,
+    customerLastName,
+    customerEmail,
+    items
+);
+
     }
 
     public List<OrderResponse> getAllOrders() {
