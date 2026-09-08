@@ -4,6 +4,14 @@ import api from "../services/api";
 import PageHeader from "../components/PageHeader.vue";
 import StatCard from "../components/StatCard.vue";
 
+interface RecentOrder {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+}
 interface DashboardStats {
   totalOrders: number;
   totalCustomers: number;
@@ -11,7 +19,16 @@ interface DashboardStats {
   totalRevenue: number;
   pendingOrders: number;
 }
-
+interface RevenuePoint {
+  date: string;
+  revenue: number;
+}
+const revenueData = ref<RevenuePoint[]>([]);
+const revenueLoading = ref(true);
+const revenueError = ref("");
+const recentOrders = ref<RecentOrder[]>([]);
+const recentOrdersLoading = ref(true);
+const recentOrdersError = ref("");
 const stats = ref<DashboardStats>({
   totalOrders: 0,
   totalCustomers: 0,
@@ -60,14 +77,85 @@ async function loadDashboard() {
     loading.value = false;
   }
 }
-
-function retry() {
-  loadDashboard();
+function formatOrderAmount(amount: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  }).format(amount);
 }
 
-onMounted(loadDashboard);
-</script>
+function formatOrderDate(date: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
+}
 
+function getStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    PENDING: "En attente",
+    CONFIRMED: "Confirmée",
+    SHIPPED: "Expédiée",
+    DELIVERED: "Livrée",
+    CANCELLED: "Annulée",
+  };
+
+  return labels[status] ?? status;
+}
+
+function getStatusClass(status: string) {
+  return `status-${status.toLowerCase()}`;
+}
+async function loadRecentOrders() {
+  recentOrdersLoading.value = true;
+  recentOrdersError.value = "";
+
+  try {
+    const response = await api.get("/admin/dashboard/recent-orders");
+
+    recentOrders.value = response.data.map((order: RecentOrder) => ({
+      ...order,
+      totalAmount: Number(order.totalAmount ?? 0),
+    }));
+  } catch (e) {
+    recentOrdersError.value = "Impossible de charger les commandes récentes.";
+  } finally {
+    recentOrdersLoading.value = false;
+  }
+}
+async function loadRevenue() {
+  revenueLoading.value = true;
+  revenueError.value = "";
+
+  try {
+    const response = await api.get("/admin/dashboard/revenue");
+
+    revenueData.value = response.data.map((item: RevenuePoint) => ({
+      date: item.date,
+      revenue: Number(item.revenue ?? 0),
+    }));
+  } catch (e) {
+    revenueError.value = "Impossible de charger l'historique des ventes.";
+  } finally {
+    revenueLoading.value = false;
+  }
+}
+function retry() {
+  loadDashboard();
+  loadRecentOrders();
+  loadRevenue();
+}
+
+onMounted(() => {
+  loadDashboard();
+  loadRecentOrders();
+  loadRevenue();
+});
+</script>
 <template>
   <div class="dashboard">
     <!-- Header -->
@@ -155,7 +243,7 @@ onMounted(loadDashboard);
               <h2>Chiffre d'affaires</h2>
             </div>
 
-            <span class="card-period">Vue actuelle</span>
+            <span class="card-period">7 derniers jours</span>
           </div>
 
           <div class="revenue-content">
@@ -166,18 +254,147 @@ onMounted(loadDashboard);
             <p>Chiffre d'affaires généré par les commandes prises en compte.</p>
           </div>
 
-          <div class="chart-placeholder">
-            <div class="chart-grid-line"></div>
-            <div class="chart-grid-line"></div>
-            <div class="chart-grid-line"></div>
+          <!-- Revenue chart -->
+          <div class="revenue-chart">
+            <!-- Loading -->
+            <div v-if="revenueLoading" class="chart-loading">
+              Chargement du graphique...
+            </div>
 
-            <div class="chart-message">
-              <span class="chart-icon">⌁</span>
-              <strong>Historique des ventes</strong>
-              <span>
-                Les données d'évolution seront disponibles avec l'endpoint
-                analytics.
-              </span>
+            <!-- Error -->
+            <div v-else-if="revenueError" class="chart-error">
+              <span>!</span>
+              <p>{{ revenueError }}</p>
+              <button type="button" @click="loadRevenue">Réessayer</button>
+            </div>
+
+            <!-- Chart -->
+            <div v-else-if="revenueData.length" class="chart">
+              <div
+                v-for="point in revenueData"
+                :key="point.date"
+                class="chart-column"
+              >
+                <div class="chart-value">
+                  {{ formatOrderAmount(point.revenue) }}
+                </div>
+
+                <div
+                  class="chart-bar"
+                  :style="{
+                    height: `${Math.max(
+                      8,
+                      (point.revenue /
+                        Math.max(...revenueData.map((p) => p.revenue), 1)) *
+                        150,
+                    )}px`,
+                  }"
+                ></div>
+
+                <div class="chart-date">
+                  {{
+                    new Intl.DateTimeFormat("fr-FR", {
+                      weekday: "short",
+                    }).format(new Date(point.date))
+                  }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty -->
+            <div v-else class="chart-empty">
+              Aucune vente enregistrée sur cette période.
+            </div>
+          </div>
+
+          <!-- Recent orders -->
+          <div class="recent-orders">
+            <div class="recent-orders-header">
+              <div>
+                <span class="recent-orders-title"> Dernières activités </span>
+
+                <span class="recent-orders-subtitle">
+                  Les 5 commandes les plus récentes
+                </span>
+              </div>
+
+              <router-link to="/orders" class="view-all-link">
+                Tout voir →
+              </router-link>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="recentOrdersLoading" class="recent-orders-loading">
+              <div v-for="i in 5" :key="i" class="recent-order-skeleton">
+                <div class="skeleton skeleton-avatar"></div>
+
+                <div class="recent-skeleton-content">
+                  <div class="skeleton skeleton-order-name"></div>
+                  <div class="skeleton skeleton-order-date"></div>
+                </div>
+
+                <div class="skeleton skeleton-order-price"></div>
+              </div>
+            </div>
+
+            <!-- Error -->
+            <div v-else-if="recentOrdersError" class="recent-orders-error">
+              <span>!</span>
+
+              <p>{{ recentOrdersError }}</p>
+
+              <button type="button" @click="loadRecentOrders">Réessayer</button>
+            </div>
+
+            <!-- Empty -->
+            <div
+              v-else-if="recentOrders.length === 0"
+              class="recent-orders-empty"
+            >
+              <span>□</span>
+
+              <strong>Aucune commande</strong>
+
+              <small> Les nouvelles commandes apparaîtront ici. </small>
+            </div>
+
+            <!-- Orders -->
+            <div v-else class="recent-orders-list">
+              <router-link
+                v-for="order in recentOrders"
+                :key="order.id"
+                to="/orders"
+                class="recent-order"
+              >
+                <div class="order-avatar">
+                  {{ order.customerName.charAt(0).toUpperCase() }}
+                </div>
+
+                <div class="order-main">
+                  <strong>
+                    {{ order.customerName }}
+                  </strong>
+
+                  <span>
+                    #{{ order.id.slice(0, 8) }}
+                    ·
+                    {{ formatOrderDate(order.createdAt) }}
+                  </span>
+                </div>
+
+                <div class="order-right">
+                  <strong>
+                    {{ formatOrderAmount(order.totalAmount) }}
+                  </strong>
+
+                  <span
+                    class="order-status"
+                    :class="getStatusClass(order.status)"
+                  >
+                    {{ getStatusLabel(order.status) }}
+                  </span>
+                </div>
+              </router-link>
             </div>
           </div>
         </article>
@@ -217,15 +434,16 @@ onMounted(loadDashboard);
             <div class="pending-icon">◷</div>
 
             <div>
-              <strong
-                >{{ stats.pendingOrders }} commande{{
+              <strong>
+                {{ stats.pendingOrders }} commande{{
                   stats.pendingOrders > 1 ? "s" : ""
-                }}</strong
-              >
-              <span
-                >nécessite{{ stats.pendingOrders > 1 ? "nt" : "" }} votre
-                attention</span
-              >
+                }}
+              </strong>
+
+              <span>
+                nécessite{{ stats.pendingOrders > 1 ? "nt" : "" }}
+                votre attention
+              </span>
             </div>
           </div>
         </article>
@@ -301,46 +519,52 @@ onMounted(loadDashboard);
         <div class="quick-grid">
           <router-link to="/products" class="quick-action">
             <span class="quick-icon">+</span>
+
             <span>
               <strong>Ajouter un produit</strong>
               <small>Créer une nouvelle référence</small>
             </span>
+
             <span class="quick-arrow">→</span>
           </router-link>
 
           <router-link to="/categories" class="quick-action">
             <span class="quick-icon">▤</span>
+
             <span>
               <strong>Gérer les catégories</strong>
               <small>Organiser votre catalogue</small>
             </span>
+
             <span class="quick-arrow">→</span>
           </router-link>
 
           <router-link to="/orders" class="quick-action">
             <span class="quick-icon">□</span>
+
             <span>
               <strong>Voir les commandes</strong>
               <small>Suivre les commandes clients</small>
             </span>
+
             <span class="quick-arrow">→</span>
           </router-link>
 
           <router-link to="/customers" class="quick-action">
             <span class="quick-icon">♙</span>
+
             <span>
               <strong>Voir les clients</strong>
               <small>Consulter votre clientèle</small>
             </span>
+
             <span class="quick-arrow">→</span>
           </router-link>
         </div>
       </section>
     </template>
-    ```
   </div>
 </template>
-
 <style scoped>
 .dashboard {
   width: 100%;
@@ -914,5 +1138,355 @@ onMounted(loadDashboard);
   .retry-button {
     width: 100%;
   }
+}
+/* RECENT ORDERS */
+
+.recent-orders {
+  margin-top: 24px;
+}
+
+.recent-orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef0f2;
+}
+
+.recent-orders-title,
+.recent-orders-subtitle {
+  display: block;
+}
+
+.recent-orders-title {
+  color: #555b63;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.recent-orders-subtitle {
+  margin-top: 3px;
+  color: #9a9fa7;
+  font-size: 0.62rem;
+}
+
+.view-all-link {
+  flex-shrink: 0;
+  color: #555b63;
+  text-decoration: none;
+  font-size: 0.65rem;
+  font-weight: 650;
+}
+
+.view-all-link:hover {
+  color: #111315;
+}
+
+/* ORDER */
+
+.recent-orders-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-order {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f1f3;
+  color: inherit;
+  text-decoration: none;
+}
+
+.recent-order:last-child {
+  border-bottom: 0;
+}
+
+.recent-order:hover {
+  background: #fafafa;
+}
+
+.order-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #f1f2f3;
+  color: #555b63;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.order-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.order-main strong,
+.order-main span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-main strong {
+  color: #353940;
+  font-size: 0.69rem;
+  font-weight: 650;
+}
+
+.order-main span {
+  margin-top: 3px;
+  color: #989da5;
+  font-size: 0.59rem;
+}
+
+.order-right {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.order-right > strong {
+  display: block;
+  color: #25282c;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.order-status {
+  display: inline-flex;
+  margin-top: 4px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 0.55rem;
+  font-weight: 700;
+}
+
+/* STATUS */
+
+.status-pending {
+  background: #f5f0e7;
+  color: #786b58;
+}
+
+.status-confirmed {
+  background: #edf2f7;
+  color: #52677c;
+}
+
+.status-shipped {
+  background: #edf1f6;
+  color: #52657a;
+}
+
+.status-delivered {
+  background: #edf5ef;
+  color: #4d7459;
+}
+
+.status-cancelled {
+  background: #f7eded;
+  color: #8a5555;
+}
+
+/* LOADING */
+
+.recent-orders-loading {
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-order-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+.recent-skeleton-content {
+  flex: 1;
+}
+
+.skeleton-order-name {
+  width: 100px;
+  height: 9px;
+}
+
+.skeleton-order-date {
+  width: 140px;
+  height: 7px;
+  margin-top: 6px;
+}
+
+.skeleton-order-price {
+  width: 60px;
+  height: 9px;
+}
+
+/* ERROR */
+
+.recent-orders-error {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 18px 0;
+}
+
+.recent-orders-error > span {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #f7e1e1;
+  color: #a8322b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.recent-orders-error p {
+  flex: 1;
+  margin: 0;
+  color: #777d85;
+  font-size: 0.65rem;
+}
+
+.recent-orders-error button {
+  border: 1px solid #dedfe2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #555b63;
+  padding: 6px 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 650;
+}
+
+/* EMPTY */
+
+.recent-orders-empty {
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  text-align: center;
+}
+
+.recent-orders-empty > span {
+  color: #a0a5ad;
+  font-size: 1.2rem;
+}
+
+.recent-orders-empty strong {
+  color: #656b74;
+  font-size: 0.7rem;
+}
+
+.recent-orders-empty small {
+  color: #9a9fa7;
+  font-size: 0.6rem;
+}
+/* =========================
+   Revenue chart
+========================= */
+
+.revenue-chart {
+  width: 100%;
+  height: 240px;
+  margin-top: 24px;
+  padding: 20px 10px 10px;
+  border-top: 1px solid #eee;
+}
+
+.chart {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-column {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chart-value {
+  font-size: 11px;
+  color: #777;
+  white-space: nowrap;
+}
+
+.chart-bar {
+  width: 32px;
+  min-height: 8px;
+  border-radius: 6px 6px 2px 2px;
+  background: #111;
+  transition: height 0.3s ease;
+}
+
+.chart-date {
+  font-size: 11px;
+  color: #888;
+  text-transform: capitalize;
+}
+
+.chart-loading,
+.chart-empty {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  font-size: 14px;
+}
+
+.chart-error {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #dc2626;
+}
+
+.chart-error p {
+  margin: 0;
+}
+
+.chart-error button {
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  cursor: pointer;
+  color: inherit;
 }
 </style>

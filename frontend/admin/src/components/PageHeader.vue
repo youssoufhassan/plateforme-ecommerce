@@ -1,3 +1,4 @@
+```vue
 <script setup lang="ts">
 withDefaults(
   defineProps<{
@@ -28,7 +29,6 @@ const emit = defineEmits<{
           {{ eyebrow }}
         </span>
 
-        ```
         <h1>{{ title }}</h1>
 
         <p v-if="subtitle">
@@ -46,7 +46,6 @@ const emit = defineEmits<{
         {{ actionLabel }}
       </button>
     </div>
-    ```
   </header>
 </template>
 
@@ -147,3 +146,4 @@ const emit = defineEmits<{
   }
 }
 </style>
+```

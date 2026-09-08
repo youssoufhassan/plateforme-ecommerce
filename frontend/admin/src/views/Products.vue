@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import api from "../services/api";
 import PageHeader from "../components/PageHeader.vue";
+import { fullImageUrl } from "../services/productService";
 
 interface Product {
   id: string;
@@ -10,11 +11,21 @@ interface Product {
   price: number;
   stockQuantity: number;
   categoryName: string;
+  categoryId?: string;
+  imageUrl?: string;
+  imageUrls?: string[];
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 type StockFilter = "all" | "available" | "low" | "out";
 
 const products = ref<Product[]>([]);
+const allCategories = ref<Category[]>([]);
+
 const loading = ref(true);
 const submitting = ref(false);
 
@@ -36,12 +47,17 @@ const form = ref({
   description: "",
   price: 0,
   stockQuantity: 0,
+  categoryId: "",
 });
 
 const page = ref(1);
 const perPage = 10;
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+/* ================================
+   LOAD DATA
+================================ */
 
 async function loadProducts() {
   loading.value = true;
@@ -57,10 +73,29 @@ async function loadProducts() {
   }
 }
 
-onMounted(loadProducts);
+async function loadCategories() {
+  try {
+    const response = await api.get("/categories");
+
+    allCategories.value = Array.isArray(response.data) ? response.data : [];
+  } catch (e) {
+    showToast("Impossible de charger les catégories.", "error");
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadProducts(), loadCategories()]);
+});
+
+/* ================================
+   TOAST
+================================ */
 
 function showToast(message: string, type: "success" | "error" = "success") {
-  toast.value = { message, type };
+  toast.value = {
+    message,
+    type,
+  };
 
   if (toastTimer) {
     clearTimeout(toastTimer);
@@ -71,6 +106,10 @@ function showToast(message: string, type: "success" | "error" = "success") {
   }, 3500);
 }
 
+/* ================================
+   FORM
+================================ */
+
 function resetForm() {
   editingId.value = null;
 
@@ -79,6 +118,7 @@ function resetForm() {
     description: "",
     price: 0,
     stockQuantity: 0,
+    categoryId: "",
   };
 }
 
@@ -90,11 +130,16 @@ function openCreate() {
 function openEdit(product: Product) {
   editingId.value = product.id;
 
+  const category = allCategories.value.find(
+    (item) => item.name === product.categoryName,
+  );
+
   form.value = {
     name: product.name,
     description: product.description || "",
     price: Number(product.price),
     stockQuantity: Number(product.stockQuantity),
+    categoryId: category?.id || "",
   };
 
   showForm.value = true;
@@ -110,16 +155,25 @@ function closeForm() {
 function validateForm() {
   if (!form.value.name.trim()) {
     showToast("Le nom du produit est obligatoire.", "error");
+
     return false;
   }
 
-  if (form.value.price < 0) {
-    showToast("Le prix ne peut pas être négatif.", "error");
+  if (form.value.price <= 0) {
+    showToast("Le prix doit être supérieur à 0.", "error");
+
     return false;
   }
 
   if (form.value.stockQuantity < 0) {
     showToast("Le stock ne peut pas être négatif.", "error");
+
+    return false;
+  }
+
+  if (!form.value.categoryId) {
+    showToast("Veuillez sélectionner une catégorie.", "error");
+
     return false;
   }
 
@@ -127,7 +181,9 @@ function validateForm() {
 }
 
 async function submitForm() {
-  if (submitting.value || !validateForm()) return;
+  if (submitting.value || !validateForm()) {
+    return;
+  }
 
   submitting.value = true;
 
@@ -136,14 +192,17 @@ async function submitForm() {
     description: form.value.description.trim(),
     price: Number(form.value.price),
     stockQuantity: Number(form.value.stockQuantity),
+    categoryId: form.value.categoryId || null,
   };
 
   try {
     if (editingId.value) {
       await api.put(`/products/admin/${editingId.value}`, payload);
+
       showToast("Produit modifié avec succès.");
     } else {
       await api.post("/products/admin", payload);
+
       showToast("Produit créé avec succès.");
     }
 
@@ -161,6 +220,10 @@ async function submitForm() {
     submitting.value = false;
   }
 }
+
+/* ================================
+   DELETE
+================================ */
 
 async function deleteProduct(product: Product) {
   const confirmed = window.confirm(
@@ -187,6 +250,10 @@ async function deleteProduct(product: Product) {
   }
 }
 
+/* ================================
+   STOCK
+================================ */
+
 function getStockStatus(stock: number) {
   if (stock <= 0) {
     return {
@@ -208,12 +275,20 @@ function getStockStatus(stock: number) {
   };
 }
 
+/* ================================
+   FORMAT
+================================ */
+
 function formatPrice(price: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "EUR",
   }).format(Number(price) || 0);
 }
+
+/* ================================
+   CATEGORIES
+================================ */
 
 const categories = computed(() => {
   const values = products.value
@@ -222,6 +297,10 @@ const categories = computed(() => {
 
   return [...new Set(values)].sort((a, b) => a.localeCompare(b, "fr"));
 });
+
+/* ================================
+   FILTERING / SORTING
+================================ */
 
 const filtered = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -271,6 +350,10 @@ const filtered = computed(() => {
   });
 });
 
+/* ================================
+   PAGINATION
+================================ */
+
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(filtered.value.length / perPage)),
 );
@@ -282,7 +365,9 @@ const paginated = computed(() => {
 });
 
 const pageStart = computed(() => {
-  if (!filtered.value.length) return 0;
+  if (!filtered.value.length) {
+    return 0;
+  }
 
   return (page.value - 1) * perPage + 1;
 });
@@ -290,6 +375,10 @@ const pageStart = computed(() => {
 const pageEnd = computed(() =>
   Math.min(page.value * perPage, filtered.value.length),
 );
+
+/* ================================
+   STATISTICS
+================================ */
 
 const totalStock = computed(() =>
   products.value.reduce(
@@ -313,8 +402,14 @@ const availableCount = computed(
   () => products.value.filter((product) => product.stockQuantity > 5).length,
 );
 
+/* ================================
+   PAGINATION / FILTERS
+================================ */
+
 function changePage(newPage: number) {
-  if (newPage < 1 || newPage > totalPages.value) return;
+  if (newPage < 1 || newPage > totalPages.value) {
+    return;
+  }
 
   page.value = newPage;
 }
@@ -338,6 +433,8 @@ function handleFilterChange() {
 
 <template>
   <div class="products-page">
+    <!-- HEADER -->
+
     <PageHeader
       eyebrow="Catalogue"
       title="Produits"
@@ -347,15 +444,17 @@ function handleFilterChange() {
       @action="openCreate"
     />
 
-    ```
-    <!-- Catalogue statistics -->
+    <!-- STATISTICS -->
+
     <section class="catalogue-stats">
       <article class="catalogue-stat">
         <div class="stat-icon">◇</div>
 
         <div>
           <span>Total produits</span>
-          <strong>{{ products.length }}</strong>
+          <strong>
+            {{ products.length }}
+          </strong>
         </div>
       </article>
 
@@ -364,7 +463,9 @@ function handleFilterChange() {
 
         <div>
           <span>Stock total</span>
-          <strong>{{ totalStock }}</strong>
+          <strong>
+            {{ totalStock }}
+          </strong>
         </div>
       </article>
 
@@ -373,7 +474,9 @@ function handleFilterChange() {
 
         <div>
           <span>Stock faible</span>
-          <strong>{{ lowStockCount }}</strong>
+          <strong>
+            {{ lowStockCount }}
+          </strong>
         </div>
       </article>
 
@@ -382,12 +485,15 @@ function handleFilterChange() {
 
         <div>
           <span>En rupture</span>
-          <strong>{{ outOfStockCount }}</strong>
+          <strong>
+            {{ outOfStockCount }}
+          </strong>
         </div>
       </article>
     </section>
 
-    <!-- Filters -->
+    <!-- FILTERS -->
+
     <section class="products-toolbar">
       <div class="search-wrapper">
         <span class="search-icon">⌕</span>
@@ -424,8 +530,11 @@ function handleFilterChange() {
           @change="handleFilterChange"
         >
           <option value="all">Tous les stocks</option>
+
           <option value="available">Disponible</option>
+
           <option value="low">Stock faible</option>
+
           <option value="out">Rupture</option>
         </select>
 
@@ -435,20 +544,30 @@ function handleFilterChange() {
           @change="handleFilterChange"
         >
           <option value="name-asc">Nom : A → Z</option>
+
           <option value="name-desc">Nom : Z → A</option>
+
           <option value="price-asc">Prix croissant</option>
+
           <option value="price-desc">Prix décroissant</option>
+
           <option value="stock-asc">Stock croissant</option>
+
           <option value="stock-desc">Stock décroissant</option>
         </select>
       </div>
     </section>
 
-    <!-- Results information -->
+    <!-- RESULTS -->
+
     <div class="results-bar">
       <div>
-        <strong>{{ filtered.length }}</strong>
+        <strong>
+          {{ filtered.length }}
+        </strong>
+
         produit{{ filtered.length > 1 ? "s" : "" }}
+
         <span
           v-if="search || categoryFilter !== 'all' || stockFilter !== 'all'"
         >
@@ -466,7 +585,8 @@ function handleFilterChange() {
       </button>
     </div>
 
-    <!-- Loading -->
+    <!-- LOADING -->
+
     <section v-if="loading" class="products-table-card">
       <div class="loading-table">
         <div v-for="i in 7" :key="i" class="loading-row">
@@ -479,7 +599,8 @@ function handleFilterChange() {
       </div>
     </section>
 
-    <!-- Empty -->
+    <!-- EMPTY -->
+
     <section v-else-if="filtered.length === 0" class="empty-products">
       <div class="empty-icon">◇</div>
 
@@ -514,7 +635,8 @@ function handleFilterChange() {
       </button>
     </section>
 
-    <!-- Products -->
+    <!-- PRODUCTS -->
+
     <section v-else class="products-table-card">
       <div class="table-wrapper">
         <table class="products-table">
@@ -532,13 +654,28 @@ function handleFilterChange() {
           <tbody>
             <tr v-for="product in paginated" :key="product.id">
               <td>
+                <img
+                  v-if="product.imageUrl"
+                  :src="fullImageUrl(product.imageUrl)"
+                  :alt="product.name"
+                  class="product-thumb"
+                />
+
+                <div v-else class="product-thumb-placeholder">
+                  {{ product.name.charAt(0).toUpperCase() }}
+                </div>
+              </td>
+
+              <td>
                 <div class="product-cell">
                   <div class="product-placeholder">
                     {{ product.name.charAt(0).toUpperCase() }}
                   </div>
 
                   <div class="product-info">
-                    <strong>{{ product.name }}</strong>
+                    <strong>
+                      {{ product.name }}
+                    </strong>
 
                     <span>
                       {{ product.description || "Aucune description" }}
@@ -565,6 +702,7 @@ function handleFilterChange() {
                   :class="{
                     'stock-number-low':
                       product.stockQuantity > 0 && product.stockQuantity <= 5,
+
                     'stock-number-out': product.stockQuantity <= 0,
                   }"
                 >
@@ -578,6 +716,7 @@ function handleFilterChange() {
                   :class="getStockStatus(product.stockQuantity).className"
                 >
                   <span class="badge-dot"></span>
+
                   {{ getStockStatus(product.stockQuantity).label }}
                 </span>
               </td>
@@ -610,7 +749,8 @@ function handleFilterChange() {
         </table>
       </div>
 
-      <!-- Mobile cards -->
+      <!-- MOBILE -->
+
       <div class="mobile-products">
         <article
           v-for="product in paginated"
@@ -624,7 +764,10 @@ function handleFilterChange() {
               </div>
 
               <div class="product-info">
-                <strong>{{ product.name }}</strong>
+                <strong>
+                  {{ product.name }}
+                </strong>
+
                 <span>
                   {{ product.categoryName || "Sans catégorie" }}
                 </span>
@@ -653,12 +796,18 @@ function handleFilterChange() {
           <div class="mobile-product-details">
             <div>
               <span>Prix</span>
-              <strong>{{ formatPrice(product.price) }}</strong>
+
+              <strong>
+                {{ formatPrice(product.price) }}
+              </strong>
             </div>
 
             <div>
               <span>Stock</span>
-              <strong>{{ product.stockQuantity }}</strong>
+
+              <strong>
+                {{ product.stockQuantity }}
+              </strong>
             </div>
 
             <span
@@ -666,13 +815,15 @@ function handleFilterChange() {
               :class="getStockStatus(product.stockQuantity).className"
             >
               <span class="badge-dot"></span>
+
               {{ getStockStatus(product.stockQuantity).label }}
             </span>
           </div>
         </article>
       </div>
 
-      <!-- Pagination -->
+      <!-- PAGINATION -->
+
       <footer class="pagination-footer">
         <span class="pagination-info">
           {{ pageStart }}–{{ pageEnd }} sur {{ filtered.length }}
@@ -711,7 +862,8 @@ function handleFilterChange() {
       </footer>
     </section>
 
-    <!-- Product modal -->
+    <!-- PRODUCT MODAL -->
+
     <Teleport to="body">
       <div v-if="showForm" class="modal-backdrop" @click.self="closeForm">
         <div class="product-modal">
@@ -745,6 +897,8 @@ function handleFilterChange() {
           </header>
 
           <form class="product-form" @submit.prevent="submitForm">
+            <!-- NAME -->
+
             <div class="form-field">
               <label for="product-name">
                 Nom du produit
@@ -761,6 +915,8 @@ function handleFilterChange() {
               />
             </div>
 
+            <!-- DESCRIPTION -->
+
             <div class="form-field">
               <label for="product-description"> Description </label>
 
@@ -771,6 +927,34 @@ function handleFilterChange() {
                 placeholder="Décrivez brièvement le produit..."
               ></textarea>
             </div>
+
+            <!-- CATEGORY -->
+
+            <div class="form-field">
+              <label for="product-category">
+                Catégorie
+                <span>*</span>
+              </label>
+
+              <select
+                id="product-category"
+                v-model="form.categoryId"
+                class="form-select"
+                required
+              >
+                <option value="" disabled>Sélectionner une catégorie</option>
+
+                <option
+                  v-for="category in allCategories"
+                  :key="category.id"
+                  :value="category.id"
+                >
+                  {{ category.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- PRICE / STOCK -->
 
             <div class="form-grid">
               <div class="form-field">
@@ -810,13 +994,7 @@ function handleFilterChange() {
               </div>
             </div>
 
-            <div class="form-notice">
-              <span>i</span>
-              <p>
-                La catégorie et les images seront gérées avec les
-                fonctionnalités correspondantes du catalogue.
-              </p>
-            </div>
+            <!-- FOOTER -->
 
             <footer class="modal-footer">
               <button
@@ -849,17 +1027,19 @@ function handleFilterChange() {
       </div>
     </Teleport>
 
-    <!-- Toast -->
+    <!-- TOAST -->
+
     <Transition name="toast">
       <div v-if="toast.message" class="toast" :class="toast.type" role="alert">
         <span class="toast-icon">
           {{ toast.type === "success" ? "✓" : "!" }}
         </span>
 
-        <span>{{ toast.message }}</span>
+        <span>
+          {{ toast.message }}
+        </span>
       </div>
     </Transition>
-    ```
   </div>
 </template>
 
@@ -1533,7 +1713,8 @@ function handleFilterChange() {
 }
 
 .form-field input,
-.form-field textarea {
+.form-field textarea,
+.form-select {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #dfe2e6;
@@ -1558,8 +1739,15 @@ function handleFilterChange() {
   resize: vertical;
 }
 
+.form-select {
+  height: 42px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
 .form-field input:focus,
-.form-field textarea:focus {
+.form-field textarea:focus,
+.form-select:focus {
   border-color: #aeb3ba;
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.035);
 }
@@ -1590,36 +1778,6 @@ function handleFilterChange() {
   transform: translateY(-50%);
   color: #8b9098;
   font-size: 0.72rem;
-}
-
-.form-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  padding: 11px;
-  border-radius: 7px;
-  background: #f7f8f9;
-}
-
-.form-notice > span {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #e6e8ea;
-  color: #777d85;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
-  font-weight: 750;
-}
-
-.form-notice p {
-  margin: 1px 0 0;
-  color: #7f858d;
-  font-size: 0.64rem;
-  line-height: 1.45;
 }
 
 .modal-footer {
@@ -1873,5 +2031,29 @@ function handleFilterChange() {
   .mobile-product-details .stock-badge {
     margin-left: 0;
   }
+}
+
+/* ================================
+   PRODUCT IMAGE
+================================ */
+
+.product-thumb,
+.product-thumb-placeholder {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+}
+
+.product-thumb {
+  object-fit: cover;
+  display: block;
+}
+
+.product-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f1f1;
+  font-weight: 700;
 }
 </style>
