@@ -34,7 +34,7 @@ public class AuthService {
         String token = jwtService.generateToken(user.getEmail());
         return new AuthResponse(token);
     }
-
+/* 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Email ou mot de passe incorrect"));
@@ -45,7 +45,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail());
         return new AuthResponse(token);
-    }
+    }*/
     public void changePassword(String userEmail, ChangePasswordRequest request) {
     User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
@@ -56,5 +56,32 @@ public class AuthService {
 
     user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
     userRepository.save(user);
+}
+
+public AuthResponse login(LoginRequest request) {
+
+    System.out.println("🔥 LOGIN SERVICE APPELÉ");
+    System.out.println("EMAIL = " + request.getEmail());
+
+    User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new IllegalArgumentException(
+                    "Email ou mot de passe incorrect"
+            ));
+
+    System.out.println("🔥 USER TROUVÉ = " + user.getEmail());
+
+    if (!passwordEncoder.matches(
+            request.getPassword(),
+            user.getPasswordHash()
+    )) {
+        System.out.println("🔥 MOT DE PASSE INCORRECT");
+        throw new IllegalArgumentException("Email ou mot de passe incorrect");
+    }
+
+    System.out.println("🔥 MOT DE PASSE CORRECT");
+
+    String token = jwtService.generateToken(user.getEmail());
+
+    return new AuthResponse(token);
 }
 }

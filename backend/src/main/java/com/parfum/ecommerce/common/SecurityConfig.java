@@ -42,26 +42,22 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-            .authorizeHttpRequests(auth -> auth
+           .authorizeHttpRequests(auth -> auth
+    .requestMatchers("/api/auth/**").permitAll()
+    .requestMatchers("/images/**").permitAll()
 
-                // Authentification
-                .requestMatchers("/api/auth/**").permitAll()
+    // Règles ADMIN spécifiques D'ABORD
+    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+    .requestMatchers("/api/products/admin/**").hasRole("ADMIN")
+    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders/*/shipment").hasRole("ADMIN")
 
-                // Catalogue public
-                .requestMatchers("/api/products/**").permitAll()
-                .requestMatchers("/api/categories/**").permitAll()
+    // Règles publiques larges APRÈS
+    .requestMatchers("/api/products/**").permitAll()
+    .requestMatchers("/api/categories/**").permitAll()
 
-                // Images publiques
-                .requestMatchers("/images/**").permitAll()
-
-                // Adresses protégées
-                .requestMatchers("/api/addresses/**").authenticated()
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders/*/shipment").hasRole("ADMIN")
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-.requestMatchers("/api/products/admin/**").hasRole("ADMIN")
-                // Tout le reste protégé
-                .anyRequest().authenticated()
-            )
+    .requestMatchers("/api/addresses/**").authenticated()
+    .anyRequest().authenticated()
+)
 
             .addFilterBefore(
                 jwtAuthFilter,
