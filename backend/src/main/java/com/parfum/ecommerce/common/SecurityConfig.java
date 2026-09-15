@@ -3,6 +3,7 @@ package com.parfum.ecommerce.common;
 import com.parfum.ecommerce.identity.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -42,22 +43,42 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-           .authorizeHttpRequests(auth -> auth
-    .requestMatchers("/api/auth/**").permitAll()
-    .requestMatchers("/images/**").permitAll()
+            .authorizeHttpRequests(auth -> auth
 
-    // Règles ADMIN spécifiques D'ABORD
-    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-    .requestMatchers("/api/products/admin/**").hasRole("ADMIN")
-    .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders/*/shipment").hasRole("ADMIN")
+                // Authentification
+                .requestMatchers("/api/auth/**").permitAll()
 
-    // Règles publiques larges APRÈS
-    .requestMatchers("/api/products/**").permitAll()
-    .requestMatchers("/api/categories/**").permitAll()
+                // Images publiques
+                .requestMatchers("/images/**").permitAll()
 
-    .requestMatchers("/api/addresses/**").authenticated()
-    .anyRequest().authenticated()
-)
+                .requestMatchers(
+    HttpMethod.GET,
+    "/api/supplier/fragella/search"
+).permitAll()
+
+.requestMatchers(
+    HttpMethod.POST,
+    "/api/supplier/fragella/import"
+).permitAll()
+
+                // Administration
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/products/admin/**").hasRole("ADMIN")
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/api/orders/*/shipment"
+                ).hasRole("ADMIN")
+
+                // Catalogue public
+                .requestMatchers("/api/products/**").permitAll()
+                .requestMatchers("/api/categories/**").permitAll()
+
+                // Adresses
+                .requestMatchers("/api/addresses/**").authenticated()
+
+                // Tout le reste nécessite une authentification
+                .anyRequest().authenticated()
+            )
 
             .addFilterBefore(
                 jwtAuthFilter,

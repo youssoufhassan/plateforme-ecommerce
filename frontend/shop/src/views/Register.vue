@@ -101,7 +101,11 @@ async function handleSubmit() {
   try {
     await authStore.register(email.value.trim(), password.value);
 
-    router.push("/");
+    const redirect = typeof router.currentRoute.value.query.redirect === "string"
+      ? router.currentRoute.value.query.redirect
+      : "/";
+
+    await router.replace(redirect);
   } catch (e) {
     console.error("Erreur lors de l'inscription :", e);
 

@@ -1,4 +1,3 @@
-```vue
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -57,7 +56,11 @@ async function handleSubmit() {
   try {
     await authStore.login(email.value.trim(), password.value);
 
-    router.push("/");
+    const redirect = typeof router.currentRoute.value.query.redirect === "string"
+      ? router.currentRoute.value.query.redirect
+      : "/";
+
+    await router.replace(redirect);
   } catch (e) {
     console.error("Erreur de connexion :", e);
 
@@ -136,9 +139,9 @@ async function handleSubmit() {
             <div class="field-header">
               <label for="password"> Mot de passe </label>
 
-              <router-link to="/forgot-password" class="forgot-link">
+              <span class="forgot-link forgot-link-disabled" title="Fonctionnalité à venir">
                 Mot de passe oublié ?
-              </router-link>
+              </span>
             </div>
 
             <div class="input-wrapper">
@@ -744,5 +747,10 @@ async function handleSubmit() {
   .forgot-link {
     margin-top: 0.1rem;
   }
+}
+
+.forgot-link-disabled {
+  cursor: default;
+  opacity: 0.65;
 }
 </style>

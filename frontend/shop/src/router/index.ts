@@ -10,14 +10,57 @@ import Account from "../views/Account.vue";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: "/", component: Home },
-    { path: "/produits", component: ProductList },
-    { path: "/login", component: Login },
-    { path: "/account", component: Account },
-    { path: "/register", component: Register },
-    { path: "/cart", component: CartView },
-    { path: "/produits/:id", component: ProductDetail },
+    { path: "/", name: "home", component: Home },
+    { path: "/produits", name: "products", component: ProductList },
+    {
+      path: "/produits/:id",
+      name: "product-detail",
+      component: ProductDetail,
+      props: true,
+    },
+    { path: "/login", name: "login", component: Login, meta: { guestOnly: true } },
+    { path: "/register", name: "register", component: Register, meta: { guestOnly: true } },
+    {
+      path: "/account",
+      name: "account",
+      component: Account,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/cart",
+      name: "cart",
+      component: CartView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/:pathMatch(.*)*",
+      name: "not-found",
+      redirect: "/",
+    },
   ],
+  scrollBehavior(to, _from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    return { top: 0, behavior: "smooth" };
+  },
+});
+
+router.beforeEach((to) => {
+  const token = localStorage.getItem("token");
+  const isAuthenticated = Boolean(token);
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    return {
+      name: "login",
+      query: { redirect: to.fullPath },
+    };
+  }
+
+  if (to.meta.guestOnly && isAuthenticated) {
+    const redirect = typeof to.query.redirect === "string" ? to.query.redirect : "/";
+    return redirect;
+  }
+
+  return true;
 });
 
 export default router;

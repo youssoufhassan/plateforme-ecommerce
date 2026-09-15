@@ -1,4 +1,3 @@
-```vue
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
@@ -407,4 +406,3 @@ async function handleAdd(id: string) {
     <Footer />
   </div>
 </template>
-```

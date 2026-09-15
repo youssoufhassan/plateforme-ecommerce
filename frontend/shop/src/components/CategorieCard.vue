@@ -1,4 +1,3 @@
-```vue
 <script setup lang="ts">
 defineProps<{
   name: string;
@@ -25,4 +24,3 @@ defineProps<{
     </div>
   </router-link>
 </template>
-```

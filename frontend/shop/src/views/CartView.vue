@@ -5,31 +5,68 @@ import { useRouter } from "vue-router";
 import api from "../services/api";
 import { useCartStore } from "../stores/cartStore";
 import { useAuthStore } from "../stores/authStore";
+
 const cartStore = useCartStore();
 const authStore = useAuthStore();
 const router = useRouter();
 
 const updatingItem = ref<string | null>(null);
+const removingItem = ref<string | null>(null);
 const checkoutLoading = ref(false);
+const checkoutError = ref<string | null>(null);
+
+/* =========================================
+   INITIALISATION
+========================================= */
 
 onMounted(async () => {
-  await cartStore.loadCart();
+  if (!authStore.isAuthenticated) {
+    router.replace({
+      path: "/login",
+      query: {
+        redirect: "/cart",
+      },
+    });
+
+    return;
+  }
+
+  try {
+    await cartStore.loadCart();
+  } catch (error) {
+    console.error("Impossible de charger le panier :", error);
+  }
 });
 
-/* ================================
-   TOTAL
-================================ */
+/* =========================================
+   COMPUTED
+========================================= */
+
+const cartItemsCount = computed(() => {
+  return cartStore.cart.items.reduce((total, item) => total + item.quantity, 0);
+});
 
 const formattedTotal = computed(() => {
-  return Number(cartStore.cart.total || 0).toFixed(2);
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(Number(cartStore.cart.total || 0));
 });
 
-/* ================================
+const isEmpty = computed(() => {
+  return cartStore.cart.items.length === 0;
+});
+
+/* =========================================
    QUANTITÉ
-================================ */
+========================================= */
 
 async function updateQuantity(itemId: string, quantity: number) {
   if (quantity < 1) {
+    return;
+  }
+
+  if (updatingItem.value || removingItem.value) {
     return;
   }
 
@@ -38,74 +75,151 @@ async function updateQuantity(itemId: string, quantity: number) {
   try {
     await cartStore.updateItem(itemId, quantity);
   } catch (error) {
-    console.error("Erreur lors de la modification :", error);
+    console.error("Erreur lors de la modification de la quantité :", error);
   } finally {
     updatingItem.value = null;
   }
 }
 
-/* ================================
+/* =========================================
    RETIRER
-================================ */
+========================================= */
 
 async function removeItem(itemId: string) {
+  if (removingItem.value || updatingItem.value) {
+    return;
+  }
+
+  removingItem.value = itemId;
+
   try {
     await cartStore.removeItem(itemId);
   } catch (error) {
     console.error("Erreur lors de la suppression :", error);
+  } finally {
+    removingItem.value = null;
   }
 }
 
-/* ================================
+/* =========================================
    CHECKOUT
-================================ */
+========================================= */
 
 async function handleCheckout() {
-  try {
-    const order = await api.post("/orders/checkout");
-    const orderId = order.data.id;
+  if (checkoutLoading.value || isEmpty.value) {
+    return;
+  }
 
-    try {
-      await api.post(`/orders/${orderId}/pay`);
-      alert("Commande passée et payée avec succès !");
-    } catch (payError: any) {
-      alert(
-        "Commande créée, mais le paiement a échoué : " +
-          (payError.response?.data?.message ||
-            "réessayez depuis vos commandes"),
+  checkoutLoading.value = true;
+  checkoutError.value = null;
+
+  try {
+    /*
+     * 1. Création de la commande
+     */
+    const checkoutResponse = await api.post("/orders/checkout");
+
+    const orderId = checkoutResponse.data?.id;
+
+    if (!orderId) {
+      throw new Error(
+        "La commande a été créée mais son identifiant est introuvable.",
       );
     }
 
-    router.push("/account");
-  } catch (checkoutError: any) {
-    alert(
-      checkoutError.response?.data?.message || "Erreur lors de la commande",
-    );
+    /*
+     * 2. Paiement
+     */
+    try {
+      await api.post(`/orders/${orderId}/pay`);
+    } catch (paymentError: any) {
+      const paymentMessage =
+        paymentError?.response?.data?.message ||
+        "Le paiement de la commande a échoué.";
+
+      checkoutError.value = paymentMessage;
+
+      /*
+       * La commande existe déjà.
+       * On redirige donc vers le compte afin que
+       * l'utilisateur puisse retrouver sa commande.
+       */
+      setTimeout(() => {
+        router.push("/account");
+      }, 1200);
+
+      return;
+    }
+
+    /*
+     * 3. Succès
+     */
+    await cartStore.loadCart();
+
+    router.push({
+      path: "/account",
+      query: {
+        order: orderId,
+        success: "true",
+      },
+    });
+  } catch (error: any) {
+    console.error("Erreur lors du checkout :", error);
+
+    checkoutError.value =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Impossible de passer la commande. Veuillez réessayer.";
+  } finally {
+    checkoutLoading.value = false;
   }
+}
+
+/* =========================================
+   NAVIGATION
+========================================= */
+
+function goToProducts() {
+  router.push("/produits");
 }
 </script>
 
 <template>
   <main class="cart-page">
     <div class="container cart-container">
-      <!-- HEADER -->
+      <!-- =================================
+           HEADER
+      ================================== -->
+
       <header class="cart-header">
         <div>
-          <span class="cart-eyebrow">VOTRE SÉLECTION</span>
+          <span class="cart-eyebrow"> VOTRE SÉLECTION </span>
+
           <h1>Mon panier</h1>
+
           <p>Retrouvez les produits que vous avez sélectionnés.</p>
         </div>
       </header>
 
-      <!-- LOADING -->
-      <div v-if="cartStore.loading" class="cart-loading">
+      <!-- =================================
+           LOADING
+      ================================== -->
+
+      <div
+        v-if="cartStore.loading && !cartStore.cart.items.length"
+        class="cart-loading"
+        aria-label="Chargement du panier"
+      >
         <div class="cart-loading-line"></div>
         <div class="cart-loading-line"></div>
         <div class="cart-loading-line"></div>
       </div>
 
-      <!-- PANIER VIDE -->
-      <section v-else-if="cartStore.cart.items.length === 0" class="cart-empty">
+      <!-- =================================
+           PANIER VIDE
+      ================================== -->
+
+      <section v-else-if="isEmpty" class="cart-empty">
         <div class="cart-empty-icon">
           <svg
             width="42"
@@ -114,6 +228,7 @@ async function handleCheckout() {
             fill="none"
             stroke="currentColor"
             stroke-width="1.5"
+            aria-hidden="true"
           >
             <path d="M6 8h12l1 12H5L6 8Z" />
             <path d="M9 8a3 3 0 0 1 6 0" />
@@ -127,24 +242,27 @@ async function handleCheckout() {
           ton panier.
         </p>
 
-        <button
-          type="button"
-          class="cart-primary-button"
-          @click="router.push('/products')"
-        >
+        <button type="button" class="cart-primary-button" @click="goToProducts">
           Découvrir les produits
         </button>
       </section>
 
-      <!-- PANIER -->
+      <!-- =================================
+           PANIER
+      ================================== -->
+
       <section v-else class="cart-layout">
-        <!-- PRODUITS -->
+        <!-- =================================
+             PRODUITS
+        ================================== -->
+
         <div class="cart-products">
           <div class="cart-products-header">
             <h2>
               Produits
+
               <span>
-                {{ cartStore.cart.items.length }}
+                {{ cartItemsCount }}
               </span>
             </h2>
           </div>
@@ -153,27 +271,43 @@ async function handleCheckout() {
             v-for="item in cartStore.cart.items"
             :key="item.itemId"
             class="cart-item"
+            :class="{
+              'is-updating':
+                updatingItem === item.itemId || removingItem === item.itemId,
+            }"
           >
-            <!-- IMAGE TEMPORAIRE -->
+            <!-- IMAGE -->
             <div class="cart-item-image">
               <span>SHAHIN</span>
             </div>
 
             <!-- INFORMATIONS -->
             <div class="cart-item-info">
-              <h3>{{ item.productName }}</h3>
+              <h3>
+                {{ item.productName }}
+              </h3>
 
               <p class="cart-item-price">
-                {{ Number(item.unitPrice).toFixed(2) }} €
+                {{
+                  new Intl.NumberFormat("fr-FR", {
+                    style: "currency",
+                    currency: "EUR",
+                  }).format(Number(item.unitPrice))
+                }}
+                <span> / unité</span>
               </p>
 
               <div class="cart-item-actions">
                 <!-- QUANTITÉ -->
-                <div class="quantity-control">
+
+                <div class="quantity-control" aria-label="Modifier la quantité">
                   <button
                     type="button"
+                    aria-label="Diminuer la quantité"
                     :disabled="
-                      updatingItem === item.itemId || item.quantity <= 1
+                      updatingItem === item.itemId ||
+                      removingItem === item.itemId ||
+                      item.quantity <= 1
                     "
                     @click="updateQuantity(item.itemId, item.quantity - 1)"
                   >
@@ -186,7 +320,11 @@ async function handleCheckout() {
 
                   <button
                     type="button"
-                    :disabled="updatingItem === item.itemId"
+                    aria-label="Augmenter la quantité"
+                    :disabled="
+                      updatingItem === item.itemId ||
+                      removingItem === item.itemId
+                    "
                     @click="updateQuantity(item.itemId, item.quantity + 1)"
                   >
                     +
@@ -194,62 +332,90 @@ async function handleCheckout() {
                 </div>
 
                 <!-- RETIRER -->
+
                 <button
                   type="button"
                   class="remove-button"
-                  :disabled="updatingItem === item.itemId"
+                  :disabled="
+                    updatingItem === item.itemId || removingItem === item.itemId
+                  "
                   @click="removeItem(item.itemId)"
                 >
-                  Retirer
+                  <span v-if="removingItem === item.itemId">
+                    Suppression...
+                  </span>
+
+                  <span v-else> Retirer </span>
                 </button>
               </div>
             </div>
 
             <!-- SOUS-TOTAL -->
+
             <div class="cart-item-total">
-              {{ (Number(item.unitPrice) * Number(item.quantity)).toFixed(2) }}
-              €
+              {{
+                new Intl.NumberFormat("fr-FR", {
+                  style: "currency",
+                  currency: "EUR",
+                }).format(Number(item.unitPrice) * Number(item.quantity))
+              }}
             </div>
           </article>
         </div>
 
-        <!-- RÉSUMÉ -->
+        <!-- =================================
+             RÉSUMÉ
+        ================================== -->
+
         <aside class="cart-summary">
           <h2>Résumé de la commande</h2>
 
           <div class="summary-row">
-            <span>Sous-total</span>
-            <strong>{{ formattedTotal }} €</strong>
+            <span> Sous-total </span>
+
+            <strong>
+              {{ formattedTotal }}
+            </strong>
           </div>
 
           <div class="summary-row">
-            <span>Livraison</span>
+            <span> Livraison </span>
+
             <span class="summary-muted"> À calculer </span>
           </div>
 
           <div class="summary-divider"></div>
 
           <div class="summary-total">
-            <span>Total</span>
-            <strong>{{ formattedTotal }} €</strong>
+            <span> Total </span>
+
+            <strong>
+              {{ formattedTotal }}
+            </strong>
           </div>
+
+          <!-- ERREUR CHECKOUT -->
+
+          <div v-if="checkoutError" class="checkout-error" role="alert">
+            {{ checkoutError }}
+          </div>
+
+          <!-- CHECKOUT -->
 
           <button
             type="button"
             class="checkout-button"
-            :disabled="checkoutLoading"
+            :disabled="checkoutLoading || cartStore.loading || isEmpty"
             @click="handleCheckout"
           >
-            <span v-if="!checkoutLoading"> Passer la commande </span>
+            <span v-if="checkoutLoading"> Traitement... </span>
 
-            <span v-else> Traitement... </span>
+            <span v-else> Passer la commande </span>
           </button>
 
-          <button
-            type="button"
-            class="continue-shopping"
-            @click="router.push('/products')"
-          >
+          <!-- CONTINUER -->
+
+          <button type="button" class="continue-shopping" @click="goToProducts">
             Continuer mes achats
           </button>
         </aside>
@@ -351,10 +517,15 @@ async function handleCheckout() {
   align-items: center;
   padding: 1.4rem 1.5rem;
   border-bottom: 1px solid var(--border, #e5e5e5);
+  transition: opacity 0.2s ease;
 }
 
 .cart-item:last-child {
   border-bottom: 0;
+}
+
+.cart-item.is-updating {
+  opacity: 0.55;
 }
 
 .cart-item-image {
@@ -387,6 +558,11 @@ async function handleCheckout() {
   font-size: 0.88rem;
 }
 
+.cart-item-price span {
+  color: var(--ink-soft, #999);
+  font-size: 0.78rem;
+}
+
 .cart-item-actions {
   display: flex;
   align-items: center;
@@ -403,6 +579,7 @@ async function handleCheckout() {
   border: 1px solid var(--border, #ddd);
   border-radius: 7px;
   overflow: hidden;
+  background: #fff;
 }
 
 .quantity-control button {
@@ -413,6 +590,7 @@ async function handleCheckout() {
   color: var(--ink, #171717);
   font-size: 1rem;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .quantity-control button:hover:not(:disabled) {
@@ -446,7 +624,7 @@ async function handleCheckout() {
   text-underline-offset: 3px;
 }
 
-.remove-button:hover {
+.remove-button:hover:not(:disabled) {
   color: var(--ink, #111);
 }
 
@@ -526,6 +704,21 @@ async function handleCheckout() {
 }
 
 /* ================================
+   CHECKOUT ERROR
+================================ */
+
+.checkout-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #e3caca;
+  border-radius: 8px;
+  background: #faf3f3;
+  color: #8a3333;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* ================================
    BUTTONS
 ================================ */
 
@@ -540,12 +733,19 @@ async function handleCheckout() {
   font-size: 0.86rem;
   font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.15s ease;
 }
 
 .checkout-button:hover:not(:disabled),
 .cart-primary-button:hover {
   opacity: 0.88;
+}
+
+.checkout-button:active:not(:disabled),
+.cart-primary-button:active {
+  transform: translateY(1px);
 }
 
 .checkout-button:disabled {
@@ -680,4 +880,3 @@ async function handleCheckout() {
   }
 }
 </style>
-```
