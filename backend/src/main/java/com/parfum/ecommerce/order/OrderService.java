@@ -71,16 +71,13 @@ public class OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("Adresse introuvable"));
         order.setAddress(address);
     }
-        for (CartItem cartItem : cart.getItems()) {
-            Product product = cartItem.getProduct();
-
-            OrderItem orderItem = new OrderItem(order, product, cartItem.getQuantity(), product.getPrice());
-            order.getItems().add(orderItem);
-
-            // Décrémente le stock
-            product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-            productRepository.save(product);
-        }
+      for (CartItem cartItem : cart.getItems()) {
+    Product product = cartItem.getProduct();
+    if ("OWN_STOCK".equals(product.getFulfillmentType())
+            && product.getStockQuantity() < cartItem.getQuantity()) {
+        throw new IllegalStateException("Stock insuffisant pour : " + product.getName());
+    }
+}
 
         orderRepository.save(order);
 

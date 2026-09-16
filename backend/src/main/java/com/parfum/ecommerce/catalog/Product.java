@@ -3,7 +3,7 @@ package com.parfum.ecommerce.catalog;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.UUID;
-
+import com.parfum.ecommerce.supplier.Supplier;
 @Entity
 @Table(name = "products")
 public class Product {
@@ -32,6 +32,21 @@ public class Product {
 
     @Column(name = "image_url")
 private String imageUrl;
+@Column
+private String brand;
+
+@Column(name = "fulfillment_type", nullable = false)
+private String fulfillmentType = "OWN_STOCK";
+
+@ManyToOne
+@JoinColumn(name = "supplier_id")
+private Supplier supplier;
+
+@Column(name = "supplier_sku")
+private String supplierSku;
+
+@Column(name = "cost_price")
+private java.math.BigDecimal costPrice;
 @OneToMany(mappedBy = "product")
 @OrderBy("position ASC")
 private java.util.List<ProductImage> images = new java.util.ArrayList<>();
@@ -55,5 +70,25 @@ private java.util.List<ProductImage> images = new java.util.ArrayList<>();
     public String getImageUrl() { return imageUrl; }
 public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 public java.util.List<ProductImage> getImages() { return images; }
+public String getBrand() { return brand; }
+public void setBrand(String brand) { this.brand = brand; }
+
+public String getFulfillmentType() { return fulfillmentType; }
+public void setFulfillmentType(String fulfillmentType) { this.fulfillmentType = fulfillmentType; }
+
+public Supplier getSupplier() { return supplier; }
+public void setSupplier(Supplier supplier) { this.supplier = supplier; }
+
+public String getSupplierSku() { return supplierSku; }
+public void setSupplierSku(String supplierSku) { this.supplierSku = supplierSku; }
+
+public java.math.BigDecimal getCostPrice() { return costPrice; }
+public void setCostPrice(java.math.BigDecimal costPrice) { this.costPrice = costPrice; }
+public boolean isAvailable() {
+    if ("DROPSHIP".equals(this.fulfillmentType)) {
+        return Boolean.TRUE.equals(this.active);
+    }
+    return Boolean.TRUE.equals(this.active) && this.stockQuantity != null && this.stockQuantity > 0;
+}
 
 }
