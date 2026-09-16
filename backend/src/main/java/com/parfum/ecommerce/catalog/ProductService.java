@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import com.parfum.ecommerce.catalog.dto.ProductAdminResponse;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 public class ProductService {
@@ -99,22 +102,49 @@ public class ProductService {
                 .toList();
     }
 
-    private ProductResponse toResponse(Product product) {
-
-        return new ProductResponse(
-                product.getId(),
-                product.getName(),
-                product.getDescription(),
-                product.getPrice(),
-                product.getStockQuantity(),
-                product.getImageUrl(),
-                product.getCategory() != null
-                        ? product.getCategory().getName()
-                        : null,
-                product.getImages()
-                        .stream()
-                        .map(ProductImage::getUrl)
-                        .toList()
-        );
+   private ProductResponse toResponse(Product product) {
+    return new ProductResponse(
+        product.getId(),
+        product.getName(),
+        product.getDescription(),
+        product.getBrand(),
+        product.getPrice(),
+        product.isAvailable(),
+        product.getImageUrl(),
+        product.getImages().stream().map(ProductImage::getUrl).toList(),
+        product.getCategory() != null ? product.getCategory().getName() : null
+    );
+}
+private ProductAdminResponse toAdminResponse(Product product) {
+    BigDecimal margin = null;
+    if (product.getCostPrice() != null && product.getCostPrice().compareTo(BigDecimal.ZERO) > 0) {
+        margin = product.getPrice()
+                .subtract(product.getCostPrice())
+                .divide(product.getCostPrice(), 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
     }
+
+    return new ProductAdminResponse(
+        product.getId(),
+        product.getName(),
+        product.getDescription(),
+        product.getBrand(),
+        product.getPrice(),
+        product.getCostPrice(),
+        margin,
+        product.getStockQuantity(),
+        Boolean.TRUE.equals(product.getActive()),
+        product.getFulfillmentType(),
+        product.getSupplier() != null ? product.getSupplier().getName() : null,
+        product.getSupplierSku(),
+        product.getImageUrl(),
+        product.getImages().stream().map(ProductImage::getUrl).toList(),
+        product.getCategory() != null ? product.getCategory().getName() : null
+    );
+}
+
+public List<ProductAdminResponse> getAllProductsAdmin() {
+    return productRepository.findAll().stream().map(this::toAdminResponse).toList();
+}
 }
