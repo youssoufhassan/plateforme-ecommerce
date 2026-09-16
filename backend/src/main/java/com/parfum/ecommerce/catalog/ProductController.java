@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-
+import com.parfum.ecommerce.catalog.dto.ProductAdminResponse;
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
@@ -47,7 +47,7 @@ public ProductResponse getProductAdmin(@PathVariable UUID id) {
     return productService.getById(id);
 }
 @GetMapping("/admin")
-public List<ProductResponse> getAllProductsAdmin() {
-    return productService.getAllProducts();
+public List<ProductAdminResponse> getAllProductsAdmin() {
+    return productService.getAllProductsAdmin();
 }
 }

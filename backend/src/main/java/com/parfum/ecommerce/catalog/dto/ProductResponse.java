@@ -1,36 +1,42 @@
 package com.parfum.ecommerce.catalog.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public class ProductResponse {
+
     private UUID id;
     private String name;
     private String description;
+    private String brand;
     private BigDecimal price;
-    private Integer stockQuantity;
+    private boolean available;
     private String imageUrl;
+    private List<String> imageUrls;
     private String categoryName;
-    private java.util.List<String> imageUrls;
-    public ProductResponse(UUID id, String name, String description, BigDecimal price,
-                            Integer stockQuantity, String imageUrl, String categoryName , java.util.List<String> imageUrls) {
+
+    public ProductResponse(UUID id, String name, String description, String brand,
+                            BigDecimal price, boolean available, String imageUrl,
+                            List<String> imageUrls, String categoryName) {
         this.id = id;
         this.name = name;
         this.description = description;
+        this.brand = brand;
         this.price = price;
-        this.stockQuantity = stockQuantity;
+        this.available = available;
         this.imageUrl = imageUrl;
-        this.categoryName = categoryName;
         this.imageUrls = imageUrls;
+        this.categoryName = categoryName;
     }
 
     public UUID getId() { return id; }
     public String getName() { return name; }
     public String getDescription() { return description; }
+    public String getBrand() { return brand; }
     public BigDecimal getPrice() { return price; }
-    public Integer getStockQuantity() { return stockQuantity; }
+    public boolean isAvailable() { return available; }
     public String getImageUrl() { return imageUrl; }
+    public List<String> getImageUrls() { return imageUrls; }
     public String getCategoryName() { return categoryName; }
-    public java.util.List<String> getImageUrls() { return imageUrls; }
-    
 }
