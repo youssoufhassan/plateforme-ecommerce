@@ -41,7 +41,7 @@ public class OrderService {
     this.addressRepository = addressRepository;
 }
 
-    @Transactional
+        @Transactional
     public OrderResponse checkout(String userEmail, UUID addressId) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
@@ -53,10 +53,12 @@ public class OrderService {
             throw new IllegalStateException("Impossible de commander un panier vide");
         }
 
-        // Vérifie le stock AVANT de créer quoi que ce soit
+        // Vérifie le stock AVANT de créer quoi que ce soit.
+        // Les produits DROPSHIP n'ont pas de stock chez nous : le fournisseur gère sa disponibilité.
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
-            if (product.getStockQuantity() < cartItem.getQuantity()) {
+            if ("OWN_STOCK".equals(product.getFulfillmentType())
+                    && product.getStockQuantity() < cartItem.getQuantity()) {
                 throw new IllegalStateException("Stock insuffisant pour : " + product.getName());
             }
         }
@@ -66,18 +68,25 @@ public class OrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Order order = new Order(user, total);
+
         if (addressId != null) {
-        Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new IllegalArgumentException("Adresse introuvable"));
-        order.setAddress(address);
-    }
-      for (CartItem cartItem : cart.getItems()) {
-    Product product = cartItem.getProduct();
-    if ("OWN_STOCK".equals(product.getFulfillmentType())
-            && product.getStockQuantity() < cartItem.getQuantity()) {
-        throw new IllegalStateException("Stock insuffisant pour : " + product.getName());
-    }
-}
+            Address address = addressRepository.findById(addressId)
+                    .orElseThrow(() -> new IllegalArgumentException("Adresse introuvable"));
+            order.setAddress(address);
+        }
+
+        // Crée les lignes de commande et décrémente le stock si nécessaire
+        for (CartItem cartItem : cart.getItems()) {
+            Product product = cartItem.getProduct();
+
+            OrderItem orderItem = new OrderItem(order, product, cartItem.getQuantity(), product.getPrice());
+            order.getItems().add(orderItem);
+
+            if ("OWN_STOCK".equals(product.getFulfillmentType())) {
+                product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
+                productRepository.save(product);
+            }
+        }
 
         orderRepository.save(order);
 
