@@ -10,4 +10,5 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByUserEmailOrderByCreatedAtDesc(String email);
 
     List<Order> findTop5ByOrderByCreatedAtDesc();
+    List<Order> findByStatusAndExpiresAtBefore(String status, java.time.LocalDateTime before);
 }
