@@ -34,4 +34,8 @@ public OrderResponse checkout(Authentication auth, @RequestBody(required = false
 public List<OrderResponse> getAllOrdersAdmin() {
     return orderService.getAllOrders();
 }
+@PutMapping("/{orderId}/cancel")
+public OrderResponse cancelOrder(@PathVariable UUID orderId) {
+    return orderService.cancelOrder(orderId);
+}
 }

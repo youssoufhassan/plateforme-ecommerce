@@ -2,6 +2,7 @@ package com.parfum.ecommerce.payment;
 
 import com.parfum.ecommerce.order.Order;
 import com.parfum.ecommerce.order.OrderRepository;
+import com.parfum.ecommerce.order.OrderService;
 import com.parfum.ecommerce.payment.dto.CheckoutSessionResponse;
 import com.parfum.ecommerce.supplier.SupplierOrderService;
 import com.stripe.exception.StripeException;
@@ -19,14 +20,16 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final SupplierOrderService supplierOrderService;
     private final StripeService stripeService;
-
-    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository,
-                           SupplierOrderService supplierOrderService, StripeService stripeService) {
-        this.paymentRepository = paymentRepository;
-        this.orderRepository = orderRepository;
-        this.supplierOrderService = supplierOrderService;
-        this.stripeService = stripeService;
-    }
+    private final OrderService orderService;
+public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository,
+                       SupplierOrderService supplierOrderService, StripeService stripeService,
+                       OrderService orderService) {
+    this.paymentRepository = paymentRepository;
+    this.orderRepository = orderRepository;
+    this.supplierOrderService = supplierOrderService;
+    this.stripeService = stripeService;
+    this.orderService = orderService;
+}
 
     /** Étape 1 : le client demande à payer, on crée une session Stripe. */
     @Transactional
@@ -66,13 +69,13 @@ public class PaymentService {
      * Étape 2 : Stripe confirme le paiement via webhook.
      * C'est ici, et uniquement ici, qu'une commande devient réellement payée.
      */
-    @Transactional
+       @Transactional
     public void confirmPayment(String stripeSessionId, String transactionReference) {
         Payment payment = paymentRepository.findByStripeSessionId(stripeSessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Paiement introuvable pour cette session"));
 
         if ("SUCCESS".equals(payment.getStatus())) {
-            return; // déjà traité — Stripe peut renvoyer le même événement plusieurs fois
+            return;
         }
 
         payment.setStatus("SUCCESS");
@@ -82,11 +85,15 @@ public class PaymentService {
 
         Order order = payment.getOrder();
         order.setStatus("PAID");
+        order.setExpiresAt(null);
+
+        // Le stock n'est décrémenté qu'une fois le paiement confirmé
+        orderService.decrementStock(order);
+
         orderRepository.save(order);
 
         supplierOrderService.generateForOrder(order);
     }
-
     @Transactional
     public void markFailed(String stripeSessionId) {
         paymentRepository.findByStripeSessionId(stripeSessionId).ifPresent(payment -> {

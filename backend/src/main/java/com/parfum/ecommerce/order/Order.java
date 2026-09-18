@@ -35,6 +35,11 @@ private Address address;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> items = new ArrayList<>();
+    @Column(name = "expires_at")
+private LocalDateTime expiresAt;
+
+public LocalDateTime getExpiresAt() { return expiresAt; }
+public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
 
     public Order() {}
     public Order(User user, BigDecimal totalAmount) {
