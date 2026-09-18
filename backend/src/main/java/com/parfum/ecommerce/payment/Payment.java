@@ -32,6 +32,9 @@ public class Payment {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+@Column(name = "stripe_session_id")
+private String stripeSessionId;
+
 
     public Payment() {}
 
@@ -50,4 +53,7 @@ public class Payment {
     public void setTransactionReference(String ref) { this.transactionReference = ref; }
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+    public String getStripeSessionId() { return stripeSessionId; }
+public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
+public void setProvider(String provider) { this.provider = provider; }
 }

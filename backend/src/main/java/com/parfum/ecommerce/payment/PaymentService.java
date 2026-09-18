@@ -2,7 +2,10 @@ package com.parfum.ecommerce.payment;
 
 import com.parfum.ecommerce.order.Order;
 import com.parfum.ecommerce.order.OrderRepository;
-import com.parfum.ecommerce.payment.dto.PaymentResponse;
+import com.parfum.ecommerce.payment.dto.CheckoutSessionResponse;
+import com.parfum.ecommerce.supplier.SupplierOrderService;
+import com.stripe.exception.StripeException;
+import com.stripe.model.checkout.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,14 +17,20 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final SupplierOrderService supplierOrderService;
+    private final StripeService stripeService;
 
-    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository) {
+    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository,
+                           SupplierOrderService supplierOrderService, StripeService stripeService) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
+        this.supplierOrderService = supplierOrderService;
+        this.stripeService = stripeService;
     }
 
+    /** Étape 1 : le client demande à payer, on crée une session Stripe. */
     @Transactional
-    public PaymentResponse pay(UUID orderId, String userEmail) {
+    public CheckoutSessionResponse createCheckoutSession(UUID orderId, String userEmail) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Commande introuvable"));
 
@@ -29,41 +38,62 @@ public class PaymentService {
             throw new SecurityException("Cette commande ne vous appartient pas");
         }
 
-        if (!order.getStatus().equals("PENDING")) {
+        if (!"PENDING".equals(order.getStatus())) {
             throw new IllegalStateException("Cette commande n'est plus en attente de paiement");
         }
 
-        Payment payment = new Payment(order, order.getTotalAmount());
-
-        // Simulation : 90% de succès, 10% d'échec (réaliste, imite un vrai prestataire)
-        boolean success = Math.random() > 0.1;
-
-        if (success) {
-            payment.setStatus("SUCCESS");
-            payment.setTransactionReference("MOCK-" + UUID.randomUUID());
-            payment.setPaidAt(LocalDateTime.now());
-            order.setStatus("PAID");
-        } else {
-            payment.setStatus("FAILED");
+        if (!stripeService.isConfigured()) {
+            throw new IllegalStateException("Le paiement n'est pas configuré (clé Stripe manquante)");
         }
 
-        paymentRepository.save(payment);
-        orderRepository.save(order);
+        try {
+            Session session = stripeService.createCheckoutSession(order);
 
-        if (!success) {
-            throw new IllegalStateException("Le paiement a échoué, réessayez");
+            Payment payment = new Payment(order, order.getTotalAmount());
+            payment.setProvider("STRIPE");
+            payment.setStatus("PENDING");
+            payment.setStripeSessionId(session.getId());
+            paymentRepository.save(payment);
+
+            return new CheckoutSessionResponse(session.getId(), session.getUrl());
+
+        } catch (StripeException e) {
+            throw new IllegalStateException("Erreur lors de la création du paiement : " + e.getMessage());
         }
-
-        return toResponse(payment);
     }
 
-    private PaymentResponse toResponse(Payment payment) {
-        return new PaymentResponse(
-            payment.getId(),
-            payment.getStatus(),
-            payment.getAmount(),
-            payment.getTransactionReference(),
-            payment.getPaidAt()
-        );
+    /**
+     * Étape 2 : Stripe confirme le paiement via webhook.
+     * C'est ici, et uniquement ici, qu'une commande devient réellement payée.
+     */
+    @Transactional
+    public void confirmPayment(String stripeSessionId, String transactionReference) {
+        Payment payment = paymentRepository.findByStripeSessionId(stripeSessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Paiement introuvable pour cette session"));
+
+        if ("SUCCESS".equals(payment.getStatus())) {
+            return; // déjà traité — Stripe peut renvoyer le même événement plusieurs fois
+        }
+
+        payment.setStatus("SUCCESS");
+        payment.setTransactionReference(transactionReference);
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        Order order = payment.getOrder();
+        order.setStatus("PAID");
+        orderRepository.save(order);
+
+        supplierOrderService.generateForOrder(order);
+    }
+
+    @Transactional
+    public void markFailed(String stripeSessionId) {
+        paymentRepository.findByStripeSessionId(stripeSessionId).ifPresent(payment -> {
+            if (!"SUCCESS".equals(payment.getStatus())) {
+                payment.setStatus("FAILED");
+                paymentRepository.save(payment);
+            }
+        });
     }
 }

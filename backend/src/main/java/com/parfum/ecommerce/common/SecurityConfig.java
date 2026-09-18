@@ -50,6 +50,7 @@ public class SecurityConfig {
 
                 // Images publiques
                 .requestMatchers("/images/**").permitAll()
+                .requestMatchers("/api/payments/webhook").permitAll()
 
                 .requestMatchers(
     HttpMethod.GET,
