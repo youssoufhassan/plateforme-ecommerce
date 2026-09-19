@@ -75,6 +75,7 @@ public class SecurityConfig {
                 // Catalogue public
                 .requestMatchers("/api/products/**").permitAll()
                 .requestMatchers("/api/categories/**").permitAll()
+                .requestMatchers("/api/shipping/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/orders/*/cancel").hasRole("ADMIN")
                 // Adresses
                 .requestMatchers("/api/addresses/**").authenticated()

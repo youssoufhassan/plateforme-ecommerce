@@ -37,6 +37,26 @@ private Address address;
     private List<OrderItem> items = new ArrayList<>();
     @Column(name = "expires_at")
 private LocalDateTime expiresAt;
+@Column(name = "subtotal_amount")
+private BigDecimal subtotalAmount;
+
+@Column(name = "shipping_amount")
+private BigDecimal shippingAmount;
+
+@Column(name = "vat_amount")
+private BigDecimal vatAmount;
+
+@Column(name = "vat_rate")
+private BigDecimal vatRate;
+
+public BigDecimal getSubtotalAmount() { return subtotalAmount; }
+public void setSubtotalAmount(BigDecimal v) { this.subtotalAmount = v; }
+public BigDecimal getShippingAmount() { return shippingAmount; }
+public void setShippingAmount(BigDecimal v) { this.shippingAmount = v; }
+public BigDecimal getVatAmount() { return vatAmount; }
+public void setVatAmount(BigDecimal v) { this.vatAmount = v; }
+public BigDecimal getVatRate() { return vatRate; }
+public void setVatRate(BigDecimal v) { this.vatRate = v; }
 
 public LocalDateTime getExpiresAt() { return expiresAt; }
 public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }

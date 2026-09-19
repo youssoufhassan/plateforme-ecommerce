@@ -33,10 +33,6 @@ public class StripeService {
         return secretKey != null && !secretKey.isBlank();
     }
 
-    /**
-     * Crée une session Stripe Checkout pour une commande.
-     * Les montants sont envoyés en centimes (exigence Stripe).
-     */
     public Session createCheckoutSession(Order order) throws StripeException {
         SessionCreateParams.Builder builder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
@@ -64,10 +60,32 @@ public class StripeService {
                             .setProductData(
                                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                     .setName(item.getProduct().getName())
-                                    .build()
-                            )
-                            .build()
-                    )
+                                    .build())
+                            .build())
+                    .build()
+            );
+        }
+
+        // Frais de livraison en ligne séparée
+        if (order.getShippingAmount() != null
+                && order.getShippingAmount().compareTo(BigDecimal.ZERO) > 0) {
+
+            long shippingCents = order.getShippingAmount()
+                    .multiply(BigDecimal.valueOf(100))
+                    .longValueExact();
+
+            builder.addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency("eur")
+                            .setUnitAmount(shippingCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName("Frais de livraison")
+                                    .build())
+                            .build())
                     .build()
             );
         }
