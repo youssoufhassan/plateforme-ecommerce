@@ -15,8 +15,16 @@ public class Address {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
     @Column(nullable = false)
     private String street;
+
+    private String complement;
 
     @Column(nullable = false)
     private String city;
@@ -27,19 +35,32 @@ public class Address {
     @Column(nullable = false)
     private String country;
 
+    @Column(name = "country_code", nullable = false)
+    private String countryCode = "FR";
+
+    private String phone;
+
     public Address() {}
 
-    public Address(User user, String street, String city, String postalCode, String country) {
-        this.user = user;
-        this.street = street;
-        this.city = city;
-        this.postalCode = postalCode;
-        this.country = country;
-    }
-
     public UUID getId() { return id; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
     public String getStreet() { return street; }
+    public void setStreet(String street) { this.street = street; }
+    public String getComplement() { return complement; }
+    public void setComplement(String complement) { this.complement = complement; }
     public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
     public String getPostalCode() { return postalCode; }
+    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
     public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
+    public String getCountryCode() { return countryCode; }
+    public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 }

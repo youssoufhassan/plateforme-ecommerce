@@ -24,7 +24,7 @@ public class AddressController {
     public List<AddressResponse> getMyAddresses(Authentication auth) {
         return addressRepository.findByUserEmail(auth.getName())
                 .stream()
-                .map(a -> new AddressResponse(a.getId(), a.getStreet(), a.getCity(), a.getPostalCode(), a.getCountry()))
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -33,9 +33,26 @@ public class AddressController {
         User user = userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
 
-        Address address = new Address(user, request.getStreet(), request.getCity(), request.getPostalCode(), request.getCountry());
-        Address saved = addressRepository.save(address);
+        Address address = new Address();
+        address.setUser(user);
+        address.setFirstName(request.getFirstName());
+        address.setLastName(request.getLastName());
+        address.setStreet(request.getStreet());
+        address.setComplement(request.getComplement());
+        address.setCity(request.getCity());
+        address.setPostalCode(request.getPostalCode());
+        address.setCountryCode(request.getCountryCode().toUpperCase());
+        address.setCountry(request.getCountryCode().toUpperCase());
+        address.setPhone(request.getPhone());
 
-        return new AddressResponse(saved.getId(), saved.getStreet(), saved.getCity(), saved.getPostalCode(), saved.getCountry());
+        return toResponse(addressRepository.save(address));
+    }
+
+    private AddressResponse toResponse(Address a) {
+        return new AddressResponse(
+                a.getId(), a.getFirstName(), a.getLastName(), a.getStreet(),
+                a.getComplement(), a.getCity(), a.getPostalCode(),
+                a.getCountryCode(), a.getPhone()
+        );
     }
 }

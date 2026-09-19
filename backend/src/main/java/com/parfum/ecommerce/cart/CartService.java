@@ -7,6 +7,7 @@ import com.parfum.ecommerce.catalog.Product;
 import com.parfum.ecommerce.catalog.ProductRepository;
 import com.parfum.ecommerce.identity.User;
 import com.parfum.ecommerce.identity.UserRepository;
+import com.parfum.ecommerce.order.PricingService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,18 +21,20 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final PricingService pricingService;
 
     public CartService(CartRepository cartRepository, CartItemRepository cartItemRepository,
-                        ProductRepository productRepository, UserRepository userRepository) {
+                        ProductRepository productRepository, UserRepository userRepository,
+                        PricingService pricingService) {
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.pricingService = pricingService;
     }
 
     public CartResponse getCart(String userEmail) {
-        Cart cart = getOrCreateCart(userEmail);
-        return toResponse(cart);
+        return toResponse(getOrCreateCart(userEmail));
     }
 
     public CartResponse addItem(String userEmail, AddItemRequest request) {
@@ -80,14 +83,25 @@ public class CartService {
                         item.getId(),
                         item.getProduct().getName(),
                         item.getProduct().getPrice(),
-                        item.getQuantity()
-                ))
+                        item.getQuantity()))
                 .toList();
 
-        BigDecimal total = items.stream()
+        BigDecimal subtotal = items.stream()
                 .map(i -> i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new CartResponse(items, total);
+        // Estimation basée sur la France : le pays réel est connu au checkout
+        PricingService.PriceBreakdown pricing = pricingService.calculate(subtotal, "FR");
+
+        return new CartResponse(
+                items,
+                pricing.subtotal(),
+                pricing.shipping(),
+                pricing.vat(),
+                pricing.vatRate(),
+                pricing.total(),
+                pricing.freeShippingThreshold(),
+                pricing.amountUntilFreeShipping()
+        );
     }
 }

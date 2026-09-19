@@ -30,25 +30,39 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
+    private final PricingService pricingService;
 
     public OrderService(
             CartRepository cartRepository,
             OrderRepository orderRepository,
             ProductRepository productRepository,
             UserRepository userRepository,
-            AddressRepository addressRepository
+            AddressRepository addressRepository,
+            PricingService pricingService
     ) {
         this.cartRepository = cartRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.addressRepository = addressRepository;
+        this.pricingService = pricingService;
     }
 
     @Transactional
     public OrderResponse checkout(String userEmail, UUID addressId) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+
+        if (addressId == null) {
+            throw new IllegalArgumentException("Une adresse de livraison est obligatoire");
+        }
+
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalArgumentException("Adresse introuvable"));
+
+        if (!address.getUser().getId().equals(user.getId())) {
+            throw new SecurityException("Cette adresse ne vous appartient pas");
+        }
 
         Cart cart = cartRepository.findByUserEmail(userEmail)
                 .orElseThrow(() -> new IllegalStateException("Panier vide"));
@@ -57,8 +71,7 @@ public class OrderService {
             throw new IllegalStateException("Impossible de commander un panier vide");
         }
 
-        // Vérifie la disponibilité AVANT de créer la commande.
-        // Les produits DROPSHIP n'ont pas de stock chez nous.
+        // Les produits DROPSHIP n'ont pas de stock chez nous
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
             if ("OWN_STOCK".equals(product.getFulfillmentType())
@@ -67,23 +80,25 @@ public class OrderService {
             }
         }
 
-        BigDecimal total = cart.getItems().stream()
+        BigDecimal subtotal = cart.getItems().stream()
                 .map(i -> i.getProduct().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Order order = new Order(user, total);
-        order.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        PricingService.PriceBreakdown pricing =
+                pricingService.calculate(subtotal, address.getCountryCode());
 
-        if (addressId != null) {
-            Address address = addressRepository.findById(addressId)
-                    .orElseThrow(() -> new IllegalArgumentException("Adresse introuvable"));
-            order.setAddress(address);
-        }
+        Order order = new Order(user, pricing.total());
+        order.setSubtotalAmount(pricing.subtotal());
+        order.setShippingAmount(pricing.shipping());
+        order.setVatAmount(pricing.vat());
+        order.setVatRate(pricing.vatRate());
+        order.setAddress(address);
+        order.setExpiresAt(LocalDateTime.now().plusMinutes(30));
 
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
-            OrderItem orderItem = new OrderItem(order, product, cartItem.getQuantity(), product.getPrice());
-            order.getItems().add(orderItem);
+            order.getItems().add(
+                    new OrderItem(order, product, cartItem.getQuantity(), product.getPrice()));
         }
 
         orderRepository.save(order);
@@ -105,7 +120,6 @@ public class OrderService {
         return orderRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    /** Mise à jour du statut par un administrateur. */
     @Transactional
     public OrderResponse updateStatus(UUID orderId, String newStatus) {
         if (!VALID_STATUSES.contains(newStatus)) {
@@ -146,7 +160,6 @@ public class OrderService {
         }
     }
 
-    /** Annule une commande. Restaure le stock si elle avait été payée. */
     @Transactional
     public OrderResponse cancelOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
@@ -169,7 +182,8 @@ public class OrderService {
 
     private OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream()
-                .map(i -> new OrderItemResponse(i.getProduct().getName(), i.getQuantity(), i.getUnitPrice()))
+                .map(i -> new OrderItemResponse(
+                        i.getProduct().getName(), i.getQuantity(), i.getUnitPrice()))
                 .toList();
 
         String customerFirstName = null;
@@ -185,6 +199,10 @@ public class OrderService {
         return new OrderResponse(
                 order.getId(),
                 order.getStatus(),
+                order.getSubtotalAmount(),
+                order.getShippingAmount(),
+                order.getVatAmount(),
+                order.getVatRate(),
                 order.getTotalAmount(),
                 order.getCreatedAt(),
                 customerFirstName,
