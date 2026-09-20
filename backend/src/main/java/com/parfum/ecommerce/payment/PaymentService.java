@@ -1,5 +1,6 @@
 package com.parfum.ecommerce.payment;
 
+import com.parfum.ecommerce.invoice.InvoiceService;
 import com.parfum.ecommerce.order.Order;
 import com.parfum.ecommerce.order.OrderRepository;
 import com.parfum.ecommerce.order.OrderService;
@@ -21,14 +22,16 @@ public class PaymentService {
     private final SupplierOrderService supplierOrderService;
     private final StripeService stripeService;
     private final OrderService orderService;
+    private final InvoiceService invoiceService;
 public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository,
                        SupplierOrderService supplierOrderService, StripeService stripeService,
-                       OrderService orderService) {
+                       OrderService orderService, InvoiceService invoiceService) {
     this.paymentRepository = paymentRepository;
     this.orderRepository = orderRepository;
     this.supplierOrderService = supplierOrderService;
     this.stripeService = stripeService;
     this.orderService = orderService;
+    this.invoiceService = invoiceService;
 }
 
     /** Étape 1 : le client demande à payer, on crée une session Stripe. */
@@ -91,7 +94,7 @@ public PaymentService(PaymentRepository paymentRepository, OrderRepository order
         orderService.decrementStock(order);
 
         orderRepository.save(order);
-
+        invoiceService.issueForOrder(order);
         supplierOrderService.generateForOrder(order);
     }
     @Transactional
