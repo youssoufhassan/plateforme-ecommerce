@@ -1,0 +1,184 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @page {
+        size: A4;
+        margin: 20mm;
+      }
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        color: #222;
+      }
+      .header {
+        display: block;
+        margin-bottom: 30px;
+      }
+      .brand {
+        font-size: 24px;
+        font-weight: bold;
+        letter-spacing: 2px;
+      }
+      .title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 4px;
+      }
+      .meta {
+        margin-top: 6px;
+        color: #555;
+      }
+      table.parties {
+        width: 100%;
+        margin: 24px 0;
+        border-collapse: collapse;
+      }
+      table.parties td {
+        width: 50%;
+        vertical-align: top;
+        padding: 0;
+      }
+      .block-title {
+        font-weight: bold;
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #777;
+        margin-bottom: 6px;
+      }
+      table.lines {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      table.lines th {
+        text-align: left;
+        border-bottom: 1.5px solid #222;
+        padding: 8px 4px;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      table.lines td {
+        padding: 8px 4px;
+        border-bottom: 1px solid #eee;
+      }
+      .right {
+        text-align: right;
+      }
+      table.totals {
+        width: 45%;
+        margin-left: 55%;
+        margin-top: 20px;
+        border-collapse: collapse;
+      }
+      table.totals td {
+        padding: 5px 4px;
+      }
+      table.totals tr.grand td {
+        border-top: 1.5px solid #222;
+        font-weight: bold;
+        font-size: 13px;
+      }
+      .footer {
+        margin-top: 40px;
+        padding-top: 12px;
+        border-top: 1px solid #ddd;
+        font-size: 9px;
+        color: #777;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="brand" th:text="${companyName}">SHAHIN</div>
+      <div class="title">FACTURE</div>
+      <div class="meta">
+        N° <strong th:text="${invoiceNumber}"></strong> —
+        <span th:text="${issuedAt}"></span>
+      </div>
+    </div>
+
+    <table class="parties">
+      <tr>
+        <td>
+          <div class="block-title">Vendeur</div>
+          <div th:text="${companyName}"></div>
+          <div th:text="${legalForm}"></div>
+          <div th:text="${companyAddress}"></div>
+          <div>
+            <span th:text="${companyPostalCode}"></span>
+            <span th:text="${companyCity}"></span>
+          </div>
+          <div th:text="${companyCountry}"></div>
+          <div th:if="${siret != ''}">
+            SIRET : <span th:text="${siret}"></span>
+          </div>
+          <div th:if="${vatNumber != ''}">
+            TVA : <span th:text="${vatNumber}"></span>
+          </div>
+          <div th:text="${companyEmail}"></div>
+        </td>
+        <td>
+          <div class="block-title">Client</div>
+          <div th:text="${customerName}"></div>
+          <div th:each="line : ${billingAddress}" th:text="${line}"></div>
+          <div th:text="${customerEmail}"></div>
+        </td>
+      </tr>
+    </table>
+
+    <table class="lines">
+      <thead>
+        <tr>
+          <th>Désignation</th>
+          <th class="right">Qté</th>
+          <th class="right">P.U. HT</th>
+          <th class="right">Total HT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="line : ${lines}">
+          <td th:text="${line.name}"></td>
+          <td class="right" th:text="${line.quantity}"></td>
+          <td class="right" th:text="${line.unitHt}"></td>
+          <td class="right" th:text="${line.totalHt}"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="totals">
+      <tr>
+        <td>Sous-total HT</td>
+        <td class="right" th:text="${subtotalHt}"></td>
+      </tr>
+      <tr>
+        <td>Livraison HT</td>
+        <td class="right" th:text="${shippingHt}"></td>
+      </tr>
+      <tr>
+        <td>Total HT</td>
+        <td class="right" th:text="${totalHt}"></td>
+      </tr>
+      <tr>
+        <td>TVA <span th:text="${vatRate}"></span> %</td>
+        <td class="right" th:text="${vatAmount}"></td>
+      </tr>
+      <tr class="grand">
+        <td>Total TTC</td>
+        <td class="right" th:text="${totalTtc}"></td>
+      </tr>
+    </table>
+
+    <div class="footer">
+      <div>Facture acquittée. Paiement par carte bancaire.</div>
+      <div>
+        Droit de rétractation : 14 jours à compter de la réception de la
+        commande.
+      </div>
+      <div th:if="${siret == ''}" style="color: #b00; margin-top: 6px">
+        Document provisoire — numéro SIRET non renseigné.
+      </div>
+    </div>
+  </body>
+</html>

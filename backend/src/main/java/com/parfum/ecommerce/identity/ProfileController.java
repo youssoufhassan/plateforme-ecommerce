@@ -17,15 +17,12 @@ public class ProfileController {
 
     @GetMapping
     public ProfileResponse getProfile(Authentication auth) {
-        User user = userRepository.findByEmail(auth.getName())
-                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
-        return toResponse(user);
+        return toResponse(findUser(auth.getName()));
     }
 
     @PutMapping
     public ProfileResponse updateProfile(Authentication auth, @RequestBody UpdateProfileRequest request) {
-        User user = userRepository.findByEmail(auth.getName())
-                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+        User user = findUser(auth.getName());
 
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
@@ -35,7 +32,18 @@ public class ProfileController {
         return toResponse(user);
     }
 
+    private User findUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+    }
+
     private ProfileResponse toResponse(User user) {
-        return new ProfileResponse(user.getEmail(), user.getFirstName(), user.getLastName(), user.getPhone());
+        return new ProfileResponse(
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhone(),
+                user.isEmailVerified()
+        );
     }
 }

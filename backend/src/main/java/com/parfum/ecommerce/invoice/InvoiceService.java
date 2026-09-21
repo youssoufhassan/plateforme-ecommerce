@@ -27,7 +27,7 @@ public class InvoiceService {
         this.pdfGenerator = pdfGenerator;
     }
 
-    /** Émet la facture d'une commande payée. Idempotent : ne crée jamais de doublon. */
+    /*Émet la facture d'une commande payée. Idempotent : ne crée jamais de doublon. 
     @Transactional
     public Invoice issueForOrder(Order order) {
         if (invoiceRepository.existsByOrderId(order.getId())) {
@@ -52,7 +52,74 @@ public class InvoiceService {
         invoice.setBillingAddress(buildAddress(order.getAddress()));
 
         return invoiceRepository.save(invoice);
+    }*/
+
+@Transactional
+public Invoice issueForOrder(Order order) {
+
+    System.out.println("=================================");
+    System.out.println(">>> CREATION FACTURE");
+    System.out.println(">>> Order ID = " + order.getId());
+    System.out.println(">>> Total = " + order.getTotalAmount());
+    System.out.println(">>> Subtotal = " + order.getSubtotalAmount());
+    System.out.println(">>> Shipping = " + order.getShippingAmount());
+    System.out.println(">>> VAT = " + order.getVatAmount());
+    System.out.println(">>> VAT rate = " + order.getVatRate());
+    System.out.println(">>> User = " + (order.getUser() != null ? order.getUser().getEmail() : "NULL"));
+    System.out.println(">>> Address = " + (order.getAddress() != null ? "OK" : "NULL"));
+
+    if (invoiceRepository.existsByOrderId(order.getId())) {
+        System.out.println(">>> FACTURE DEJA EXISTANTE");
+        return invoiceRepository.findByOrderId(order.getId()).orElseThrow();
     }
+
+    System.out.println(">>> Demande sequence invoice_sequence...");
+
+    Long sequence = invoiceRepository.nextSequenceNumber();
+
+    System.out.println(">>> Sequence = " + sequence);
+
+    Invoice invoice = new Invoice();
+
+    invoice.setOrder(order);
+    invoice.setSequenceNumber(sequence);
+
+    invoice.setInvoiceNumber(
+            String.format(
+                    "%s-%d-%05d",
+                    prefix,
+                    Year.now().getValue(),
+                    sequence
+            )
+    );
+
+    invoice.setSubtotalAmount(order.getSubtotalAmount());
+    invoice.setShippingAmount(order.getShippingAmount());
+    invoice.setVatAmount(order.getVatAmount());
+    invoice.setVatRate(order.getVatRate());
+    invoice.setTotalAmount(order.getTotalAmount());
+
+    invoice.setCustomerName(buildCustomerName(order));
+    invoice.setCustomerEmail(
+            order.getUser() != null
+                    ? order.getUser().getEmail()
+                    : ""
+    );
+
+    invoice.setBillingAddress(buildAddress(order.getAddress()));
+
+    System.out.println(">>> Invoice number = " + invoice.getInvoiceNumber());
+    System.out.println(">>> Customer = " + invoice.getCustomerName());
+    System.out.println(">>> Email = " + invoice.getCustomerEmail());
+    System.out.println(">>> Address = " + invoice.getBillingAddress());
+
+    Invoice saved = invoiceRepository.save(invoice);
+
+    System.out.println(">>> FACTURE CREEE = " + saved.getId());
+    System.out.println("=================================");
+
+    return saved;
+}
 
     public byte[] getPdf(UUID orderId, String userEmail, boolean isAdmin) {
         Order order = orderRepository.findById(orderId)
