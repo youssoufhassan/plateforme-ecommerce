@@ -35,16 +35,21 @@ public class InvoicePdfGenerator {
         this.templateEngine = templateEngine;
     }
 
-    public byte[] generate(Invoice invoice) {
+       public byte[] generate(Invoice invoice) {
         Context context = new Context();
         context.setVariables(buildVariables(invoice));
 
         String html = templateEngine.process("invoice/invoice", context);
 
+        // jsoup accepte le HTML tolérant (doctype en minuscules, balises non fermées...)
+        // et le convertit en document W3C que openhtmltopdf sait lire sans erreur
+        org.jsoup.nodes.Document jsoupDoc = org.jsoup.Jsoup.parse(html);
+        org.w3c.dom.Document w3cDoc = new org.jsoup.helper.W3CDom().fromJsoup(jsoupDoc);
+
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
-            builder.withHtmlContent(html, null);
+            builder.withW3cDocument(w3cDoc, "/");
             builder.toStream(out);
             builder.run();
             return out.toByteArray();
@@ -52,7 +57,6 @@ public class InvoicePdfGenerator {
             throw new IllegalStateException("Impossible de générer la facture PDF : " + e.getMessage());
         }
     }
-
     private Map<String, Object> buildVariables(Invoice invoice) {
         Map<String, Object> vars = new HashMap<>();
 

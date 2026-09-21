@@ -32,14 +32,12 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final PricingService pricingService;
 
-    public OrderService(
-            CartRepository cartRepository,
-            OrderRepository orderRepository,
-            ProductRepository productRepository,
-            UserRepository userRepository,
-            AddressRepository addressRepository,
-            PricingService pricingService
-    ) {
+    public OrderService(CartRepository cartRepository,
+                         OrderRepository orderRepository,
+                         ProductRepository productRepository,
+                         UserRepository userRepository,
+                         AddressRepository addressRepository,
+                         PricingService pricingService) {
         this.cartRepository = cartRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
@@ -52,6 +50,10 @@ public class OrderService {
     public OrderResponse checkout(String userEmail, UUID addressId) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+
+        if (!user.isEmailVerified()) {
+            throw new IllegalStateException("Veuillez vérifier votre adresse email avant de commander");
+        }
 
         if (addressId == null) {
             throw new IllegalArgumentException("Une adresse de livraison est obligatoire");
@@ -71,7 +73,6 @@ public class OrderService {
             throw new IllegalStateException("Impossible de commander un panier vide");
         }
 
-        // Les produits DROPSHIP n'ont pas de stock chez nous
         for (CartItem cartItem : cart.getItems()) {
             Product product = cartItem.getProduct();
             if ("OWN_STOCK".equals(product.getFulfillmentType())
