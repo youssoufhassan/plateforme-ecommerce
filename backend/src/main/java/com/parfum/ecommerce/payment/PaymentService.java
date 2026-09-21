@@ -23,6 +23,7 @@ public class PaymentService {
     private final StripeService stripeService;
     private final OrderService orderService;
     private final InvoiceService invoiceService;
+<<<<<<< Updated upstream
 public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository,
                        SupplierOrderService supplierOrderService, StripeService stripeService,
                        OrderService orderService, InvoiceService invoiceService) {
@@ -33,6 +34,22 @@ public PaymentService(PaymentRepository paymentRepository, OrderRepository order
     this.orderService = orderService;
     this.invoiceService = invoiceService;
 }
+=======
+
+    public PaymentService(PaymentRepository paymentRepository,
+                           OrderRepository orderRepository,
+                           SupplierOrderService supplierOrderService,
+                           StripeService stripeService,
+                           OrderService orderService,
+                           InvoiceService invoiceService) {
+        this.paymentRepository = paymentRepository;
+        this.orderRepository = orderRepository;
+        this.supplierOrderService = supplierOrderService;
+        this.stripeService = stripeService;
+        this.orderService = orderService;
+        this.invoiceService = invoiceService;
+    }
+>>>>>>> Stashed changes
 
     /** Étape 1 : le client demande à payer, on crée une session Stripe. */
     @Transactional
@@ -72,13 +89,13 @@ public PaymentService(PaymentRepository paymentRepository, OrderRepository order
      * Étape 2 : Stripe confirme le paiement via webhook.
      * C'est ici, et uniquement ici, qu'une commande devient réellement payée.
      */
-       @Transactional
+    @Transactional
     public void confirmPayment(String stripeSessionId, String transactionReference) {
         Payment payment = paymentRepository.findByStripeSessionId(stripeSessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Paiement introuvable pour cette session"));
 
         if ("SUCCESS".equals(payment.getStatus())) {
-            return;
+            return; // déjà traité — Stripe peut renvoyer le même événement plusieurs fois
         }
 
         payment.setStatus("SUCCESS");
@@ -90,13 +107,18 @@ public PaymentService(PaymentRepository paymentRepository, OrderRepository order
         order.setStatus("PAID");
         order.setExpiresAt(null);
 
-        // Le stock n'est décrémenté qu'une fois le paiement confirmé
         orderService.decrementStock(order);
-
         orderRepository.save(order);
+<<<<<<< Updated upstream
         invoiceService.issueForOrder(order);
+=======
+
+        invoiceService.issueForOrder(order);
+
+>>>>>>> Stashed changes
         supplierOrderService.generateForOrder(order);
     }
+
     @Transactional
     public void markFailed(String stripeSessionId) {
         paymentRepository.findByStripeSessionId(stripeSessionId).ifPresent(payment -> {
