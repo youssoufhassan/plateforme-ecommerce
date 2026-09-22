@@ -107,7 +107,7 @@ public class ProductService {
                 .toList();
     }
 
-   private ProductResponse toResponse(Product product) {
+   public ProductResponse toResponse(Product product) {
     List<VariantResponse> variants = product.getActiveVariants().stream()
             .map(v -> new VariantResponse(v.getId(), v.getLabel(), v.getPrice(), v.isAvailable()))
             .toList();

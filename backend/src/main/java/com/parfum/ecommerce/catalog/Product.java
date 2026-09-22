@@ -53,6 +53,10 @@ private java.util.List<ProductImage> images = new java.util.ArrayList<>();
 @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
 @OrderBy("position ASC")
 private java.util.List<ProductVariant> variants = new java.util.ArrayList<>();
+@Column(name = "created_at", nullable = false, updatable = false)
+private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+
+public java.time.LocalDateTime getCreatedAt() { return createdAt; }
 
     public Product() {}
 

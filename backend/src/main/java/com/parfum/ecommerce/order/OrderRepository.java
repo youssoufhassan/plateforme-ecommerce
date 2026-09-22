@@ -11,4 +11,5 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     List<Order> findTop5ByOrderByCreatedAtDesc();
     List<Order> findByStatusAndExpiresAtBefore(String status, java.time.LocalDateTime before);
+    org.springframework.data.domain.Page<Order> findByStatus(String status, org.springframework.data.domain.Pageable pageable);
 }
