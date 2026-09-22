@@ -1,5 +1,6 @@
 package com.parfum.ecommerce.identity;
 
+import com.parfum.ecommerce.common.TooManyRequestsException;
 import com.parfum.ecommerce.identity.dto.AuthResponse;
 import com.parfum.ecommerce.identity.dto.ChangePasswordRequest;
 import com.parfum.ecommerce.identity.dto.LoginRequest;
@@ -12,6 +13,9 @@ import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
+
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final int LOCK_MINUTES = 15;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -42,12 +46,32 @@ public class AuthService {
         return new AuthResponse(jwtService.generateToken(user.getEmail()));
     }
 
+    /**
+     * Volontairement SANS @Transactional : le compteur d'échecs doit être
+     * enregistré même quand on lève une exception (sinon il serait annulé).
+     */
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Email ou mot de passe incorrect"));
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+
+        if (user == null) {
+            // Même message qu'un mauvais mot de passe : ne pas révéler qui est inscrit
+            throw new IllegalArgumentException("Email ou mot de passe incorrect");
+        }
+
+        if (user.isLocked()) {
+            throw new TooManyRequestsException(
+                    "Trop de tentatives. Réessayez dans quelques minutes ou réinitialisez votre mot de passe.");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            registerFailedAttempt(user);
             throw new IllegalArgumentException("Email ou mot de passe incorrect");
+        }
+
+        if (user.getFailedLoginCount() > 0 || user.getLockedUntil() != null) {
+            user.setFailedLoginCount(0);
+            user.setLockedUntil(null);
+            userRepository.save(user);
         }
 
         return new AuthResponse(jwtService.generateToken(user.getEmail()));
@@ -64,6 +88,19 @@ public class AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         user.setPasswordChangedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    private void registerFailedAttempt(User user) {
+        int attempts = user.getFailedLoginCount() + 1;
+
+        if (attempts >= MAX_FAILED_ATTEMPTS) {
+            user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCK_MINUTES));
+            user.setFailedLoginCount(0);
+        } else {
+            user.setFailedLoginCount(attempts);
+        }
+
         userRepository.save(user);
     }
 }
