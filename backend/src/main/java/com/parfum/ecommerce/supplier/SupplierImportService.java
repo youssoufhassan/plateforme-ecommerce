@@ -4,8 +4,9 @@ import com.parfum.ecommerce.catalog.Category;
 import com.parfum.ecommerce.catalog.CategoryRepository;
 import com.parfum.ecommerce.catalog.Product;
 import com.parfum.ecommerce.catalog.ProductRepository;
+import com.parfum.ecommerce.catalog.ProductVariant;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,69 +19,102 @@ public class SupplierImportService {
     private final SupplierRepository supplierRepository;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final SupplierSyncLogRepository syncLogRepository;
 
     public SupplierImportService(SupplierAdapterRegistry registry,
                                   SupplierRepository supplierRepository,
                                   ProductRepository productRepository,
-                                  CategoryRepository categoryRepository) {
+                                  CategoryRepository categoryRepository,
+                                  SupplierSyncLogRepository syncLogRepository) {
         this.registry = registry;
         this.supplierRepository = supplierRepository;
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.syncLogRepository = syncLogRepository;
     }
 
-    @Transactional
+    /**
+     * Volontairement sans @Transactional : l'appel au fournisseur peut durer
+     * plusieurs secondes, il ne doit pas bloquer une connexion à la base.
+     * Le journal est ainsi enregistré même quand l'import échoue.
+     */
     public ImportResult importFrom(String supplierKey, String query, int limit) {
-        SupplierAdapter adapter = registry.get(supplierKey);
+        SupplierSyncLog log = syncLogRepository.save(new SupplierSyncLog(supplierKey, "IMPORT"));
 
-        Supplier supplier = supplierRepository.findByName(adapter.getSupplierName())
-                .orElseGet(() -> supplierRepository.save(
-                        new Supplier(adapter.getSupplierName(), "EXTERNAL", null)));
+        try {
+            SupplierAdapter adapter = registry.get(supplierKey);
 
-        List<ExternalProduct> externalProducts = adapter.fetchProducts(query, limit);
-
-        int imported = 0;
-        int skipped = 0;
-
-        for (ExternalProduct ext : externalProducts) {
-            if (ext.getName() == null || ext.getPrice() == null) {
-                skipped++;
-                continue;
-            }
-            if (productRepository.existsBySupplierSku(ext.getExternalId())) {
-                skipped++;
-                continue;
+            List<ExternalProduct> externalProducts;
+            try {
+                externalProducts = adapter.fetchProducts(query, limit);
+            } catch (Exception e) {
+                throw SupplierErrors.translate(adapter.getSupplierName(), e);
             }
 
-            productRepository.save(toProduct(ext, supplier));
-            imported++;
+            Supplier supplier = supplierRepository.findByName(adapter.getSupplierName())
+                    .orElseGet(() -> supplierRepository.save(
+                            new Supplier(adapter.getSupplierName(), "EXTERNAL", null)));
+
+            int imported = 0;
+            int skipped = 0;
+
+            for (ExternalProduct ext : externalProducts) {
+                if (ext.getName() == null || ext.getPrice() == null
+                        || productRepository.existsBySupplierSku(ext.getExternalId())) {
+                    skipped++;
+                    continue;
+                }
+
+                try {
+                    productRepository.save(toProduct(ext, supplier));
+                    imported++;
+                } catch (DataIntegrityViolationException e) {
+                    skipped++; // créé entre-temps par un import concurrent
+                }
+            }
+
+            log.succeed(imported, skipped,
+                    imported + " produit(s) importé(s), " + skipped + " ignoré(s) (déjà présents ou incomplets)");
+            syncLogRepository.save(log);
+
+            return new ImportResult(adapter.getSupplierName(), imported, skipped);
+
+        } catch (SupplierException e) {
+            log.fail(e.getType(), e.getMessage());
+            syncLogRepository.save(log);
+            throw e;
+
+        } catch (RuntimeException e) {
+            log.fail(null, e.getMessage());
+            syncLogRepository.save(log);
+            throw e;
         }
-
-        return new ImportResult(adapter.getSupplierName(), imported, skipped);
     }
 
-    /** Seul endroit où un produit externe devient un Product SHAHIN. */
+    public List<Map<String, Object>> listSuppliers() {
+        return registry.listAvailable();
+    }
+
+    /** Seul endroit où un produit externe devient un produit SHAHIN. */
     private Product toProduct(ExternalProduct ext, Supplier supplier) {
         Product product = new Product();
 
         product.setName(ext.getName());
         product.setBrand(ext.getBrand());
-        product.setDescription(
-            ext.getDescription() != null && !ext.getDescription().isBlank()
+        product.setDescription(ext.getDescription() != null && !ext.getDescription().isBlank()
                 ? ext.getDescription()
-                : "Description à compléter."
-        );
+                : "Description à compléter.");
         product.setPrice(ext.getPrice().max(BigDecimal.ONE));
         product.setCostPrice(ext.getCostPrice());
         product.setStockQuantity(0);
         product.setActive(true);
         product.setImageUrl(ext.getImageUrl());
         product.setCategory(resolveCategory(ext.getCategoryName()));
-
         product.setFulfillmentType("DROPSHIP");
         product.setSupplier(supplier);
         product.setSupplierSku(ext.getExternalId());
-        com.parfum.ecommerce.catalog.ProductVariant variant = new com.parfum.ecommerce.catalog.ProductVariant();
+
+        ProductVariant variant = new ProductVariant();
         variant.setProduct(product);
         variant.setLabel("Standard");
         variant.setPrice(product.getPrice());
@@ -101,10 +135,6 @@ public class SupplierImportService {
                     category.setName(name);
                     return categoryRepository.save(category);
                 });
-    }
-
-    public List<Map<String, Object>> listSuppliers() {
-        return registry.listAvailable();
     }
 
     public record ImportResult(String supplier, int imported, int skipped) {}

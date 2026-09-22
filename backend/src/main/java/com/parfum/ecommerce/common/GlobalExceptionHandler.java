@@ -41,7 +41,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur inattendue est survenue");
     }
-
+        @ExceptionHandler(com.parfum.ecommerce.supplier.SupplierException.class)
+    public ResponseEntity<Map<String, Object>> handleSupplier(com.parfum.ecommerce.supplier.SupplierException ex) {
+        return buildResponse(ex.getType().getHttpStatus(), ex.getMessage());
+    }
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());

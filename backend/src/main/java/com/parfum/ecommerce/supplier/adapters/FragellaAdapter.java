@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.parfum.ecommerce.supplier.ExternalProduct;
 import com.parfum.ecommerce.supplier.SupplierAdapter;
+import com.parfum.ecommerce.supplier.SupplierErrorType;
+import com.parfum.ecommerce.supplier.SupplierErrors;
+import com.parfum.ecommerce.supplier.SupplierException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,18 +23,16 @@ import java.util.List;
 @Component
 public class FragellaAdapter implements SupplierAdapter {
 
-    private static final String BASE_URL =
-            "https://api.fragella.com/api/v1/fragrances";
-
     private final RestTemplate restTemplate;
     private final String apiKey;
+    private final String baseUrl;
 
-    public FragellaAdapter(
-            RestTemplate restTemplate,
-            @Value("${fragella.api-key:}") String apiKey
-    ) {
+    public FragellaAdapter(RestTemplate restTemplate,
+                            @Value("${fragella.api-key:}") String apiKey,
+                            @Value("${fragella.base-url:https://api.fragella.com/api/v1/fragrances}") String baseUrl) {
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -51,23 +52,18 @@ public class FragellaAdapter implements SupplierAdapter {
 
     @Override
     public List<ExternalProduct> fetchProducts(String query, int limit) {
-
         if (!isAvailable()) {
-            throw new IllegalStateException(
-                    "Fragella API key non configurée"
-            );
+            throw new SupplierException(SupplierErrorType.NOT_CONFIGURED, getSupplierName(),
+                    "Fragella n'est pas configuré (clé API manquante).");
         }
 
         if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Fragella nécessite un terme de recherche"
-            );
+            throw new IllegalArgumentException("Fragella nécessite un terme de recherche (ex : Dior, Sauvage)");
         }
 
         int safeLimit = Math.min(Math.max(limit, 1), 10);
 
-        String url = UriComponentsBuilder
-                .fromUriString(BASE_URL)
+        String url = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("search", query)
                 .queryParam("limit", safeLimit)
                 .toUriString();
@@ -75,16 +71,14 @@ public class FragellaAdapter implements SupplierAdapter {
         HttpHeaders headers = new HttpHeaders();
         headers.set("x-api-key", apiKey);
 
-        ResponseEntity<FragellaItem[]> response =
-                restTemplate.exchange(
-                        url,
-                        HttpMethod.GET,
-                        new HttpEntity<>(headers),
-                        FragellaItem[].class
-                );
+        ResponseEntity<FragellaItem[]> response;
+        try {
+            response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), FragellaItem[].class);
+        } catch (Exception e) {
+            throw SupplierErrors.translate(getSupplierName(), e);
+        }
 
         FragellaItem[] items = response.getBody();
-
         if (items == null || items.length == 0) {
             return List.of();
         }
@@ -92,80 +86,65 @@ public class FragellaAdapter implements SupplierAdapter {
         List<ExternalProduct> result = new ArrayList<>();
 
         for (FragellaItem item : items) {
-
             if (item.name == null || item.name.isBlank()) {
                 continue;
             }
 
-            String externalId =
-                    item.id != null
-                            ? item.id
-                            : item.name
-                                .replaceAll("\\s+", "-")
-                                .toLowerCase();
+            String externalId = item.id != null
+                    ? item.id
+                    : item.name.replaceAll("\\s+", "-").toLowerCase();
 
-            result.add(
-                    new ExternalProduct(
-                            "fragella-" + externalId,
-                            item.name,
-                            item.brand,
-                            buildDescription(item),
-                            parsePrice(item.price),
-                            null,
-                            item.imageUrl,
-                            List.of(),
-                            mapCategory(item.gender)
-                    )
-            );
+            result.add(new ExternalProduct(
+                    "fragella-" + externalId,
+                    item.name,
+                    item.brand,
+                    buildDescription(item),
+                    parsePrice(item.price),
+                    null,
+                    item.imageUrl,
+                    List.of(),
+                    mapCategory(item.gender)
+            ));
         }
 
         return result;
     }
 
     private BigDecimal parsePrice(String price) {
-
         if (price == null || price.isBlank()) {
             return null;
         }
-
         try {
-            return new BigDecimal(price);
+            return new BigDecimal(price.trim());
         } catch (NumberFormatException e) {
             return null;
         }
     }
 
     private String buildDescription(FragellaItem item) {
-
         StringBuilder sb = new StringBuilder();
 
         if (item.brand != null) {
             sb.append(item.brand);
         }
-
         if (item.year != null) {
             appendSeparator(sb);
             sb.append("Lancé en ").append(item.year);
         }
-
         if (item.oilType != null && !item.oilType.isBlank()) {
             appendSeparator(sb);
             sb.append(item.oilType);
         }
-
         if (item.longevity != null && !item.longevity.isBlank()) {
             appendSeparator(sb);
             sb.append("Longévité : ").append(item.longevity);
         }
-
         if (item.sillage != null && !item.sillage.isBlank()) {
             appendSeparator(sb);
             sb.append("Sillage : ").append(item.sillage);
         }
 
-        return sb.length() > 0
-                ? sb.toString()
-                : "Description à compléter.";
+        return sb.length() > 0 ? sb.toString() : "Description à compléter.";
     }
 
     private void appendSeparator(StringBuilder sb) {
@@ -175,7 +154,6 @@ public class FragellaAdapter implements SupplierAdapter {
     }
 
     private String mapCategory(String gender) {
-
         if (gender == null) {
             return "Parfums";
         }
@@ -185,11 +163,9 @@ public class FragellaAdapter implements SupplierAdapter {
         if (g.contains("men") && !g.contains("women")) {
             return "Homme";
         }
-
         if (g.contains("women")) {
             return "Femme";
         }
-
         return "Unisexe";
     }
 

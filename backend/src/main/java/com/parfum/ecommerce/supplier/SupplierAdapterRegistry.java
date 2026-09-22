@@ -17,16 +17,20 @@ public class SupplierAdapterRegistry {
                 .collect(Collectors.toMap(SupplierAdapter::getSupplierKey, Function.identity()));
     }
 
-    public SupplierAdapter get(String supplierKey) {
+       public SupplierAdapter get(String supplierKey) {
         SupplierAdapter adapter = adapters.get(supplierKey);
         if (adapter == null) {
             throw new IllegalArgumentException("Fournisseur inconnu : " + supplierKey);
         }
         if (!adapter.isAvailable()) {
-            throw new IllegalStateException(
-                "Le fournisseur " + supplierKey + " n'est pas configuré (clé API manquante ?)");
+            throw new SupplierException(SupplierErrorType.NOT_CONFIGURED, adapter.getSupplierName(),
+                    adapter.getSupplierName() + " n'est pas configuré (clé API manquante).");
         }
         return adapter;
+    }
+
+        public List<SupplierAdapter> all() {
+        return List.copyOf(adapters.values());
     }
 
     public List<Map<String, Object>> listAvailable() {
@@ -34,7 +38,8 @@ public class SupplierAdapterRegistry {
                 .map(a -> Map.<String, Object>of(
                         "key", a.getSupplierKey(),
                         "name", a.getSupplierName(),
-                        "available", a.isAvailable()
+                        "available", a.isAvailable(),
+                        "capabilities", a.capabilities()
                 ))
                 .toList();
     }
