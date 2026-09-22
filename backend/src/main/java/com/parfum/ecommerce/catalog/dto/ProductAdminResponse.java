@@ -21,12 +21,14 @@ public class ProductAdminResponse {
     private String imageUrl;
     private List<String> imageUrls;
     private String categoryName;
+    private List<VariantAdminResponse> variants;
 
     public ProductAdminResponse(UUID id, String name, String description, String brand,
                                  BigDecimal price, BigDecimal costPrice, BigDecimal marginPercent,
                                  Integer stockQuantity, boolean active, String fulfillmentType,
                                  String supplierName, String supplierSku, String imageUrl,
-                                 List<String> imageUrls, String categoryName) {
+                                 List<String> imageUrls, String categoryName,
+                                 List<VariantAdminResponse> variants) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -42,15 +44,18 @@ public class ProductAdminResponse {
         this.imageUrl = imageUrl;
         this.imageUrls = imageUrls;
         this.categoryName = categoryName;
+        this.variants = variants;
     }
 
     public UUID getId() { return id; }
     public String getName() { return name; }
     public String getDescription() { return description; }
     public String getBrand() { return brand; }
+    /** Prix le plus bas parmi les variantes actives. */
     public BigDecimal getPrice() { return price; }
     public BigDecimal getCostPrice() { return costPrice; }
     public BigDecimal getMarginPercent() { return marginPercent; }
+    /** Somme des stocks des variantes actives. */
     public Integer getStockQuantity() { return stockQuantity; }
     public boolean isActive() { return active; }
     public String getFulfillmentType() { return fulfillmentType; }
@@ -59,4 +64,5 @@ public class ProductAdminResponse {
     public String getImageUrl() { return imageUrl; }
     public List<String> getImageUrls() { return imageUrls; }
     public String getCategoryName() { return categoryName; }
+    public List<VariantAdminResponse> getVariants() { return variants; }
 }

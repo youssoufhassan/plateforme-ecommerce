@@ -51,7 +51,7 @@ public class SupplierOrderService {
 
             for (OrderItem item : entry.getValue()) {
                 supplierOrder.getItems().add(
-                        new SupplierOrderItem(supplierOrder, item.getProduct(), item.getQuantity())
+                        new SupplierOrderItem(supplierOrder, item)
                 );
             }
 

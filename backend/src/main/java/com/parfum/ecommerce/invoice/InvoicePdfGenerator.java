@@ -86,7 +86,7 @@ public class InvoicePdfGenerator {
             BigDecimal unitHt = item.getUnitPrice().divide(vatDivisor, 2, RoundingMode.HALF_UP);
 
             Map<String, String> line = new HashMap<>();
-            line.put("name", item.getProduct().getName());
+            line.put("name", item.getDisplayName());
             line.put("quantity", String.valueOf(item.getQuantity()));
             line.put("unitHt", format(unitHt));
             line.put("totalHt", format(lineHt));

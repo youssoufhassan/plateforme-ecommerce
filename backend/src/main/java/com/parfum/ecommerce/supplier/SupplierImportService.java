@@ -80,6 +80,14 @@ public class SupplierImportService {
         product.setFulfillmentType("DROPSHIP");
         product.setSupplier(supplier);
         product.setSupplierSku(ext.getExternalId());
+        com.parfum.ecommerce.catalog.ProductVariant variant = new com.parfum.ecommerce.catalog.ProductVariant();
+        variant.setProduct(product);
+        variant.setLabel("Standard");
+        variant.setPrice(product.getPrice());
+        variant.setCostPrice(ext.getCostPrice());
+        variant.setSupplierSku(ext.getExternalId());
+        variant.setStockQuantity(0);
+        product.getVariants().add(variant);
 
         return product;
     }

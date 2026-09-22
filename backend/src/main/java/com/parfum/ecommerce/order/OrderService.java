@@ -5,6 +5,8 @@ import com.parfum.ecommerce.cart.CartItem;
 import com.parfum.ecommerce.cart.CartRepository;
 import com.parfum.ecommerce.catalog.Product;
 import com.parfum.ecommerce.catalog.ProductRepository;
+import com.parfum.ecommerce.catalog.ProductVariant;
+import com.parfum.ecommerce.catalog.ProductVariantRepository;
 import com.parfum.ecommerce.identity.Address;
 import com.parfum.ecommerce.identity.AddressRepository;
 import com.parfum.ecommerce.identity.User;
@@ -28,6 +30,7 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final ProductVariantRepository variantRepository;
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final PricingService pricingService;
@@ -35,12 +38,14 @@ public class OrderService {
     public OrderService(CartRepository cartRepository,
                          OrderRepository orderRepository,
                          ProductRepository productRepository,
+                         ProductVariantRepository variantRepository,
                          UserRepository userRepository,
                          AddressRepository addressRepository,
                          PricingService pricingService) {
         this.cartRepository = cartRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
+        this.variantRepository = variantRepository;
         this.userRepository = userRepository;
         this.addressRepository = addressRepository;
         this.pricingService = pricingService;
@@ -73,16 +78,26 @@ public class OrderService {
             throw new IllegalStateException("Impossible de commander un panier vide");
         }
 
+        // Vérifie chaque variante : présente, active, en stock (pour le stock propre)
         for (CartItem cartItem : cart.getItems()) {
-            Product product = cartItem.getProduct();
-            if ("OWN_STOCK".equals(product.getFulfillmentType())
-                    && product.getStockQuantity() < cartItem.getQuantity()) {
-                throw new IllegalStateException("Stock insuffisant pour : " + product.getName());
+            ProductVariant variant = cartItem.getVariant();
+
+            if (variant == null) {
+                throw new IllegalStateException("Votre panier contient un article obsolète, veuillez le retirer");
+            }
+            if (!variant.isActive()) {
+                throw new IllegalStateException("Plus disponible : " + cartItem.getProduct().getName()
+                        + " — " + variant.getLabel());
+            }
+            if ("OWN_STOCK".equals(variant.getProduct().getFulfillmentType())
+                    && variant.getStockQuantity() < cartItem.getQuantity()) {
+                throw new IllegalStateException("Stock insuffisant pour : " + cartItem.getProduct().getName()
+                        + " — " + variant.getLabel());
             }
         }
 
         BigDecimal subtotal = cart.getItems().stream()
-                .map(i -> i.getProduct().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+                .map(i -> i.getVariant().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         PricingService.PriceBreakdown pricing =
@@ -97,9 +112,7 @@ public class OrderService {
         order.setExpiresAt(LocalDateTime.now().plusMinutes(30));
 
         for (CartItem cartItem : cart.getItems()) {
-            Product product = cartItem.getProduct();
-            order.getItems().add(
-                    new OrderItem(order, product, cartItem.getQuantity(), product.getPrice()));
+            order.getItems().add(new OrderItem(order, cartItem.getVariant(), cartItem.getQuantity()));
         }
 
         orderRepository.save(order);
@@ -136,14 +149,20 @@ public class OrderService {
         return toResponse(order);
     }
 
-    /** Décrémente le stock des produits en stock propre. Appelé après paiement confirmé. */
+    /** Décrémente le stock de la variante (stock propre uniquement). Appelé après paiement. */
     @Transactional
     public void decrementStock(Order order) {
         for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            if ("OWN_STOCK".equals(product.getFulfillmentType())) {
-                int newStock = product.getStockQuantity() - item.getQuantity();
-                product.setStockQuantity(Math.max(0, newStock));
+            if (!"OWN_STOCK".equals(item.getProduct().getFulfillmentType())) continue;
+
+            if (item.getVariant() != null) {
+                ProductVariant variant = item.getVariant();
+                variant.setStockQuantity(Math.max(0, variant.getStockQuantity() - item.getQuantity()));
+                variantRepository.save(variant);
+            } else {
+                // Anciennes commandes, antérieures aux variantes
+                Product product = item.getProduct();
+                product.setStockQuantity(Math.max(0, product.getStockQuantity() - item.getQuantity()));
                 productRepository.save(product);
             }
         }
@@ -153,8 +172,14 @@ public class OrderService {
     @Transactional
     public void restoreStock(Order order) {
         for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            if ("OWN_STOCK".equals(product.getFulfillmentType())) {
+            if (!"OWN_STOCK".equals(item.getProduct().getFulfillmentType())) continue;
+
+            if (item.getVariant() != null) {
+                ProductVariant variant = item.getVariant();
+                variant.setStockQuantity(variant.getStockQuantity() + item.getQuantity());
+                variantRepository.save(variant);
+            } else {
+                Product product = item.getProduct();
                 product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
                 productRepository.save(product);
             }
@@ -184,7 +209,10 @@ public class OrderService {
     private OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream()
                 .map(i -> new OrderItemResponse(
-                        i.getProduct().getName(), i.getQuantity(), i.getUnitPrice()))
+                        i.getProduct().getName(),
+                        i.getVariantLabel(),
+                        i.getQuantity(),
+                        i.getUnitPrice()))
                 .toList();
 
         String customerFirstName = null;
