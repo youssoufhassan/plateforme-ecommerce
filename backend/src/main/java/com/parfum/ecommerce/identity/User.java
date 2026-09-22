@@ -44,6 +44,11 @@ public class User {
 
     @Column(name = "email_verified_at")
     private LocalDateTime emailVerifiedAt;
+    @Column(name = "password_changed_at")
+private LocalDateTime passwordChangedAt;
+
+public LocalDateTime getPasswordChangedAt() { return passwordChangedAt; }
+public void setPasswordChangedAt(LocalDateTime passwordChangedAt) { this.passwordChangedAt = passwordChangedAt; }
 
     public User() {}
 

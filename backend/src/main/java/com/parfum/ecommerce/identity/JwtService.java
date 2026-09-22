@@ -25,9 +25,8 @@ public class JwtService {
     public void init() {
         if (secret == null || secret.length() < 32) {
             throw new IllegalStateException(
-                "JWT_SECRET manquant ou trop court (32 caractères minimum). " +
-                "Définissez la variable d'environnement JWT_SECRET."
-            );
+                    "JWT_SECRET manquant ou trop court (32 caractères minimum). " +
+                    "Définissez la variable d'environnement JWT_SECRET.");
         }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
@@ -42,11 +41,12 @@ public class JwtService {
     }
 
     public String extractEmail(String token) {
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        return Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload().getSubject();
+    }
+
+    public Date extractIssuedAt(String token) {
+        return Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload().getIssuedAt();
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 public class AuthService {
 
@@ -32,16 +34,12 @@ public class AuthService {
             throw new IllegalArgumentException("Cet email est déjà utilisé");
         }
 
-        User user = new User(
-                request.getEmail(),
-                passwordEncoder.encode(request.getPassword())
-        );
+        User user = new User(request.getEmail(), passwordEncoder.encode(request.getPassword()));
         userRepository.save(user);
 
         emailVerificationService.createAndSend(user);
 
-        String token = jwtService.generateToken(user.getEmail());
-        return new AuthResponse(token);
+        return new AuthResponse(jwtService.generateToken(user.getEmail()));
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -52,8 +50,7 @@ public class AuthService {
             throw new IllegalArgumentException("Email ou mot de passe incorrect");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
-        return new AuthResponse(token);
+        return new AuthResponse(jwtService.generateToken(user.getEmail()));
     }
 
     @Transactional
@@ -66,6 +63,7 @@ public class AuthService {
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 }
