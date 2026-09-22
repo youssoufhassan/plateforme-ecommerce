@@ -1,5 +1,6 @@
 package com.parfum.ecommerce.order;
 
+import com.parfum.ecommerce.common.dto.PageResponse;
 import com.parfum.ecommerce.order.dto.OrderResponse;
 import com.parfum.ecommerce.order.dto.UpdateOrderStatusRequest;
 import jakarta.validation.Valid;
@@ -24,12 +25,16 @@ public class OrderController {
     public OrderResponse checkout(Authentication auth,
                                    @RequestBody(required = false) Map<String, Object> body) {
         UUID addressId = null;
+        boolean acceptTerms = false;
 
-        if (body != null && body.get("addressId") != null) {
-            addressId = UUID.fromString(body.get("addressId").toString());
+        if (body != null) {
+            if (body.get("addressId") != null) {
+                addressId = UUID.fromString(body.get("addressId").toString());
+            }
+            acceptTerms = Boolean.TRUE.equals(body.get("acceptTerms"));
         }
 
-        return orderService.checkout(auth.getName(), addressId);
+        return orderService.checkout(auth.getName(), addressId, acceptTerms);
     }
 
     @GetMapping
@@ -42,6 +47,13 @@ public class OrderController {
         return orderService.getAllOrders();
     }
 
+    @GetMapping("/admin/page")
+    public PageResponse<OrderResponse> getOrdersPage(@RequestParam(required = false) String status,
+                                                      @RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "20") int size) {
+        return orderService.getOrdersPage(status, page, size);
+    }
+
     @PutMapping("/{orderId}/status")
     public OrderResponse updateStatus(@PathVariable UUID orderId,
                                        @Valid @RequestBody UpdateOrderStatusRequest request) {
@@ -51,12 +63,5 @@ public class OrderController {
     @PutMapping("/{orderId}/cancel")
     public OrderResponse cancelOrder(@PathVariable UUID orderId) {
         return orderService.cancelOrder(orderId);
-    }
-        @GetMapping("/admin/page")
-    public com.parfum.ecommerce.common.dto.PageResponse<OrderResponse> getOrdersPage(
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return orderService.getOrdersPage(status, page, size);
     }
 }

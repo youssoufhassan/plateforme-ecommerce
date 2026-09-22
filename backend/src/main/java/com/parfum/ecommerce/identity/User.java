@@ -53,6 +53,15 @@ private int failedLoginCount = 0;
 
 @Column(name = "locked_until")
 private LocalDateTime lockedUntil;
+
+@Column(name = "marketing_consent", nullable = false)
+private boolean marketingConsent = false;
+
+@Column(name = "marketing_consent_at")
+private LocalDateTime marketingConsentAt;
+
+@Column(name = "deleted_at")
+private LocalDateTime deletedAt;
 public boolean isGuest() { return guest; }
 public void setGuest(boolean guest) { this.guest = guest; }
 
@@ -101,4 +110,10 @@ public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = locke
 public boolean isLocked() {
     return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
 }
+public boolean isMarketingConsent() { return marketingConsent; }
+public void setMarketingConsent(boolean marketingConsent) { this.marketingConsent = marketingConsent; }
+public LocalDateTime getMarketingConsentAt() { return marketingConsentAt; }
+public void setMarketingConsentAt(LocalDateTime marketingConsentAt) { this.marketingConsentAt = marketingConsentAt; }
+public LocalDateTime getDeletedAt() { return deletedAt; }
+public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 }
