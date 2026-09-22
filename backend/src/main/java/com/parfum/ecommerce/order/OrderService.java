@@ -240,4 +240,18 @@ public class OrderService {
                 items
         );
     }
+        @Transactional(readOnly = true)
+    public com.parfum.ecommerce.common.dto.PageResponse<OrderResponse> getOrdersPage(String status, int page, int size) {
+        int safeSize = (size <= 0) ? 20 : Math.min(size, 50);
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                Math.max(0, page), safeSize,
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+                        .and(org.springframework.data.domain.Sort.by("id")));
+
+        var result = (status == null || status.isBlank())
+                ? orderRepository.findAll(pageable)
+                : orderRepository.findByStatus(status.toUpperCase(), pageable);
+
+        return com.parfum.ecommerce.common.dto.PageResponse.of(result, this::toResponse);
+    }
 }

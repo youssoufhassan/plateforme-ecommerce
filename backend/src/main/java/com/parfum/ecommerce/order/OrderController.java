@@ -52,4 +52,11 @@ public class OrderController {
     public OrderResponse cancelOrder(@PathVariable UUID orderId) {
         return orderService.cancelOrder(orderId);
     }
+        @GetMapping("/admin/page")
+    public com.parfum.ecommerce.common.dto.PageResponse<OrderResponse> getOrdersPage(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return orderService.getOrdersPage(status, page, size);
+    }
 }
