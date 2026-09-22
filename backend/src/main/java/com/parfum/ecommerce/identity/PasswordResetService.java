@@ -98,6 +98,7 @@ public class PasswordResetService {
         User user = token.getUser();
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setPasswordChangedAt(LocalDateTime.now());
+        user.setGuest(false);
         userRepository.save(user);
 
         // Invalide ce jeton et tous les autres jetons encore actifs de cet utilisateur
