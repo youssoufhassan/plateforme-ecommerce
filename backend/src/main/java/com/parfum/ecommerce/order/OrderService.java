@@ -7,12 +7,18 @@ import com.parfum.ecommerce.catalog.Product;
 import com.parfum.ecommerce.catalog.ProductRepository;
 import com.parfum.ecommerce.catalog.ProductVariant;
 import com.parfum.ecommerce.catalog.ProductVariantRepository;
+import com.parfum.ecommerce.common.dto.PageResponse;
 import com.parfum.ecommerce.identity.Address;
 import com.parfum.ecommerce.identity.AddressRepository;
 import com.parfum.ecommerce.identity.User;
 import com.parfum.ecommerce.identity.UserRepository;
+import com.parfum.ecommerce.legal.LegalPage;
+import com.parfum.ecommerce.legal.LegalPageRepository;
 import com.parfum.ecommerce.order.dto.OrderItemResponse;
 import com.parfum.ecommerce.order.dto.OrderResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +40,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final PricingService pricingService;
+    private final LegalPageRepository legalPageRepository;
 
     public OrderService(CartRepository cartRepository,
                          OrderRepository orderRepository,
@@ -41,7 +48,8 @@ public class OrderService {
                          ProductVariantRepository variantRepository,
                          UserRepository userRepository,
                          AddressRepository addressRepository,
-                         PricingService pricingService) {
+                         PricingService pricingService,
+                         LegalPageRepository legalPageRepository) {
         this.cartRepository = cartRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
@@ -49,10 +57,15 @@ public class OrderService {
         this.userRepository = userRepository;
         this.addressRepository = addressRepository;
         this.pricingService = pricingService;
+        this.legalPageRepository = legalPageRepository;
     }
 
     @Transactional
-    public OrderResponse checkout(String userEmail, UUID addressId) {
+    public OrderResponse checkout(String userEmail, UUID addressId, boolean acceptTerms) {
+        if (!acceptTerms) {
+            throw new IllegalArgumentException("Vous devez accepter les conditions générales de vente");
+        }
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
 
@@ -78,7 +91,6 @@ public class OrderService {
             throw new IllegalStateException("Impossible de commander un panier vide");
         }
 
-        // Vérifie chaque variante : présente, active, en stock (pour le stock propre)
         for (CartItem cartItem : cart.getItems()) {
             ProductVariant variant = cartItem.getVariant();
 
@@ -111,6 +123,12 @@ public class OrderService {
         order.setAddress(address);
         order.setExpiresAt(LocalDateTime.now().plusMinutes(30));
 
+        // Preuve d'acceptation des CGV : date et version acceptée
+        order.setTermsAcceptedAt(LocalDateTime.now());
+        order.setTermsVersion(legalPageRepository.findBySlug("cgv")
+                .map(LegalPage::getVersion)
+                .orElse(1));
+
         for (CartItem cartItem : cart.getItems()) {
             order.getItems().add(new OrderItem(order, cartItem.getVariant(), cartItem.getQuantity()));
         }
@@ -132,6 +150,19 @@ public class OrderService {
 
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getOrdersPage(String status, int page, int size) {
+        int safeSize = (size <= 0) ? 20 : Math.min(size, 50);
+        PageRequest pageable = PageRequest.of(Math.max(0, page), safeSize,
+                Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id")));
+
+        Page<Order> result = (status == null || status.isBlank())
+                ? orderRepository.findAll(pageable)
+                : orderRepository.findByStatus(status.toUpperCase(), pageable);
+
+        return PageResponse.of(result, this::toResponse);
     }
 
     @Transactional
@@ -160,7 +191,6 @@ public class OrderService {
                 variant.setStockQuantity(Math.max(0, variant.getStockQuantity() - item.getQuantity()));
                 variantRepository.save(variant);
             } else {
-                // Anciennes commandes, antérieures aux variantes
                 Product product = item.getProduct();
                 product.setStockQuantity(Math.max(0, product.getStockQuantity() - item.getQuantity()));
                 productRepository.save(product);
@@ -239,19 +269,5 @@ public class OrderService {
                 customerEmail,
                 items
         );
-    }
-        @Transactional(readOnly = true)
-    public com.parfum.ecommerce.common.dto.PageResponse<OrderResponse> getOrdersPage(String status, int page, int size) {
-        int safeSize = (size <= 0) ? 20 : Math.min(size, 50);
-        var pageable = org.springframework.data.domain.PageRequest.of(
-                Math.max(0, page), safeSize,
-                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
-                        .and(org.springframework.data.domain.Sort.by("id")));
-
-        var result = (status == null || status.isBlank())
-                ? orderRepository.findAll(pageable)
-                : orderRepository.findByStatus(status.toUpperCase(), pageable);
-
-        return com.parfum.ecommerce.common.dto.PageResponse.of(result, this::toResponse);
     }
 }

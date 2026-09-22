@@ -48,7 +48,11 @@ private BigDecimal vatAmount;
 
 @Column(name = "vat_rate")
 private BigDecimal vatRate;
+@Column(name = "terms_accepted_at")
+private java.time.LocalDateTime termsAcceptedAt;
 
+@Column(name = "terms_version")
+private Integer termsVersion;
 public BigDecimal getSubtotalAmount() { return subtotalAmount; }
 public void setSubtotalAmount(BigDecimal v) { this.subtotalAmount = v; }
 public BigDecimal getShippingAmount() { return shippingAmount; }
@@ -76,4 +80,8 @@ public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; 
     public List<OrderItem> getItems() { return items; }
     public Address getAddress() { return address; }
 public void setAddress(Address address) { this.address = address; }
+public java.time.LocalDateTime getTermsAcceptedAt() { return termsAcceptedAt; }
+public void setTermsAcceptedAt(java.time.LocalDateTime termsAcceptedAt) { this.termsAcceptedAt = termsAcceptedAt; }
+public Integer getTermsVersion() { return termsVersion; }
+public void setTermsVersion(Integer termsVersion) { this.termsVersion = termsVersion; }
 }

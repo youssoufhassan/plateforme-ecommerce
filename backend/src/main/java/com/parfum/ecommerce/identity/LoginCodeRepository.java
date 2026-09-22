@@ -13,4 +13,5 @@ public interface LoginCodeRepository extends JpaRepository<LoginCode, UUID> {
     Optional<LoginCode> findFirstByEmailOrderByCreatedAtDesc(String email);
 
     long countByEmailAndCreatedAtAfter(String email, LocalDateTime after);
+    void deleteByEmail(String email);
 }
