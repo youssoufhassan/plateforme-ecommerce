@@ -48,7 +48,11 @@ public class User {
 private LocalDateTime passwordChangedAt;
 @Column(nullable = false)
 private boolean guest = false;
+@Column(name = "failed_login_count", nullable = false)
+private int failedLoginCount = 0;
 
+@Column(name = "locked_until")
+private LocalDateTime lockedUntil;
 public boolean isGuest() { return guest; }
 public void setGuest(boolean guest) { this.guest = guest; }
 
@@ -89,4 +93,12 @@ public void setPasswordChangedAt(LocalDateTime passwordChangedAt) { this.passwor
 
     public LocalDateTime getEmailVerifiedAt() { return emailVerifiedAt; }
     public void setEmailVerifiedAt(LocalDateTime emailVerifiedAt) { this.emailVerifiedAt = emailVerifiedAt; }
+    public int getFailedLoginCount() { return failedLoginCount; }
+public void setFailedLoginCount(int failedLoginCount) { this.failedLoginCount = failedLoginCount; }
+public LocalDateTime getLockedUntil() { return lockedUntil; }
+public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = lockedUntil; }
+
+public boolean isLocked() {
+    return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
+}
 }
