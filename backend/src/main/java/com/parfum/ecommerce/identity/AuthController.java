@@ -4,6 +4,7 @@ import com.parfum.ecommerce.identity.dto.AuthResponse;
 import com.parfum.ecommerce.identity.dto.ChangePasswordRequest;
 import com.parfum.ecommerce.identity.dto.LoginRequest;
 import com.parfum.ecommerce.identity.dto.RegisterRequest;
+import com.parfum.ecommerce.identity.dto.ResetPasswordRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,10 +18,14 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService, EmailVerificationService emailVerificationService) {
+    public AuthController(AuthService authService,
+                           EmailVerificationService emailVerificationService,
+                           PasswordResetService passwordResetService) {
         this.authService = authService;
         this.emailVerificationService = emailVerificationService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/register")
@@ -56,5 +61,19 @@ public class AuthController {
         }
         emailVerificationService.resend(auth.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    /** Réponse toujours identique, que l'email existe ou non. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> body) {
+        passwordResetService.requestReset(body.get("email"));
+        return ResponseEntity.ok(Map.of("message",
+                "Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Votre mot de passe a été modifié. Vous pouvez vous connecter."));
     }
 }
