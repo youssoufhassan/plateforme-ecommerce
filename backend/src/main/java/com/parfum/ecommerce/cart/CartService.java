@@ -5,13 +5,16 @@ import com.parfum.ecommerce.cart.dto.CartItemResponse;
 import com.parfum.ecommerce.cart.dto.CartResponse;
 import com.parfum.ecommerce.catalog.Product;
 import com.parfum.ecommerce.catalog.ProductRepository;
+import com.parfum.ecommerce.catalog.ProductVariant;
 import com.parfum.ecommerce.identity.User;
 import com.parfum.ecommerce.identity.UserRepository;
 import com.parfum.ecommerce.order.PricingService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -33,39 +36,93 @@ public class CartService {
         this.pricingService = pricingService;
     }
 
+    @Transactional
     public CartResponse getCart(String userEmail) {
         return toResponse(getOrCreateCart(userEmail));
     }
 
+    @Transactional
     public CartResponse addItem(String userEmail, AddItemRequest request) {
         Cart cart = getOrCreateCart(userEmail);
 
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
 
-        CartItem item = new CartItem(cart, product, request.getQuantity());
-        cart.getItems().add(item);
+        ProductVariant variant = resolveVariant(product, request.getVariantId());
+
+        if (!variant.isAvailable()) {
+            throw new IllegalStateException("Cette variante n'est plus disponible");
+        }
+
+        // Même variante déjà dans le panier : on augmente la quantité au lieu d'ajouter une ligne
+        Optional<CartItem> existing = cart.getItems().stream()
+                .filter(i -> i.getVariant() != null && i.getVariant().getId().equals(variant.getId()))
+                .findFirst();
+
+        if (existing.isPresent()) {
+            CartItem item = existing.get();
+            item.setQuantity(item.getQuantity() + request.getQuantity());
+            cartItemRepository.save(item);
+        } else {
+            CartItem item = new CartItem(cart, variant, request.getQuantity());
+            cart.getItems().add(item);
+            cartItemRepository.save(item);
+        }
+
+        return toResponse(cart);
+    }
+
+    @Transactional
+    public CartResponse updateItemQuantity(String userEmail, UUID itemId, Integer quantity) {
+        if (quantity == null || quantity < 1) {
+            throw new IllegalArgumentException("La quantité doit être au moins 1");
+        }
+
+        Cart cart = getOrCreateCart(userEmail);
+
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Article introuvable dans votre panier"));
+
+        item.setQuantity(quantity);
         cartItemRepository.save(item);
 
         return toResponse(cart);
     }
 
-    public CartResponse updateItemQuantity(String userEmail, UUID itemId, Integer quantity) {
-        CartItem item = cartItemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Article introuvable"));
-
-        item.setQuantity(quantity);
-        cartItemRepository.save(item);
-
-        return getCart(userEmail);
-    }
-
+    @Transactional
     public CartResponse removeItem(String userEmail, UUID itemId) {
         Cart cart = getOrCreateCart(userEmail);
         cart.getItems().removeIf(item -> item.getId().equals(itemId));
         cartRepository.save(cart);
 
         return toResponse(cart);
+    }
+
+    /**
+     * Choix de la variante : celle demandée, ou la seule variante active
+     * si le produit n'en a qu'une (compatibilité avec le frontend actuel).
+     */
+    private ProductVariant resolveVariant(Product product, UUID variantId) {
+        List<ProductVariant> active = product.getActiveVariants();
+
+        if (variantId != null) {
+            return active.stream()
+                    .filter(v -> v.getId().equals(variantId))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Variante introuvable pour ce produit"));
+        }
+
+        if (active.size() == 1) {
+            return active.get(0);
+        }
+
+        if (active.isEmpty()) {
+            throw new IllegalStateException("Ce produit n'est pas disponible");
+        }
+
+        throw new IllegalArgumentException("Veuillez choisir une variante (taille, format...)");
     }
 
     private Cart getOrCreateCart(String userEmail) {
@@ -77,12 +134,19 @@ public class CartService {
                 });
     }
 
+    private BigDecimal unitPriceOf(CartItem item) {
+        return item.getVariant() != null ? item.getVariant().getPrice() : item.getProduct().getPrice();
+    }
+
     private CartResponse toResponse(Cart cart) {
         List<CartItemResponse> items = cart.getItems().stream()
                 .map(item -> new CartItemResponse(
                         item.getId(),
+                        item.getProduct().getId(),
+                        item.getVariant() != null ? item.getVariant().getId() : null,
                         item.getProduct().getName(),
-                        item.getProduct().getPrice(),
+                        item.getVariant() != null ? item.getVariant().getLabel() : null,
+                        unitPriceOf(item),
                         item.getQuantity()))
                 .toList();
 

@@ -44,7 +44,10 @@ public class PricingService {
         );
     }
 
-    private BigDecimal computeShipping(BigDecimal subtotal, ShippingZone zone) {
+       private BigDecimal computeShipping(BigDecimal subtotal, ShippingZone zone) {
+        if (subtotal.signum() == 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
         if (zone.getFreeThreshold() != null && subtotal.compareTo(zone.getFreeThreshold()) >= 0) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }

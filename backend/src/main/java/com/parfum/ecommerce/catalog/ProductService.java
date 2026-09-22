@@ -2,6 +2,9 @@ package com.parfum.ecommerce.catalog;
 
 import com.parfum.ecommerce.catalog.dto.CreateProductRequest;
 import com.parfum.ecommerce.catalog.dto.ProductResponse;
+import com.parfum.ecommerce.catalog.dto.VariantAdminResponse;
+import com.parfum.ecommerce.catalog.dto.VariantResponse;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -46,14 +49,18 @@ public class ProductService {
 
             product.setCategory(category);
         }
-
+        ProductVariant variant = new ProductVariant();
+        variant.setProduct(product);
+        variant.setLabel("Standard");
+        variant.setPrice(request.getPrice());
+        variant.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+        product.getVariants().add(variant);
         Product saved = productRepository.save(product);
 
         return toResponse(saved);
     }
 
     public ProductResponse updateProduct(UUID id, CreateProductRequest request) {
-
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
 
@@ -62,19 +69,17 @@ public class ProductService {
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
 
-        if (request.getCategoryId() != null) {
-
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new IllegalArgumentException("Catégorie introuvable"));
-
-            product.setCategory(category);
-
-        } else {
-            product.setCategory(null);
+        // Compatibilité avec le formulaire admin actuel : un produit à variante unique
+        // reçoit directement le prix et le stock saisis
+        if (product.getVariants().size() == 1) {
+            ProductVariant single = product.getVariants().get(0);
+            single.setPrice(request.getPrice());
+            if (request.getStockQuantity() != null) {
+                single.setStockQuantity(request.getStockQuantity());
+            }
         }
 
         Product saved = productRepository.save(product);
-
         return toResponse(saved);
     }
 
@@ -103,44 +108,57 @@ public class ProductService {
     }
 
    private ProductResponse toResponse(Product product) {
+    List<VariantResponse> variants = product.getActiveVariants().stream()
+            .map(v -> new VariantResponse(v.getId(), v.getLabel(), v.getPrice(), v.isAvailable()))
+            .toList();
+
     return new ProductResponse(
-        product.getId(),
-        product.getName(),
-        product.getDescription(),
-        product.getBrand(),
-        product.getPrice(),
-        product.isAvailable(),
-        product.getImageUrl(),
-        product.getImages().stream().map(ProductImage::getUrl).toList(),
-        product.getCategory() != null ? product.getCategory().getName() : null
+            product.getId(),
+            product.getName(),
+            product.getDescription(),
+            product.getBrand(),
+            product.getLowestPrice(),
+            product.isAvailable(),
+            product.getImageUrl(),
+            product.getImages().stream().map(ProductImage::getUrl).toList(),
+            product.getCategory() != null ? product.getCategory().getName() : null,
+            variants
     );
 }
 private ProductAdminResponse toAdminResponse(Product product) {
-    BigDecimal margin = null;
-    if (product.getCostPrice() != null && product.getCostPrice().compareTo(BigDecimal.ZERO) > 0) {
-        margin = product.getPrice()
-                .subtract(product.getCostPrice())
-                .divide(product.getCostPrice(), 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .setScale(2, RoundingMode.HALF_UP);
-    }
+    List<VariantAdminResponse> variants = product.getVariants().stream()
+            .map(ProductVariantService::toResponse)
+            .toList();
+
+    // Coût et marge de la variante la moins chère, pour l'affichage en liste
+    ProductVariant cheapest = product.getActiveVariants().stream()
+            .min(java.util.Comparator.comparing(ProductVariant::getPrice))
+            .orElse(null);
+
+    BigDecimal cost = cheapest != null ? cheapest.getCostPrice() : product.getCostPrice();
+    BigDecimal margin = cheapest != null ? ProductVariantService.toResponse(cheapest).marginPercent() : null;
+
+    int totalStock = product.getActiveVariants().stream()
+            .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+            .sum();
 
     return new ProductAdminResponse(
-        product.getId(),
-        product.getName(),
-        product.getDescription(),
-        product.getBrand(),
-        product.getPrice(),
-        product.getCostPrice(),
-        margin,
-        product.getStockQuantity(),
-        Boolean.TRUE.equals(product.getActive()),
-        product.getFulfillmentType(),
-        product.getSupplier() != null ? product.getSupplier().getName() : null,
-        product.getSupplierSku(),
-        product.getImageUrl(),
-        product.getImages().stream().map(ProductImage::getUrl).toList(),
-        product.getCategory() != null ? product.getCategory().getName() : null
+            product.getId(),
+            product.getName(),
+            product.getDescription(),
+            product.getBrand(),
+            product.getLowestPrice(),
+            cost,
+            margin,
+            totalStock,
+            Boolean.TRUE.equals(product.getActive()),
+            product.getFulfillmentType(),
+            product.getSupplier() != null ? product.getSupplier().getName() : null,
+            product.getSupplierSku(),
+            product.getImageUrl(),
+            product.getImages().stream().map(ProductImage::getUrl).toList(),
+            product.getCategory() != null ? product.getCategory().getName() : null,
+            variants
     );
 }
 

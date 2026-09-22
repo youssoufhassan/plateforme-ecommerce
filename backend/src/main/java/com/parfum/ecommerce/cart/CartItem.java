@@ -1,6 +1,7 @@
 package com.parfum.ecommerce.cart;
 
 import com.parfum.ecommerce.catalog.Product;
+import com.parfum.ecommerce.catalog.ProductVariant;
 import jakarta.persistence.*;
 import java.util.UUID;
 
@@ -20,20 +21,26 @@ public class CartItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
     @Column(nullable = false)
     private Integer quantity;
 
     public CartItem() {}
 
-    public CartItem(Cart cart, Product product, Integer quantity) {
+    public CartItem(Cart cart, ProductVariant variant, Integer quantity) {
         this.cart = cart;
-        this.product = product;
+        this.variant = variant;
+        this.product = variant.getProduct();
         this.quantity = quantity;
     }
 
     public UUID getId() { return id; }
     public Cart getCart() { return cart; }
     public Product getProduct() { return product; }
+    public ProductVariant getVariant() { return variant; }
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
 }

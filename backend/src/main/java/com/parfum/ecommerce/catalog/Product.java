@@ -50,6 +50,9 @@ private java.math.BigDecimal costPrice;
 @OneToMany(mappedBy = "product")
 @OrderBy("position ASC")
 private java.util.List<ProductImage> images = new java.util.ArrayList<>();
+@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+@OrderBy("position ASC")
+private java.util.List<ProductVariant> variants = new java.util.ArrayList<>();
 
     public Product() {}
 
@@ -84,11 +87,30 @@ public void setSupplierSku(String supplierSku) { this.supplierSku = supplierSku;
 
 public java.math.BigDecimal getCostPrice() { return costPrice; }
 public void setCostPrice(java.math.BigDecimal costPrice) { this.costPrice = costPrice; }
+/** Disponible si au moins une variante active est disponible. */
 public boolean isAvailable() {
-    if ("DROPSHIP".equals(this.fulfillmentType)) {
-        return Boolean.TRUE.equals(this.active);
+    if (!Boolean.TRUE.equals(this.active)) return false;
+
+    if (variants.isEmpty()) {
+        // Produit sans variante (ne devrait plus arriver après la migration)
+        if ("DROPSHIP".equals(this.fulfillmentType)) return true;
+        return this.stockQuantity != null && this.stockQuantity > 0;
     }
-    return Boolean.TRUE.equals(this.active) && this.stockQuantity != null && this.stockQuantity > 0;
+
+    return variants.stream().anyMatch(ProductVariant::isAvailable);
+}
+public java.util.List<ProductVariant> getVariants() { return variants; }
+
+/** Variantes actives, dans l'ordre d'affichage. */
+public java.util.List<ProductVariant> getActiveVariants() {
+    return variants.stream().filter(ProductVariant::isActive).toList();
 }
 
+/** Prix le plus bas parmi les variantes actives ("à partir de"). */
+public java.math.BigDecimal getLowestPrice() {
+    return getActiveVariants().stream()
+            .map(ProductVariant::getPrice)
+            .min(java.math.BigDecimal::compareTo)
+            .orElse(this.price);
+}
 }

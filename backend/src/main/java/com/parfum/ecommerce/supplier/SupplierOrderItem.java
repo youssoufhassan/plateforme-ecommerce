@@ -39,7 +39,19 @@ public class SupplierOrderItem {
         this.supplierSku = product.getSupplierSku();
         this.unitCost = product.getCostPrice();
     }
+        public SupplierOrderItem(SupplierOrder supplierOrder, com.parfum.ecommerce.order.OrderItem orderItem) {
+        this.supplierOrder = supplierOrder;
+        this.product = orderItem.getProduct();
+        this.quantity = orderItem.getQuantity();
 
+        var variant = orderItem.getVariant();
+        this.supplierSku = (variant != null && variant.getSupplierSku() != null)
+                ? variant.getSupplierSku()
+                : product.getSupplierSku();
+        this.unitCost = (variant != null && variant.getCostPrice() != null)
+                ? variant.getCostPrice()
+                : product.getCostPrice();
+    }
     public UUID getId() { return id; }
     public Product getProduct() { return product; }
     public String getSupplierSku() { return supplierSku; }

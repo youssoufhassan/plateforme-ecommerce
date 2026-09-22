@@ -59,7 +59,7 @@ public class StripeService {
                             .setUnitAmount(unitAmountCents)
                             .setProductData(
                                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                    .setName(item.getProduct().getName())
+                                    .setName(item.getDisplayName())
                                     .build())
                             .build())
                     .build()
