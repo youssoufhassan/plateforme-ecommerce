@@ -1,0 +1,80 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #f6f6f8;
+      font-family: Arial, Helvetica, sans-serif;
+    "
+  >
+    <table
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="padding: 32px 16px"
+    >
+      <tr>
+        <td align="center">
+          <table
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              max-width: 520px;
+              background: #ffffff;
+              border-radius: 8px;
+              overflow: hidden;
+            "
+          >
+            <tr>
+              <td
+                style="background: #111111; padding: 24px; text-align: center"
+              >
+                <span
+                  style="
+                    color: #ffffff;
+                    font-size: 22px;
+                    font-weight: bold;
+                    letter-spacing: 2px;
+                  "
+                  >SHAHIN</span
+                >
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 32px 28px; text-align: center">
+                <h2 style="margin: 0 0 16px; font-size: 20px; color: #111111">
+                  Votre code de confirmation
+                </h2>
+                <p style="color: #555555; font-size: 15px; line-height: 1.6">
+                  Saisissez ce code pour continuer votre commande. Il est
+                  valable 10 minutes.
+                </p>
+                <p
+                  style="
+                    margin: 28px 0;
+                    font-size: 34px;
+                    font-weight: bold;
+                    letter-spacing: 10px;
+                    color: #111111;
+                  "
+                  th:text="${code}"
+                >
+                  000000
+                </p>
+                <p style="color: #999999; font-size: 12px">
+                  Si vous n'êtes pas à l'origine de cette demande, ignorez cet
+                  email.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -46,6 +46,11 @@ public class User {
     private LocalDateTime emailVerifiedAt;
     @Column(name = "password_changed_at")
 private LocalDateTime passwordChangedAt;
+@Column(nullable = false)
+private boolean guest = false;
+
+public boolean isGuest() { return guest; }
+public void setGuest(boolean guest) { this.guest = guest; }
 
 public LocalDateTime getPasswordChangedAt() { return passwordChangedAt; }
 public void setPasswordChangedAt(LocalDateTime passwordChangedAt) { this.passwordChangedAt = passwordChangedAt; }

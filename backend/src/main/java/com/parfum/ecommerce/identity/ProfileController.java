@@ -37,13 +37,14 @@ public class ProfileController {
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
     }
 
-    private ProfileResponse toResponse(User user) {
+       private ProfileResponse toResponse(User user) {
         return new ProfileResponse(
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getPhone(),
-                user.isEmailVerified()
+                user.isEmailVerified(),
+                user.isGuest()
         );
     }
 }
