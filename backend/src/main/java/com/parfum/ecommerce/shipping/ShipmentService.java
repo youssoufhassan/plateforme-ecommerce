@@ -3,6 +3,7 @@ package com.parfum.ecommerce.shipping;
 import com.parfum.ecommerce.mail.OrderMailService;
 import com.parfum.ecommerce.order.Order;
 import com.parfum.ecommerce.order.OrderRepository;
+import com.parfum.ecommerce.order.OrderService;
 import com.parfum.ecommerce.shipping.dto.CreateShipmentRequest;
 import com.parfum.ecommerce.shipping.dto.ShipmentResponse;
 import org.springframework.stereotype.Service;
@@ -17,13 +18,16 @@ public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final OrderRepository orderRepository;
     private final OrderMailService orderMailService;
+    private final OrderService orderService;
 
     public ShipmentService(ShipmentRepository shipmentRepository,
                             OrderRepository orderRepository,
-                            OrderMailService orderMailService) {
+                            OrderMailService orderMailService,
+                            OrderService orderService) {
         this.shipmentRepository = shipmentRepository;
         this.orderRepository = orderRepository;
         this.orderMailService = orderMailService;
+        this.orderService = orderService;
     }
 
     /**
@@ -44,8 +48,15 @@ public class ShipmentService {
 
         shipmentRepository.save(shipment);
 
+        String previousStatus = order.getStatus();
         order.setStatus("SHIPPED");
         orderRepository.save(order);
+
+        // Pas de nouvelle ligne d'historique si la commande était déjà expédiée (correction de suivi)
+        if (!"SHIPPED".equals(previousStatus)) {
+            orderService.recordStatusChange(order, previousStatus, "SHIPPED",
+                    request.getCarrier() + " — " + request.getTrackingNumber());
+        }
 
         orderMailService.sendOrderShipped(order, request.getCarrier(), request.getTrackingNumber());
 

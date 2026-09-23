@@ -5,4 +5,5 @@ import java.util.UUID;
 
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
   java.util.Optional<Payment> findByStripeSessionId(String stripeSessionId);
+      java.util.List<Payment> findByOrderIdOrderByIdAsc(java.util.UUID orderId);
 }
