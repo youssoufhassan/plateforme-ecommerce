@@ -13,7 +13,7 @@ import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
@@ -26,8 +26,8 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 @Testcontainers
 public abstract class AbstractIntegrationTest {
 
-    // Un seul conteneur partagé par toute la suite de tests, pour la rapidité
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES =
+            new PostgreSQLContainer<>("postgres:16-alpine");
 
     static {
         POSTGRES.start();
