@@ -22,4 +22,5 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
 
     @Query("SELECT MAX(p.price) FROM Product p WHERE p.active = true")
     BigDecimal findMaxActivePrice();
+        java.util.Optional<Product> findBySupplierSku(String supplierSku);
 }
