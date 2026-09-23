@@ -26,4 +26,17 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     """)
     java.math.BigDecimal totalCostSince(
             @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
+
+        /** Produits les plus vendus sur une période, avec quantités et chiffre d'affaires. */
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT oi.product.id, oi.product.name, SUM(oi.quantity), SUM(oi.unitPrice * oi.quantity)
+        FROM OrderItem oi
+        WHERE oi.order.status IN ('PAID', 'PREPARING', 'SHIPPED', 'DELIVERED')
+          AND oi.order.createdAt >= :since
+        GROUP BY oi.product.id, oi.product.name
+        ORDER BY SUM(oi.quantity) DESC
+    """)
+    java.util.List<Object[]> topProductsSince(
+            @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since,
+            org.springframework.data.domain.Pageable pageable);
 }

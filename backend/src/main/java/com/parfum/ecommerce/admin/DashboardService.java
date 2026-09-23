@@ -185,4 +185,78 @@ public class DashboardService {
         if (value instanceof LocalDate date) return date;
         return LocalDate.parse(value.toString());
     }
+        /** Listes exploitables du tableau de bord. */
+    @Transactional(readOnly = true)
+    public com.parfum.ecommerce.admin.dto.DashboardListsResponse lists(String period, int limit) {
+        int safeLimit = Math.min(Math.max(limit, 1), 20);
+        return new com.parfum.ecommerce.admin.dto.DashboardListsResponse(
+                recentOrders(),
+                topProducts(period, safeLimit),
+                stockAlerts(safeLimit)
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.parfum.ecommerce.admin.dto.DashboardListsResponse.RecentOrder> recentOrders() {
+        return orderRepository.findTop10ByOrderByCreatedAtDesc().stream()
+                .map(order -> new com.parfum.ecommerce.admin.dto.DashboardListsResponse.RecentOrder(
+                        order.getId(),
+                        order.getId().toString().substring(0, 8).toUpperCase(),
+                        customerName(order),
+                        order.getUser() != null ? order.getUser().getEmail() : null,
+                        scale(order.getTotalAmount()),
+                        order.getStatus(),
+                        order.getCreatedAt(),
+                        order.getItems().stream().anyMatch(
+                                i -> "DROPSHIP".equals(i.getProduct().getFulfillmentType()))
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.parfum.ecommerce.admin.dto.DashboardListsResponse.TopProduct> topProducts(String period, int limit) {
+        LocalDateTime since = LocalDate.now().minusDays(daysOf(period) - 1L).atStartOfDay();
+
+        return orderItemRepository.topProductsSince(
+                        since, org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream()
+                .map(row -> new com.parfum.ecommerce.admin.dto.DashboardListsResponse.TopProduct(
+                        (java.util.UUID) row[0],
+                        (String) row[1],
+                        ((Number) row[2]).longValue(),
+                        scale((BigDecimal) row[3])
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.parfum.ecommerce.admin.dto.DashboardListsResponse.StockAlert> stockAlerts(int limit) {
+        return variantRepository.findLowStock(
+                        lowStockThreshold, org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream()
+                .map(v -> new com.parfum.ecommerce.admin.dto.DashboardListsResponse.StockAlert(
+                        v.getProduct().getId(),
+                        v.getId(),
+                        v.getProduct().getName(),
+                        v.getLabel(),
+                        v.getStockQuantity() != null ? v.getStockQuantity() : 0,
+                        v.getStockQuantity() == null || v.getStockQuantity() == 0
+                ))
+                .toList();
+    }
+
+    private String customerName(com.parfum.ecommerce.order.Order order) {
+        var address = order.getAddress();
+        if (address != null && address.getFirstName() != null) {
+            return (address.getFirstName() + " "
+                    + (address.getLastName() != null ? address.getLastName() : "")).trim();
+        }
+        if (order.getUser() != null) {
+            String first = order.getUser().getFirstName();
+            String last = order.getUser().getLastName();
+            String name = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+            return name.isEmpty() ? order.getUser().getEmail() : name;
+        }
+        return "Client";
+    }
 }
