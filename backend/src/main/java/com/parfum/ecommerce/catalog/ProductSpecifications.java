@@ -80,4 +80,11 @@ public final class ProductSpecifications {
         BigDecimal max = reference.multiply(BigDecimal.valueOf(1 + tolerance));
         return (root, query, cb) -> cb.between(root.get("price"), min, max);
     }
+        public static Specification<Product> isFeatured() {
+        return (root, query, cb) -> cb.isTrue(root.get("featured"));
+    }
+
+    public static Specification<Product> idIn(java.util.List<java.util.UUID> ids) {
+        return (root, query, cb) -> root.get("id").in(ids);
+    }
 }

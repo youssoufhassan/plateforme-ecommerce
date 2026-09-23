@@ -126,42 +126,42 @@ public class ProductService {
             variants
     );
 }
-private ProductAdminResponse toAdminResponse(Product product) {
-    List<VariantAdminResponse> variants = product.getVariants().stream()
-            .map(ProductVariantService::toResponse)
-            .toList();
+    private ProductAdminResponse toAdminResponse(Product product) {
+        List<VariantAdminResponse> variants = product.getVariants().stream()
+                .map(ProductVariantService::toResponse)
+                .toList();
 
-    // Coût et marge de la variante la moins chère, pour l'affichage en liste
-    ProductVariant cheapest = product.getActiveVariants().stream()
-            .min(java.util.Comparator.comparing(ProductVariant::getPrice))
-            .orElse(null);
+        ProductVariant cheapest = product.getActiveVariants().stream()
+                .min(java.util.Comparator.comparing(ProductVariant::getPrice))
+                .orElse(null);
 
-    BigDecimal cost = cheapest != null ? cheapest.getCostPrice() : product.getCostPrice();
-    BigDecimal margin = cheapest != null ? ProductVariantService.toResponse(cheapest).marginPercent() : null;
+        BigDecimal cost = cheapest != null ? cheapest.getCostPrice() : product.getCostPrice();
+        BigDecimal margin = cheapest != null ? ProductVariantService.toResponse(cheapest).marginPercent() : null;
 
-    int totalStock = product.getActiveVariants().stream()
-            .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
-            .sum();
+        int totalStock = product.getActiveVariants().stream()
+                .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                .sum();
 
-    return new ProductAdminResponse(
-            product.getId(),
-            product.getName(),
-            product.getDescription(),
-            product.getBrand(),
-            product.getLowestPrice(),
-            cost,
-            margin,
-            totalStock,
-            Boolean.TRUE.equals(product.getActive()),
-            product.getFulfillmentType(),
-            product.getSupplier() != null ? product.getSupplier().getName() : null,
-            product.getSupplierSku(),
-            product.getImageUrl(),
-            product.getImages().stream().map(ProductImage::getUrl).toList(),
-            product.getCategory() != null ? product.getCategory().getName() : null,
-            variants
-    );
-}
+        return new ProductAdminResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getBrand(),
+                product.getLowestPrice(),
+                cost,
+                margin,
+                totalStock,
+                Boolean.TRUE.equals(product.getActive()),
+                product.isFeatured(),
+                product.getFulfillmentType(),
+                product.getSupplier() != null ? product.getSupplier().getName() : null,
+                product.getSupplierSku(),
+                product.getImageUrl(),
+                product.getImages().stream().map(ProductImage::getUrl).toList(),
+                product.getCategory() != null ? product.getCategory().getName() : null,
+                variants
+        );
+    }
     /** Fiche produit publique : un produit désactivé est introuvable côté boutique. */
     @Transactional(readOnly = true)
     public ProductResponse getActiveById(UUID id) {
@@ -173,5 +173,15 @@ private ProductAdminResponse toAdminResponse(Product product) {
 public List<ProductAdminResponse> getAllProductsAdmin() {
     return productRepository.findAll().stream().map(this::toAdminResponse).toList();
 }
+        @Transactional
+    public ProductAdminResponse setFeatured(UUID id, boolean featured) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
+
+        product.setFeatured(featured);
+        productRepository.save(product);
+
+        return toAdminResponse(product);
+    }
 
 }
