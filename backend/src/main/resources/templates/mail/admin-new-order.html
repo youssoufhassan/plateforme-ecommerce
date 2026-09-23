@@ -1,0 +1,105 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #f6f6f8;
+      font-family: Arial, Helvetica, sans-serif;
+    "
+  >
+    <table
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="padding: 32px 16px"
+    >
+      <tr>
+        <td align="center">
+          <table
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              max-width: 560px;
+              background: #ffffff;
+              border-radius: 8px;
+              overflow: hidden;
+            "
+          >
+            <tr>
+              <td th:replace="~{mail/fragments :: header}"></td>
+            </tr>
+            <tr>
+              <td style="padding: 32px 28px">
+                <h2 style="margin: 0 0 16px; font-size: 20px; color: #111111">
+                  Nouvelle commande payée
+                </h2>
+
+                <p style="color: #555555; font-size: 14px; margin: 0 0 4px">
+                  Commande <strong th:text="'#' + ${orderNumber}"></strong> —
+                  <span th:text="${orderDate}"></span>
+                </p>
+                <p style="color: #555555; font-size: 14px">
+                  Client : <span th:text="${customerName}"></span> (<span
+                    th:text="${customerEmail}"
+                  ></span
+                  >)
+                </p>
+
+                <div th:replace="~{mail/fragments :: items}"></div>
+
+                <p style="color: #666666; font-size: 13px">
+                  Livraison :<br />
+                  <span
+                    th:each="line : ${address}"
+                    th:text="${line}"
+                    style="display: block"
+                  ></span>
+                </p>
+
+                <p
+                  th:if="${hasDropship}"
+                  style="
+                    background: #fff8ec;
+                    border: 1px solid #f0d9a8;
+                    border-radius: 4px;
+                    padding: 12px;
+                    color: #8a6a1f;
+                    font-size: 13px;
+                  "
+                >
+                  Cette commande contient des articles en dropshipping : une
+                  commande fournisseur a été générée.
+                </p>
+
+                <p style="margin: 28px 0">
+                  <a
+                    th:href="${adminUrl}"
+                    style="
+                      background: #111111;
+                      color: #ffffff;
+                      padding: 12px 24px;
+                      text-decoration: none;
+                      border-radius: 4px;
+                      font-size: 14px;
+                      display: inline-block;
+                    "
+                  >
+                    Ouvrir le back-office
+                  </a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td th:replace="~{mail/fragments :: footer}"></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -2,6 +2,7 @@ package com.parfum.ecommerce.payment;
 
 import com.parfum.ecommerce.invoice.Invoice;
 import com.parfum.ecommerce.invoice.InvoiceService;
+import com.parfum.ecommerce.mail.OrderMailService;
 import com.parfum.ecommerce.order.Order;
 import com.parfum.ecommerce.order.OrderRepository;
 import com.parfum.ecommerce.order.OrderService;
@@ -24,19 +25,22 @@ public class PaymentService {
     private final StripeService stripeService;
     private final OrderService orderService;
     private final InvoiceService invoiceService;
+    private final OrderMailService orderMailService;
 
     public PaymentService(PaymentRepository paymentRepository,
                            OrderRepository orderRepository,
                            SupplierOrderService supplierOrderService,
                            StripeService stripeService,
                            OrderService orderService,
-                           InvoiceService invoiceService) {
+                           InvoiceService invoiceService,
+                           OrderMailService orderMailService) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
         this.supplierOrderService = supplierOrderService;
         this.stripeService = stripeService;
         this.orderService = orderService;
         this.invoiceService = invoiceService;
+        this.orderMailService = orderMailService;
     }
 
     /** Étape 1 : le client demande à payer, on crée une session Stripe. */
@@ -79,14 +83,11 @@ public class PaymentService {
      */
     @Transactional
     public void confirmPayment(String stripeSessionId, String transactionReference) {
-        System.out.println(">>> confirmPayment appele pour la session " + stripeSessionId);
-
         Payment payment = paymentRepository.findByStripeSessionId(stripeSessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Paiement introuvable pour cette session"));
 
         if ("SUCCESS".equals(payment.getStatus())) {
-            System.out.println(">>> Paiement deja traite, rien a faire");
-            return; // Stripe peut renvoyer le même événement plusieurs fois
+            return; // déjà traité — Stripe peut renvoyer le même événement plusieurs fois
         }
 
         payment.setStatus("SUCCESS");
@@ -101,17 +102,12 @@ public class PaymentService {
         orderService.decrementStock(order);
         orderRepository.save(order);
 
-        System.out.println(">>> Emission facture pour la commande " + order.getId());
-        try {
-            Invoice invoice = invoiceService.issueForOrder(order);
-            System.out.println(">>> Facture emise : " + invoice.getInvoiceNumber());
-        } catch (Exception e) {
-            System.err.println(">>> ECHEC emission facture : " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
+        Invoice invoice = invoiceService.issueForOrder(order);
 
         supplierOrderService.generateForOrder(order);
+
+        // En dernier : un échec d'email ne doit rien compromettre de ce qui précède
+        orderMailService.sendOrderReceived(order);
     }
 
     @Transactional

@@ -1,10 +1,12 @@
 package com.parfum.ecommerce.shipping;
 
+import com.parfum.ecommerce.mail.OrderMailService;
 import com.parfum.ecommerce.order.Order;
 import com.parfum.ecommerce.order.OrderRepository;
 import com.parfum.ecommerce.shipping.dto.CreateShipmentRequest;
 import com.parfum.ecommerce.shipping.dto.ShipmentResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,12 +16,21 @@ public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final OrderRepository orderRepository;
+    private final OrderMailService orderMailService;
 
-    public ShipmentService(ShipmentRepository shipmentRepository, OrderRepository orderRepository) {
+    public ShipmentService(ShipmentRepository shipmentRepository,
+                            OrderRepository orderRepository,
+                            OrderMailService orderMailService) {
         this.shipmentRepository = shipmentRepository;
         this.orderRepository = orderRepository;
+        this.orderMailService = orderMailService;
     }
 
+    /**
+     * Enregistre l'expédition et passe la commande en SHIPPED.
+     * Réutilisable pour corriger un numéro de suivi erroné.
+     */
+    @Transactional
     public ShipmentResponse createShipment(UUID orderId, CreateShipmentRequest request) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Commande introuvable"));
@@ -36,9 +47,12 @@ public class ShipmentService {
         order.setStatus("SHIPPED");
         orderRepository.save(order);
 
+        orderMailService.sendOrderShipped(order, request.getCarrier(), request.getTrackingNumber());
+
         return toResponse(shipment);
     }
 
+    @Transactional(readOnly = true)
     public ShipmentResponse getShipment(UUID orderId) {
         Shipment shipment = shipmentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Aucune expédition pour cette commande"));
@@ -46,6 +60,9 @@ public class ShipmentService {
     }
 
     private ShipmentResponse toResponse(Shipment shipment) {
-        return new ShipmentResponse(shipment.getCarrier(), shipment.getTrackingNumber(), shipment.getShippedAt());
+        return new ShipmentResponse(
+                shipment.getCarrier(),
+                shipment.getTrackingNumber(),
+                shipment.getShippedAt());
     }
 }
