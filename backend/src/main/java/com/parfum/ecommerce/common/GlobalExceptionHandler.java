@@ -36,9 +36,14 @@ public class GlobalExceptionHandler {
                 .orElse("Données invalides");
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
-
-    @ExceptionHandler(Exception.class)
+        @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(Exception ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, "Ressource introuvable");
+    }
+       @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+                .error("Erreur inattendue", ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur inattendue est survenue");
     }
         @ExceptionHandler(com.parfum.ecommerce.supplier.SupplierException.class)

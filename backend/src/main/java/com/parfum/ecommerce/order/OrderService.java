@@ -14,6 +14,7 @@ import com.parfum.ecommerce.identity.User;
 import com.parfum.ecommerce.identity.UserRepository;
 import com.parfum.ecommerce.legal.LegalPage;
 import com.parfum.ecommerce.legal.LegalPageRepository;
+import com.parfum.ecommerce.mail.OrderMailService;
 import com.parfum.ecommerce.order.dto.OrderItemResponse;
 import com.parfum.ecommerce.order.dto.OrderResponse;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,7 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final PricingService pricingService;
     private final LegalPageRepository legalPageRepository;
+    private final OrderMailService orderMailService;
 
     public OrderService(CartRepository cartRepository,
                          OrderRepository orderRepository,
@@ -49,7 +51,8 @@ public class OrderService {
                          UserRepository userRepository,
                          AddressRepository addressRepository,
                          PricingService pricingService,
-                         LegalPageRepository legalPageRepository) {
+                         LegalPageRepository legalPageRepository,
+                         OrderMailService orderMailService) {
         this.cartRepository = cartRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
@@ -58,6 +61,7 @@ public class OrderService {
         this.addressRepository = addressRepository;
         this.pricingService = pricingService;
         this.legalPageRepository = legalPageRepository;
+        this.orderMailService = orderMailService;
     }
 
     @Transactional
@@ -123,7 +127,6 @@ public class OrderService {
         order.setAddress(address);
         order.setExpiresAt(LocalDateTime.now().plusMinutes(30));
 
-        // Preuve d'acceptation des CGV : date et version acceptée
         order.setTermsAcceptedAt(LocalDateTime.now());
         order.setTermsVersion(legalPageRepository.findBySlug("cgv")
                 .map(LegalPage::getVersion)
@@ -174,8 +177,21 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Commande introuvable"));
 
+        String previousStatus = order.getStatus();
+
+        if (previousStatus.equals(newStatus)) {
+            return toResponse(order); // aucun changement : pas d'email
+        }
+
         order.setStatus(newStatus);
         orderRepository.save(order);
+
+        switch (newStatus) {
+            case "PREPARING" -> orderMailService.sendOrderPreparing(order);
+            case "DELIVERED" -> orderMailService.sendOrderDelivered(order);
+            case "CANCELLED" -> orderMailService.sendOrderCancelled(order, !"PENDING".equals(previousStatus));
+            default -> { /* PAID et SHIPPED ont leur propre déclencheur */ }
+        }
 
         return toResponse(order);
     }
@@ -225,13 +241,17 @@ public class OrderService {
             throw new IllegalStateException("Cette commande ne peut plus être annulée");
         }
 
-        if (!"PENDING".equals(order.getStatus())) {
+        boolean wasPaid = !"PENDING".equals(order.getStatus());
+
+        if (wasPaid) {
             restoreStock(order);
         }
 
         order.setStatus("CANCELLED");
         order.setExpiresAt(null);
         orderRepository.save(order);
+
+        orderMailService.sendOrderCancelled(order, wasPaid);
 
         return toResponse(order);
     }
