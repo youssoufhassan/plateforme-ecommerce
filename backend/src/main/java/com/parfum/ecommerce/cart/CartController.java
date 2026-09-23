@@ -38,4 +38,8 @@ public class CartController {
     public CartResponse removeItem(Authentication auth, @PathVariable UUID itemId) {
         return cartService.removeItem(auth.getName(), itemId);
     }
+        @DeleteMapping
+    public CartResponse clearCart(Authentication auth) {
+        return cartService.clear(auth.getName());
+    }
 }

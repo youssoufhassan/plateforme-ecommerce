@@ -13,10 +13,13 @@ public class CartResponse {
     private BigDecimal total;
     private BigDecimal freeShippingThreshold;
     private BigDecimal amountUntilFreeShipping;
+    private boolean checkoutBlocked;
+    private List<String> warnings;
 
     public CartResponse(List<CartItemResponse> items, BigDecimal subtotal, BigDecimal shipping,
                          BigDecimal vat, BigDecimal vatRate, BigDecimal total,
-                         BigDecimal freeShippingThreshold, BigDecimal amountUntilFreeShipping) {
+                         BigDecimal freeShippingThreshold, BigDecimal amountUntilFreeShipping,
+                         boolean checkoutBlocked, List<String> warnings) {
         this.items = items;
         this.subtotal = subtotal;
         this.shipping = shipping;
@@ -25,6 +28,8 @@ public class CartResponse {
         this.total = total;
         this.freeShippingThreshold = freeShippingThreshold;
         this.amountUntilFreeShipping = amountUntilFreeShipping;
+        this.checkoutBlocked = checkoutBlocked;
+        this.warnings = warnings;
     }
 
     public List<CartItemResponse> getItems() { return items; }
@@ -35,4 +40,8 @@ public class CartResponse {
     public BigDecimal getTotal() { return total; }
     public BigDecimal getFreeShippingThreshold() { return freeShippingThreshold; }
     public BigDecimal getAmountUntilFreeShipping() { return amountUntilFreeShipping; }
+    /** true si au moins un article empêche la commande. */
+    public boolean isCheckoutBlocked() { return checkoutBlocked; }
+    /** Messages à afficher au client (indisponibilité, stock réduit, prix modifié). */
+    public List<String> getWarnings() { return warnings; }
 }

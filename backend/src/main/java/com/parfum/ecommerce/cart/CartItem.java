@@ -3,6 +3,8 @@ package com.parfum.ecommerce.cart;
 import com.parfum.ecommerce.catalog.Product;
 import com.parfum.ecommerce.catalog.ProductVariant;
 import jakarta.persistence.*;
+
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -28,6 +30,10 @@ public class CartItem {
     @Column(nullable = false)
     private Integer quantity;
 
+    /** Prix affiché au client au moment de l'ajout, pour détecter un changement. */
+    @Column(name = "price_at_add")
+    private BigDecimal priceAtAdd;
+
     public CartItem() {}
 
     public CartItem(Cart cart, ProductVariant variant, Integer quantity) {
@@ -35,6 +41,7 @@ public class CartItem {
         this.variant = variant;
         this.product = variant.getProduct();
         this.quantity = quantity;
+        this.priceAtAdd = variant.getPrice();
     }
 
     public UUID getId() { return id; }
@@ -43,4 +50,6 @@ public class CartItem {
     public ProductVariant getVariant() { return variant; }
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public BigDecimal getPriceAtAdd() { return priceAtAdd; }
+    public void setPriceAtAdd(BigDecimal priceAtAdd) { this.priceAtAdd = priceAtAdd; }
 }
