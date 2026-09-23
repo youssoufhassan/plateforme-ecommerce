@@ -225,5 +225,9 @@ public List<ProductAdminResponse> getAllProductsAdmin() {
                 "updated", updated,
                 "notFound", productIds.size() - products.size());
     }
-
+        /** Réponse admin d'un produit, réutilisable par les autres services. */
+    @Transactional(readOnly = true)
+    public ProductAdminResponse adminResponseOf(Product product) {
+        return toAdminResponse(product);
+    }
 }

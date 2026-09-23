@@ -49,4 +49,10 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     java.util.List<ProductVariant> findLowStock(
             @org.springframework.data.repository.query.Param("threshold") int threshold,
             org.springframework.data.domain.Pageable pageable);
+                @org.springframework.data.jpa.repository.Query("""
+        SELECT v FROM ProductVariant v
+        WHERE v.active = true AND v.costPrice IS NULL
+        ORDER BY v.product.name ASC
+    """)
+    java.util.List<ProductVariant> findWithoutCostPrice(org.springframework.data.domain.Pageable pageable);
 }

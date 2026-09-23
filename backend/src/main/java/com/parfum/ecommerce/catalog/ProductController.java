@@ -22,15 +22,17 @@ public class ProductController {
     private final ProductSearchService productSearchService;
     private final HomeService homeService;
     private final ProductAdminSearchService productAdminSearchService;
-
+    private final ProductEditService productEditService;
     public ProductController(ProductService productService,
                               ProductSearchService productSearchService,
                               HomeService homeService,
-                              ProductAdminSearchService productAdminSearchService) {
+                              ProductAdminSearchService productAdminSearchService,
+                              ProductEditService productEditService) {
         this.productService = productService;
         this.productSearchService = productSearchService;
         this.homeService = homeService;
         this.productAdminSearchService = productAdminSearchService;
+        this.productEditService = productEditService;
     }
 
     // ===== Public : routes fixes (AVANT /{id}) =====
@@ -125,7 +127,11 @@ public class ProductController {
     }
 
     // ===== Admin : routes variables =====
-
+    /** Variantes sans coût d'achat, à compléter pour rendre les marges fiables. */
+    @GetMapping("/admin/variants/missing-cost")
+    public List<Map<String, Object>> variantsMissingCost(@RequestParam(defaultValue = "100") int limit) {
+        return productEditService.variantsMissingCost(Math.min(Math.max(limit, 1), 200));
+    }
     @GetMapping("/admin/{id}")
     public ProductResponse getProductAdmin(@PathVariable UUID id) {
         return productService.getById(id);
@@ -136,7 +142,20 @@ public class ProductController {
                                                           @Valid @RequestBody CreateProductRequest request) {
         return ResponseEntity.ok(productService.updateProduct(id, request));
     }
+        /** Modification partielle : seuls les champs fournis sont appliqués. */
+    @PatchMapping("/admin/{id}")
+    public ProductAdminResponse patchProduct(@PathVariable UUID id,
+                                              @Valid @RequestBody com.parfum.ecommerce.catalog.dto.UpdateProductRequest request) {
+        return productEditService.update(id, request);
+    }
 
+    /** Applique une marge à toutes les variantes, à partir de leur coût d'achat. */
+    @PutMapping("/admin/{id}/markup")
+    public ProductAdminResponse applyMarkup(@PathVariable UUID id,
+                                             @RequestBody Map<String, Object> body) {
+        return productEditService.applyMarkup(id,
+                new java.math.BigDecimal(body.get("markupPercent").toString()));
+    }
     @PutMapping("/admin/{id}/featured")
     public ProductAdminResponse setFeatured(@PathVariable UUID id,
                                              @RequestBody Map<String, Boolean> body) {
@@ -160,5 +179,10 @@ public class ProductController {
     @GetMapping("/{id}")
     public ProductResponse getProduct(@PathVariable UUID id) {
         return productService.getActiveById(id);
+    }
+        /** Saisie groupée des coûts d'achat. */
+    @PutMapping("/admin/variants/cost-prices")
+    public Map<String, Object> bulkSetCostPrice(@RequestBody Map<String, List<Map<String, Object>>> body) {
+        return productEditService.bulkSetCostPrice(body.get("variants"));
     }
 }
