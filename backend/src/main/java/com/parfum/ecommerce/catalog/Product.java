@@ -55,6 +55,11 @@ private java.util.List<ProductImage> images = new java.util.ArrayList<>();
 private java.util.List<ProductVariant> variants = new java.util.ArrayList<>();
 @Column(name = "created_at", nullable = false, updatable = false)
 private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+@Column(nullable = false)
+private boolean featured = false;
+
+public boolean isFeatured() { return featured; }
+public void setFeatured(boolean featured) { this.featured = featured; }
 
 public java.time.LocalDateTime getCreatedAt() { return createdAt; }
 

@@ -19,14 +19,17 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductSearchService productSearchService;
+    private final HomeService homeService;
 
     public ProductController(ProductService productService,
-                              ProductSearchService productSearchService) {
+                              ProductSearchService productSearchService,
+                              HomeService homeService) {
         this.productService = productService;
         this.productSearchService = productSearchService;
+        this.homeService = homeService;
     }
 
-    // ===== Public =====
+    // ===== Public : routes fixes (doivent rester AVANT /{id}) =====
 
     @GetMapping
     public List<ProductResponse> getAllProducts() {
@@ -48,20 +51,25 @@ public class ProductController {
         return productSearchService.search(q, category, brand, minPrice, maxPrice,
                 availableOnly, sort, page, size);
     }
-    
-        @GetMapping("/{id}")
-    public ProductResponse getProduct(@PathVariable UUID id) {
-        return productService.getActiveById(id);
-    }
 
     @GetMapping("/filters")
     public Map<String, Object> filters() {
         return productSearchService.filters();
     }
-        @GetMapping("/{id}/similar")
-    public List<ProductResponse> similar(@PathVariable UUID id,
-                                          @RequestParam(defaultValue = "4") int limit) {
-        return productSearchService.similar(id, limit);
+
+    @GetMapping("/home")
+    public Map<String, Object> homepage(@RequestParam(defaultValue = "8") int limit) {
+        return homeService.homepage(limit);
+    }
+
+    @GetMapping("/featured")
+    public List<ProductResponse> featured(@RequestParam(defaultValue = "8") int limit) {
+        return homeService.featured(Math.min(Math.max(limit, 1), 12));
+    }
+
+    @GetMapping("/best-sellers")
+    public List<ProductResponse> bestSellers(@RequestParam(defaultValue = "8") int limit) {
+        return homeService.bestSellers(Math.min(Math.max(limit, 1), 12));
     }
 
     // ===== Admin =====
@@ -87,9 +95,28 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateProduct(id, request));
     }
 
+    @PutMapping("/admin/{id}/featured")
+    public ProductAdminResponse setFeatured(@PathVariable UUID id,
+                                             @RequestBody Map<String, Boolean> body) {
+        return productService.setFeatured(id, Boolean.TRUE.equals(body.get("featured")));
+    }
+
     @DeleteMapping("/admin/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ===== Public : routes variables (doivent rester EN DERNIER) =====
+
+    @GetMapping("/{id}/similar")
+    public List<ProductResponse> similar(@PathVariable UUID id,
+                                          @RequestParam(defaultValue = "4") int limit) {
+        return productSearchService.similar(id, limit);
+    }
+
+    @GetMapping("/{id}")
+    public ProductResponse getProduct(@PathVariable UUID id) {
+        return productService.getActiveById(id);
     }
 }
