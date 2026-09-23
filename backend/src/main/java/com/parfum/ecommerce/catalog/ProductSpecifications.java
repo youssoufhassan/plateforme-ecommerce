@@ -71,4 +71,13 @@ public final class ProductSpecifications {
     private static String escapeLike(String value) {
         return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
+        public static Specification<Product> notId(java.util.UUID id) {
+        return (root, query, cb) -> cb.notEqual(root.get("id"), id);
+    }
+
+    public static Specification<Product> priceNear(BigDecimal reference, double tolerance) {
+        BigDecimal min = reference.multiply(BigDecimal.valueOf(1 - tolerance));
+        BigDecimal max = reference.multiply(BigDecimal.valueOf(1 + tolerance));
+        return (root, query, cb) -> cb.between(root.get("price"), min, max);
+    }
 }

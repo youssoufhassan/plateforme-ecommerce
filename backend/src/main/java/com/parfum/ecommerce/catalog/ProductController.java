@@ -48,10 +48,20 @@ public class ProductController {
         return productSearchService.search(q, category, brand, minPrice, maxPrice,
                 availableOnly, sort, page, size);
     }
+    
+        @GetMapping("/{id}")
+    public ProductResponse getProduct(@PathVariable UUID id) {
+        return productService.getActiveById(id);
+    }
 
     @GetMapping("/filters")
     public Map<String, Object> filters() {
         return productSearchService.filters();
+    }
+        @GetMapping("/{id}/similar")
+    public List<ProductResponse> similar(@PathVariable UUID id,
+                                          @RequestParam(defaultValue = "4") int limit) {
+        return productSearchService.similar(id, limit);
     }
 
     // ===== Admin =====

@@ -71,9 +71,7 @@ public class ProductSearchService {
     }
 
     /**
-     * Le tri secondaire par identifiant garantit un ordre stable :
-     * sans lui, deux produits au même prix pourraient apparaître sur deux pages
-     * ou n'apparaître sur aucune.
+     * Le tri secondaire par identifiant garantit un ordre stable entre les pages.
      */
     private Sort toSort(String sort) {
         Sort tieBreaker = Sort.by("id");
@@ -87,5 +85,58 @@ public class ProductSearchService {
             case "name" -> Sort.by(Sort.Direction.ASC, "name").and(tieBreaker);
             default -> Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("name")).and(tieBreaker);
         };
+    }
+        /**
+     * Produits suggérés sur une fiche produit.
+     * Priorité : même marque, puis même catégorie à prix proche.
+     * Seuls des produits actifs et disponibles sont proposés.
+     */
+    @Transactional(readOnly = true)
+    public List<ProductResponse> similar(java.util.UUID productId, int limit) {
+        Product current = productRepository.findById(productId)
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
+
+        int safeLimit = Math.min(Math.max(limit, 1), 12);
+
+        Specification<Product> base = ProductSpecifications.isActive()
+                .and(ProductSpecifications.isAvailable())
+                .and(ProductSpecifications.notId(productId));
+
+        // Ordre stable : nouveautés d'abord, puis identifiant
+        Sort order = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id"));
+
+        java.util.Map<java.util.UUID, Product> found = new LinkedHashMap<>();
+
+        // 1. Même marque
+        if (current.getBrand() != null && !current.getBrand().isBlank()) {
+            productRepository.findAll(
+                    base.and(ProductSpecifications.hasBrand(current.getBrand())),
+                    PageRequest.of(0, safeLimit, order)
+            ).forEach(p -> found.put(p.getId(), p));
+        }
+
+        // 2. Même catégorie, prix proche (±40 %)
+        if (found.size() < safeLimit && current.getCategory() != null) {
+            Specification<Product> sameCategory = base
+                    .and(ProductSpecifications.inCategory(current.getCategory().getName()))
+                    .and(ProductSpecifications.priceNear(current.getPrice(), 0.40));
+
+            productRepository.findAll(sameCategory, PageRequest.of(0, safeLimit, order))
+                    .forEach(p -> found.putIfAbsent(p.getId(), p));
+        }
+
+        // 3. Complément : même catégorie sans contrainte de prix
+        if (found.size() < safeLimit && current.getCategory() != null) {
+            productRepository.findAll(
+                    base.and(ProductSpecifications.inCategory(current.getCategory().getName())),
+                    PageRequest.of(0, safeLimit, order)
+            ).forEach(p -> found.putIfAbsent(p.getId(), p));
+        }
+
+        return found.values().stream()
+                .limit(safeLimit)
+                .map(productService::toResponse)
+                .toList();
     }
 }

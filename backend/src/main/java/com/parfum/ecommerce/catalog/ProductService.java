@@ -6,6 +6,7 @@ import com.parfum.ecommerce.catalog.dto.VariantAdminResponse;
 import com.parfum.ecommerce.catalog.dto.VariantResponse;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -161,8 +162,16 @@ private ProductAdminResponse toAdminResponse(Product product) {
             variants
     );
 }
-
+    /** Fiche produit publique : un produit désactivé est introuvable côté boutique. */
+    @Transactional(readOnly = true)
+    public ProductResponse getActiveById(UUID id) {
+        Product product = productRepository.findById(id)
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
+        return toResponse(product);
+    }
 public List<ProductAdminResponse> getAllProductsAdmin() {
     return productRepository.findAll().stream().map(this::toAdminResponse).toList();
 }
+
 }
