@@ -1,6 +1,7 @@
 package com.parfum.ecommerce.catalog;
 
 import com.parfum.ecommerce.catalog.dto.ProductResponse;
+import com.parfum.ecommerce.home.HomeSectionService;
 import com.parfum.ecommerce.order.OrderItemRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -24,15 +25,19 @@ public class HomeService {
     private final CategoryRepository categoryRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductService productService;
+    private final HomeSectionService homeSectionService;
+
 
     public HomeService(ProductRepository productRepository,
                         CategoryRepository categoryRepository,
                         OrderItemRepository orderItemRepository,
-                        ProductService productService) {
+                        ProductService productService,
+                        HomeSectionService homeSectionService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.orderItemRepository = orderItemRepository;
         this.productService = productService;
+        this.homeSectionService = homeSectionService;
     }
 
     @Transactional(readOnly = true)
@@ -46,6 +51,7 @@ public class HomeService {
         home.put("categories", categoryRepository.findAll().stream()
                 .map(c -> Map.of("id", c.getId(), "name", c.getName()))
                 .toList());
+                home.put("sections", homeSectionService.publicSections(safeLimit));
         return home;
     }
 
