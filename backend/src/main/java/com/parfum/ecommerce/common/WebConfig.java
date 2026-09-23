@@ -24,4 +24,15 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/orders/*/cancel",
                         "/api/orders/*/shipment");
     }
+        @org.springframework.beans.factory.annotation.Value("${app.images.local-dir}")
+    private String imagesDirectory;
+
+    @Override
+    public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
+        String path = java.nio.file.Paths.get(imagesDirectory).toAbsolutePath().normalize().toString();
+
+        registry.addResourceHandler("/media/**")
+                .addResourceLocations("file:" + path + "/")
+                .setCachePeriod(3600);
+    }
 }

@@ -1,6 +1,8 @@
 package com.parfum.ecommerce.catalog;
 
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -11,7 +13,7 @@ public class ProductImage {
     @GeneratedValue
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
@@ -21,45 +23,33 @@ public class ProductImage {
     @Column(name = "alt_text")
     private String altText;
 
-    @Column(nullable = false)
-    private Integer position = 0;
+    private Integer position;
 
-    public ProductImage() {
-    }
+    /** Référence de stockage, pour supprimer le fichier. Null pour les images historiques. */
+    @Column(name = "storage_reference")
+    private String storageReference;
 
-    public UUID getId() {
-        return id;
-    }
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    public Product getProduct() {
-        return product;
-    }
+    public ProductImage() {}
 
-    public void setProduct(Product product) {
+    public ProductImage(Product product, String url, String altText, Integer position, String storageReference) {
         this.product = product;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
         this.url = url;
-    }
-
-    public String getAltText() {
-        return altText;
-    }
-
-    public void setAltText(String altText) {
         this.altText = altText;
-    }
-
-    public Integer getPosition() {
-        return position;
-    }
-
-    public void setPosition(Integer position) {
         this.position = position;
+        this.storageReference = storageReference;
     }
+
+    public UUID getId() { return id; }
+    public Product getProduct() { return product; }
+    public String getUrl() { return url; }
+    public void setUrl(String url) { this.url = url; }
+    public String getAltText() { return altText; }
+    public void setAltText(String altText) { this.altText = altText; }
+    public Integer getPosition() { return position; }
+    public void setPosition(Integer position) { this.position = position; }
+    public String getStorageReference() { return storageReference; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

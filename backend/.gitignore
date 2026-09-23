@@ -33,3 +33,5 @@ build/
 .vscode/
 
 run-dev.ps1
+
+uploads/
