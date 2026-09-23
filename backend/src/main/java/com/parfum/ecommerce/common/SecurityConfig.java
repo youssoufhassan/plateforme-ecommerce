@@ -64,13 +64,14 @@ public class SecurityConfig {
     "/api/supplier/fragella/import"
 ).permitAll()
 
-                // Administration
+                                // Administration
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/products/admin/**").hasRole("ADMIN")
-                .requestMatchers(
-                    HttpMethod.POST,
-                    "/api/orders/*/shipment"
-                ).hasRole("ADMIN")
+                .requestMatchers("/api/supplier/**").hasRole("ADMIN")
+                .requestMatchers("/api/orders/admin", "/api/orders/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/orders/*/shipment").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").hasRole("ADMIN")
 
                 // Catalogue public
                 .requestMatchers("/api/products/**").permitAll()
