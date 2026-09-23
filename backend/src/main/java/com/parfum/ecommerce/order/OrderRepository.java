@@ -54,4 +54,5 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     """, nativeQuery = true)
     java.util.List<Object[]> dailyRevenueSince(
             @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from);
+        java.util.List<Order> findTop10ByOrderByCreatedAtDesc();
 }

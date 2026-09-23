@@ -65,4 +65,28 @@ public class DashboardController {
                 pending
         );
     }
+        @GetMapping("/lists")
+    public com.parfum.ecommerce.admin.dto.DashboardListsResponse lists(
+            @RequestParam(defaultValue = "30d") String period,
+            @RequestParam(defaultValue = "10") int limit) {
+        return dashboardService.lists(period, limit);
+    }
+
+    @GetMapping("/recent-orders")
+    public List<com.parfum.ecommerce.admin.dto.DashboardListsResponse.RecentOrder> recentOrders() {
+        return dashboardService.recentOrders();
+    }
+
+    @GetMapping("/top-products")
+    public List<com.parfum.ecommerce.admin.dto.DashboardListsResponse.TopProduct> topProducts(
+            @RequestParam(defaultValue = "30d") String period,
+            @RequestParam(defaultValue = "10") int limit) {
+        return dashboardService.topProducts(period, Math.min(Math.max(limit, 1), 20));
+    }
+
+    @GetMapping("/stock-alerts")
+    public List<com.parfum.ecommerce.admin.dto.DashboardListsResponse.StockAlert> stockAlerts(
+            @RequestParam(defaultValue = "20") int limit) {
+        return dashboardService.stockAlerts(Math.min(Math.max(limit, 1), 50));
+    }
 }
