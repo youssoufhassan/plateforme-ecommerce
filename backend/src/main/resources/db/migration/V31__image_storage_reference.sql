@@ -1,0 +1,2 @@
+ALTER TABLE product_images ADD COLUMN storage_reference VARCHAR(255);
+ALTER TABLE product_images ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;

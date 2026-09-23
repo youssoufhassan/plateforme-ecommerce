@@ -6,6 +6,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ProductImageRepository extends JpaRepository<ProductImage, UUID> {
-
-    List<ProductImage> findByProductOrderByPositionAsc(Product product);
+    List<ProductImage> findByProductIdOrderByPositionAsc(UUID productId);
+    long countByProductId(UUID productId);
 }
