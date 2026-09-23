@@ -16,4 +16,14 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
     java.util.List<java.util.UUID> findBestSellerIds(
             @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since,
             org.springframework.data.domain.Pageable pageable);
+
+        /** Coût d'achat total des articles vendus, pour le calcul de marge. */
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT COALESCE(SUM(oi.variant.costPrice * oi.quantity), 0) FROM OrderItem oi
+        WHERE oi.order.status IN ('PAID', 'PREPARING', 'SHIPPED', 'DELIVERED')
+          AND oi.order.createdAt >= :since
+          AND oi.variant.costPrice IS NOT NULL
+    """)
+    java.math.BigDecimal totalCostSince(
+            @org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
 }

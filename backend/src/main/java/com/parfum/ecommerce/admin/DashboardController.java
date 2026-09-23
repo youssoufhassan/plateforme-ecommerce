@@ -1,12 +1,11 @@
 package com.parfum.ecommerce.admin;
 
+import com.parfum.ecommerce.admin.dto.DashboardResponse;
 import com.parfum.ecommerce.catalog.ProductRepository;
 import com.parfum.ecommerce.identity.UserRepository;
 import com.parfum.ecommerce.order.Order;
 import com.parfum.ecommerce.order.OrderRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -15,27 +14,48 @@ import java.util.List;
 @RequestMapping("/api/admin/dashboard")
 public class DashboardController {
 
+    private final DashboardService dashboardService;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
 
-    public DashboardController(OrderRepository orderRepository, UserRepository userRepository,
+    public DashboardController(DashboardService dashboardService,
+                                OrderRepository orderRepository,
+                                UserRepository userRepository,
                                 ProductRepository productRepository) {
+        this.dashboardService = dashboardService;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
     }
 
+    /** Tableau de bord complet. period : today, 7d, 30d (défaut), 90d. */
+    @GetMapping
+    public DashboardResponse dashboard(@RequestParam(defaultValue = "30d") String period) {
+        return dashboardService.dashboard(period);
+    }
+
+    @GetMapping("/today")
+    public DashboardResponse.Today today() {
+        return dashboardService.today();
+    }
+
+    @GetMapping("/revenue")
+    public List<DashboardResponse.DailyPoint> revenue(@RequestParam(defaultValue = "30") int days) {
+        return dashboardService.dailyRevenue(Math.min(Math.max(days, 7), 90));
+    }
+
+    /** Ancien endpoint, conservé pour ne pas casser le back-office existant. */
     @GetMapping("/stats")
-    public DashboardStatsResponse getStats() {
+    public DashboardStatsResponse stats() {
         List<Order> orders = orderRepository.findAll();
 
         BigDecimal revenue = orders.stream()
-                .filter(o -> !o.getStatus().equals("PENDING"))
+                .filter(o -> !"PENDING".equals(o.getStatus()) && !"CANCELLED".equals(o.getStatus()))
                 .map(Order::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        long pending = orders.stream().filter(o -> o.getStatus().equals("PENDING")).count();
+        long pending = orders.stream().filter(o -> "PENDING".equals(o.getStatus())).count();
 
         return new DashboardStatsResponse(
                 orders.size(),
@@ -45,67 +65,4 @@ public class DashboardController {
                 pending
         );
     }
-    @GetMapping("/recent-orders")
-public List<RecentOrderResponse> getRecentOrders() {
-
-    return orderRepository.findTop5ByOrderByCreatedAtDesc()
-            .stream()
-            .map(order -> {
-
-                String customerName = "Client";
-
-                if (order.getUser() != null) {
-                    String firstName = order.getUser().getFirstName();
-                    String lastName = order.getUser().getLastName();
-
-                    if (firstName != null && !firstName.isBlank()) {
-                        customerName = firstName;
-
-                        if (lastName != null && !lastName.isBlank()) {
-                            customerName += " " + lastName;
-                        }
-                    } else if (order.getUser().getEmail() != null) {
-                        customerName = order.getUser().getEmail();
-                    }
-                }
-
-                String customerEmail =
-                        order.getUser() != null
-                                ? order.getUser().getEmail()
-                                : null;
-
-                return new RecentOrderResponse(
-                        order.getId(),
-                        customerName,
-                        customerEmail,
-                        order.getTotalAmount(),
-                        order.getStatus(),
-                        order.getCreatedAt()
-                );
-            })
-            .toList();
-}
-@GetMapping("/revenue")
-public List<RevenuePointResponse> getRevenue() {
-
-    java.time.LocalDate today = java.time.LocalDate.now();
-    java.time.LocalDate startDate = today.minusDays(6);
-
-    List<Order> orders = orderRepository.findAll();
-
-    return java.util.stream.IntStream.rangeClosed(0, 6)
-            .mapToObj(i -> {
-                java.time.LocalDate date = startDate.plusDays(i);
-
-                BigDecimal revenue = orders.stream()
-                        .filter(order -> order.getCreatedAt() != null)
-                        .filter(order -> order.getCreatedAt().toLocalDate().equals(date))
-                        .filter(order -> !order.getStatus().equals("PENDING"))
-                        .map(Order::getTotalAmount)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                return new RevenuePointResponse(date, revenue);
-            })
-            .toList();
-}
 }
