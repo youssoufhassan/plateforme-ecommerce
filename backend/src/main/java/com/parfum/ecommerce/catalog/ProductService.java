@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import com.parfum.ecommerce.catalog.dto.ProductAdminResponse;
 import java.math.BigDecimal;
@@ -182,6 +183,47 @@ public List<ProductAdminResponse> getAllProductsAdmin() {
         productRepository.save(product);
 
         return toAdminResponse(product);
+    }
+
+        /**
+     * Applique une action à plusieurs produits d'un coup.
+     * Renvoie le nombre de produits réellement modifiés.
+     */
+    @Transactional
+    public Map<String, Object> bulkAction(List<UUID> productIds, String action, String value) {
+        if (productIds == null || productIds.isEmpty()) {
+            throw new IllegalArgumentException("Aucun produit sélectionné");
+        }
+        if (productIds.size() > 100) {
+            throw new IllegalArgumentException("Maximum 100 produits par action groupée");
+        }
+
+        List<Product> products = productRepository.findAllById(productIds);
+        int updated = 0;
+
+        for (Product product : products) {
+            switch (action) {
+                case "activate" -> { product.setActive(true); updated++; }
+                case "deactivate" -> { product.setActive(false); updated++; }
+                case "feature" -> { product.setFeatured(true); updated++; }
+                case "unfeature" -> { product.setFeatured(false); updated++; }
+                case "category" -> {
+                    Category category = categoryRepository.findByName(value)
+                            .orElseThrow(() -> new IllegalArgumentException("Catégorie introuvable : " + value));
+                    product.setCategory(category);
+                    updated++;
+                }
+                default -> throw new IllegalArgumentException("Action inconnue : " + action);
+            }
+        }
+
+        productRepository.saveAll(products);
+
+        return Map.of(
+                "action", action,
+                "requested", productIds.size(),
+                "updated", updated,
+                "notFound", productIds.size() - products.size());
     }
 
 }
