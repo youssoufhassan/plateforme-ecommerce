@@ -1,6 +1,5 @@
 package com.parfum.ecommerce.payment;
 
-import com.parfum.ecommerce.invoice.Invoice;
 import com.parfum.ecommerce.invoice.InvoiceService;
 import com.parfum.ecommerce.mail.OrderMailService;
 import com.parfum.ecommerce.order.Order;
@@ -96,13 +95,17 @@ public class PaymentService {
         paymentRepository.save(payment);
 
         Order order = payment.getOrder();
+        String previousStatus = order.getStatus();
+
         order.setStatus("PAID");
         order.setExpiresAt(null);
 
         orderService.decrementStock(order);
         orderRepository.save(order);
 
-        Invoice invoice = invoiceService.issueForOrder(order);
+        orderService.recordStatusChange(order, previousStatus, "PAID", "Paiement confirmé par Stripe");
+
+        invoiceService.issueForOrder(order);
 
         supplierOrderService.generateForOrder(order);
 

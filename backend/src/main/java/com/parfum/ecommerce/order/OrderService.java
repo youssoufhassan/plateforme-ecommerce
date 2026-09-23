@@ -20,6 +20,7 @@ import com.parfum.ecommerce.order.dto.OrderResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,7 @@ public class OrderService {
     private final PricingService pricingService;
     private final LegalPageRepository legalPageRepository;
     private final OrderMailService orderMailService;
+    private final OrderStatusHistoryRepository statusHistoryRepository;
 
     public OrderService(CartRepository cartRepository,
                          OrderRepository orderRepository,
@@ -52,7 +54,8 @@ public class OrderService {
                          AddressRepository addressRepository,
                          PricingService pricingService,
                          LegalPageRepository legalPageRepository,
-                         OrderMailService orderMailService) {
+                         OrderMailService orderMailService,
+                         OrderStatusHistoryRepository statusHistoryRepository) {
         this.cartRepository = cartRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
@@ -62,6 +65,7 @@ public class OrderService {
         this.pricingService = pricingService;
         this.legalPageRepository = legalPageRepository;
         this.orderMailService = orderMailService;
+        this.statusHistoryRepository = statusHistoryRepository;
     }
 
     @Transactional
@@ -137,6 +141,7 @@ public class OrderService {
         }
 
         orderRepository.save(order);
+        recordStatusChange(order, null, "PENDING", "Commande créée");
 
         cart.getItems().clear();
         cartRepository.save(cart);
@@ -180,11 +185,12 @@ public class OrderService {
         String previousStatus = order.getStatus();
 
         if (previousStatus.equals(newStatus)) {
-            return toResponse(order); // aucun changement : pas d'email
+            return toResponse(order); // aucun changement : ni email ni historique
         }
 
         order.setStatus(newStatus);
         orderRepository.save(order);
+        recordStatusChange(order, previousStatus, newStatus, null);
 
         switch (newStatus) {
             case "PREPARING" -> orderMailService.sendOrderPreparing(order);
@@ -194,6 +200,23 @@ public class OrderService {
         }
 
         return toResponse(order);
+    }
+
+    /** Enregistre un changement de statut, avec son auteur. */
+    @Transactional
+    public void recordStatusChange(Order order, String previousStatus, String newStatus, String note) {
+        statusHistoryRepository.save(
+                new OrderStatusHistory(order, previousStatus, newStatus, currentActor(), note));
+    }
+
+    /** Administrateur connecté, ou SYSTEM pour un changement automatique. */
+    private String currentActor() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || auth.getName() == null || "anonymousUser".equals(auth.getName())) {
+            return "SYSTEM";
+        }
+        return auth.getName();
     }
 
     /** Décrémente le stock de la variante (stock propre uniquement). Appelé après paiement. */
@@ -242,6 +265,7 @@ public class OrderService {
         }
 
         boolean wasPaid = !"PENDING".equals(order.getStatus());
+        String previousStatus = order.getStatus();
 
         if (wasPaid) {
             restoreStock(order);
@@ -250,6 +274,9 @@ public class OrderService {
         order.setStatus("CANCELLED");
         order.setExpiresAt(null);
         orderRepository.save(order);
+
+        recordStatusChange(order, previousStatus, "CANCELLED",
+                wasPaid ? "Annulation après paiement, stock restauré" : "Annulation avant paiement");
 
         orderMailService.sendOrderCancelled(order, wasPaid);
 

@@ -55,4 +55,13 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     java.util.List<Object[]> dailyRevenueSince(
             @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from);
         java.util.List<Order> findTop10ByOrderByCreatedAtDesc();
+            java.util.List<Order> findByUserIdOrderByCreatedAtDesc(java.util.UUID userId);
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT COUNT(o), COALESCE(SUM(o.totalAmount), 0), MAX(o.createdAt)
+        FROM Order o
+        WHERE o.user.id = :userId
+          AND o.status IN ('PAID', 'PREPARING', 'SHIPPED', 'DELIVERED')
+    """)
+    Object[] customerStats(@org.springframework.data.repository.query.Param("userId") java.util.UUID userId);
 }
