@@ -139,7 +139,7 @@ function handleSearchInput() {
       <div class="header-top">
         <!-- LOGO -->
 
-        <router-link to="/" class="brand"> SHAHIN </router-link>
+        <router-link to="/" class="brand"> SIDRA </router-link>
 
         <!-- RECHERCHE -->
 
