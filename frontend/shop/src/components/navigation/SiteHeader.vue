@@ -1,7 +1,6 @@
-```vue
 <script setup lang="ts">
-import { ref } from "vue";
-import { RouterLink } from "vue-router";
+import { ref, watch } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import SearchIcon from "@/components/icons/SearchIcon.vue";
 import HeartIcon from "@/components/icons/HeartIcon.vue";
@@ -9,6 +8,9 @@ import BagIcon from "@/components/icons/BagIcon.vue";
 import MenuIcon from "@/components/icons/MenuIcon.vue";
 
 import MobileMenu from "./MobileMenu.vue";
+
+const router = useRouter();
+const route = useRoute();
 
 const menuOpen = ref(false);
 const searchQuery = ref("");
@@ -23,11 +25,20 @@ function closeMenu() {
 
 function submitSearch() {
   const query = searchQuery.value.trim();
-
   if (!query) return;
 
-  console.log("Recherche :", query);
+  // « q » est le paramètre attendu par GET /api/products/search
+  router.push({ path: "/produits", query: { q: query } });
 }
+
+// Le champ reflète la recherche en cours, y compris après un rechargement
+watch(
+  () => route.query.q,
+  (value) => {
+    searchQuery.value = (value as string) || "";
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -61,7 +72,8 @@ function submitSearch() {
         <input
           v-model="searchQuery"
           type="search"
-          placeholder="Rechercher un produit, une marque..."
+          name="q"
+          placeholder="Rechercher un parfum, une marque"
           aria-label="Rechercher"
         />
       </form>

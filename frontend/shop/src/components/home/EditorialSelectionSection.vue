@@ -1,275 +1,193 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 
-import ProductCard from "@/components/product/ProductCard.vue";
-import { useProductStore } from "@/stores/productStore";
+import ProductCarousel from "@/components/product/ProductCarousel.vue";
+import type { HomeSection } from "@/types/home";
 
-const productStore = useProductStore();
-
-onMounted(() => {
-  if (productStore.products.length === 0) {
-    productStore.fetchProducts();
-  }
-});
-
-function normalize(value?: string): string {
-  return (value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-const menProducts = computed(() => {
-  return productStore.products
-    .filter((product) => {
-      const category = normalize(product.categoryName);
-
-      return (
-        category.includes("homme") ||
-        category.includes("men") ||
-        category.includes("male")
-      );
-    })
-    .slice(0, 8);
-});
-
-const womenProducts = computed(() => {
-  return productStore.products
-    .filter((product) => {
-      const category = normalize(product.categoryName);
-
-      return (
-        category.includes("femme") ||
-        category.includes("women") ||
-        category.includes("female")
-      );
-    })
-    .slice(0, 8);
-});
+defineProps<{
+  section: HomeSection;
+  onAdd?: (payload: { productId: string; variantId: string }) => Promise<void>;
+}>();
 </script>
 
 <template>
-  <section class="gender-sections">
-    <div class="container">
-      <!-- HOMME -->
-      <section v-if="menProducts.length" class="gender-section">
-        <div class="section-header">
-          <div class="section-content">
-            <h2 class="section-title">Homme</h2>
+  <section class="editorial">
+    <div class="editorial__container container">
+      <div class="editorial__header">
+        <div class="editorial__content">
+          <p class="editorial__eyebrow">La sélection SHAHIN</p>
 
-            <p class="section-description">
-              Découvrez notre sélection de parfums pour homme.
-            </p>
-          </div>
+          <h2 class="editorial__title">{{ section.title }}</h2>
 
-          <RouterLink to="/produits?category=homme" class="section-link">
-            <span>Voir tout</span>
-            <span class="section-link__arrow">→</span>
-          </RouterLink>
+          <p v-if="section.subtitle" class="editorial__description">
+            {{ section.subtitle }}
+          </p>
         </div>
 
-        <div class="product-row">
-          <ProductCard
-            v-for="product in menProducts"
-            :key="product.id"
-            :product="product"
-          />
-        </div>
-      </section>
+        <!-- Le lien n'apparaît que s'il reste des produits à découvrir -->
+        <RouterLink
+          v-if="section.totalCount > section.products.length"
+          :to="`/selection/${section.slug}`"
+          class="editorial__link"
+        >
+          <span>Voir tout</span>
+          <span class="editorial__arrow" aria-hidden="true">→</span>
+        </RouterLink>
+      </div>
 
-      <!-- FEMME -->
-      <section v-if="womenProducts.length" class="gender-section">
-        <div class="section-header">
-          <div class="section-content">
-            <h2 class="section-title">Femme</h2>
-
-            <p class="section-description">
-              Découvrez notre sélection de parfums pour femme.
-            </p>
-          </div>
-
-          <RouterLink to="/produits?category=femme" class="section-link">
-            <span>Voir tout</span>
-            <span class="section-link__arrow">→</span>
-          </RouterLink>
-        </div>
-
-        <div class="product-row">
-          <ProductCard
-            v-for="product in womenProducts"
-            :key="product.id"
-            :product="product"
-          />
-        </div>
-      </section>
+      <ProductCarousel :products="section.products" :on-add="onAdd" />
     </div>
   </section>
 </template>
 
 <style scoped>
-.gender-sections {
-  padding: 14px 0 28px;
+.editorial {
+  width: 100%;
+  padding-block: 40px 20px;
 }
 
-.gender-section {
-  margin-bottom: 44px;
+.editorial__container {
+  width: 100%;
 }
 
-.gender-section:last-child {
-  margin-bottom: 0;
-}
-
-.section-header {
+.editorial__header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 30px;
-  margin-bottom: 22px;
+  gap: 32px;
+  margin-bottom: 24px;
 }
 
-.section-content {
+.editorial__content {
   min-width: 0;
 }
 
-.section-title {
+.editorial__eyebrow {
+  margin: 0 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.editorial__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(30px, 3vw, 42px);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  font-size: clamp(26px, 2.2vw, 34px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
   color: var(--color-text);
 }
 
-.section-description {
-  margin: 7px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
+.editorial__description {
+  max-width: 560px;
+  margin: 9px 0 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-muted);
 }
 
-.section-link {
+.editorial__link {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
   padding-bottom: 3px;
   border-bottom: 1px solid var(--color-text);
   color: var(--color-text);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
   text-decoration: none;
-  text-transform: uppercase;
   transition:
     opacity 0.2s ease,
     gap 0.2s ease;
 }
 
-.section-link:hover {
+.editorial__link:hover {
   opacity: 0.65;
   gap: 11px;
 }
 
-.section-link__arrow {
-  font-size: 14px;
+.editorial__arrow {
+  font-size: 15px;
   line-height: 1;
 }
 
-/* Produits sur une seule ligne */
-.product-row {
-  display: flex;
-  gap: 18px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-
-  scroll-snap-type: x mandatory;
-
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.product-row::-webkit-scrollbar {
-  display: none;
-}
-
-.product-row :deep(.product-card) {
-  flex: 0 0 calc((100% - 54px) / 4);
-  min-width: 0;
-  scroll-snap-align: start;
-}
-
-/* Tablette */
-@media (max-width: 1100px) {
-  .gender-sections {
-    padding-block: 32px 36px;
+/* Tablet */
+@media (max-width: 1000px) {
+  .editorial {
+    padding-block: 36px 40px;
   }
 
-  .gender-section {
-    margin-bottom: 40px;
+  .editorial__header {
+    margin-bottom: 22px;
   }
 
-  .product-row :deep(.product-card) {
-    flex-basis: calc((100% - 36px) / 3);
+  .editorial__title {
+    font-size: 30px;
   }
 }
 
 /* Mobile */
 @media (max-width: 767px) {
-  .gender-sections {
-    padding-block: 14px 26px;
-  }
-  .gender-section {
-    margin-bottom: 36px;
+  .editorial {
+    padding-block: 32px 14px;
   }
 
-  .section-header {
+  .editorial__header {
     align-items: flex-start;
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 18px;
+    margin-bottom: 20px;
   }
 
-  .section-title {
-    font-size: 30px;
-  }
-
-  .section-description {
-    margin-top: 6px;
-    font-size: 12px;
-  }
-
-  .section-link {
+  .editorial__eyebrow {
+    margin-bottom: 6px;
     font-size: 10px;
   }
 
-  .product-row {
-    gap: 12px;
-    margin-right: calc(var(--container-padding) * -1);
-    padding-right: var(--container-padding);
+  .editorial__title {
+    font-size: 26px;
   }
 
-  .product-row :deep(.product-card) {
-    flex: 0 0 72vw;
+  .editorial__description {
+    max-width: 100%;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+
+  .editorial__link {
+    margin-top: 2px;
+    font-size: 12px;
+  }
+
+  .editorial__arrow {
+    font-size: 14px;
   }
 }
 
 /* Très petits écrans */
 @media (max-width: 420px) {
-  .gender-sections {
-    padding-block: 24px 28px;
+  .editorial {
+    padding-block: 28px 32px;
   }
 
-  .gender-section {
-    margin-bottom: 32px;
+  .editorial__header {
+    gap: 12px;
   }
 
-  .section-title {
-    font-size: 28px;
+  .editorial__title {
+    font-size: 24px;
   }
 
-  .section-description {
+  .editorial__description {
+    font-size: 12px;
+  }
+
+  .editorial__link {
     font-size: 11px;
   }
 }
