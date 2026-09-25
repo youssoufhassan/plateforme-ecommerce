@@ -27,3 +27,80 @@
     --container-padding: 20px;
   }
 }
+:root {
+  /* =========================================================
+     COULEURS
+     ========================================================= */
+
+  --color-black: #111111;
+  --color-white: #ffffff;
+  --color-background: #f8f7f4;
+  --color-surface: #ffffff;
+
+  --color-text: #171717;
+  --color-text-secondary: #4a4a4a;
+  --color-text-muted: #6f6f6f;
+
+  --color-border: #e5e3df;
+  --color-border-strong: #c9c6c0;
+
+  --color-error: #b00020;
+
+  /* =========================================================
+     TYPOGRAPHIE
+     ========================================================= */
+
+  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* =========================================================
+     MISE EN PAGE
+     ========================================================= */
+
+  --container-max: 1440px;
+  --container-padding: 32px;
+
+  /* Hauteur de l'en-tête, reprise pour compenser sa position fixe */
+  --header-height: 82px;
+
+  /* =========================================================
+     FORMES
+     ========================================================= */
+
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+
+  /* =========================================================
+     TRANSITIONS
+     ========================================================= */
+
+  --transition-fast: 160ms ease;
+  --transition-base: 240ms ease;
+  --transition-slow: 400ms ease;
+
+  /* =========================================================
+     EMPILEMENT DES COUCHES
+     Une seule échelle pour toute l'application, afin d'éviter
+     les surenchères de z-index dispersées dans les composants.
+     ========================================================= */
+
+  --z-header: 100;
+  --z-overlay: 200;
+  --z-menu: 210;
+  --z-modal: 300;
+  --z-toast: 400;
+}
+
+@media (max-width: 1000px) {
+  :root {
+    --header-height: 74px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --container-padding: 20px;
+    --header-height: 64px;
+  }
+}

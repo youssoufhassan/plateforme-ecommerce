@@ -1,42 +1,39 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 import { RouterLink } from "vue-router";
 
 import BrandCard from "@/components/home/BrandCard.vue";
-import { useProductStore } from "@/stores/productStore";
+import type { Product } from "@/types/product";
 
-const productStore = useProductStore();
-
-onMounted(() => {
-  if (productStore.products.length === 0) {
-    productStore.fetchProducts();
-  }
-});
+const props = withDefaults(
+  defineProps<{
+    /** Produits servant à extraire les marques (fournis par la page d'accueil). */
+    products: Product[];
+    limit?: number;
+  }>(),
+  { limit: 8 },
+);
 
 interface BrandItem {
   name: string;
-  product: (typeof productStore.products)[number];
+  product: Product;
 }
 
+/** Une marque par produit, sans doublon, avec son premier visuel. */
 const brands = computed<BrandItem[]>(() => {
   const map = new Map<string, BrandItem>();
 
-  for (const product of productStore.products) {
+  for (const product of props.products) {
     const brand = product.brand?.trim();
-
     if (!brand) continue;
 
-    const normalizedBrand = brand.toLowerCase();
-
-    if (!map.has(normalizedBrand)) {
-      map.set(normalizedBrand, {
-        name: brand,
-        product,
-      });
+    const key = brand.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, { name: brand, product });
     }
   }
 
-  return Array.from(map.values()).slice(0, 8);
+  return Array.from(map.values()).slice(0, props.limit);
 });
 </script>
 
@@ -48,13 +45,13 @@ const brands = computed<BrandItem[]>(() => {
           <h2 class="section-title">Marques</h2>
 
           <p class="section-description">
-            Découvrez les maisons disponibles chez SIDRA.
+            Découvrez les maisons disponibles chez SHAHIN.
           </p>
         </div>
 
         <RouterLink to="/produits" class="section-link">
           <span>Voir toutes les marques</span>
-          <span class="section-link__arrow">→</span>
+          <span class="section-link__arrow" aria-hidden="true">→</span>
         </RouterLink>
       </div>
 
@@ -62,10 +59,7 @@ const brands = computed<BrandItem[]>(() => {
         <RouterLink
           v-for="brand in brands"
           :key="brand.name"
-          :to="{
-            path: '/produits',
-            query: { brand: brand.name },
-          }"
+          :to="{ path: '/produits', query: { brand: brand.name } }"
           class="brand-link"
         >
           <BrandCard :brand="brand.name" :product="brand.product" />
@@ -95,19 +89,16 @@ const brands = computed<BrandItem[]>(() => {
 
 .section-title {
   margin: 0;
-
   font-family: var(--font-display);
   font-size: clamp(30px, 3vw, 42px);
   font-weight: 400;
   line-height: 1.05;
   letter-spacing: -0.03em;
-
   color: var(--color-text);
 }
 
 .section-description {
   margin: 7px 0 0;
-
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.45;
@@ -117,20 +108,15 @@ const brands = computed<BrandItem[]>(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-
   flex-shrink: 0;
-
   padding-bottom: 3px;
   border-bottom: 1px solid var(--color-text);
-
   color: var(--color-text);
-
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-decoration: none;
   text-transform: uppercase;
-
   transition:
     opacity 0.2s ease,
     gap 0.2s ease;
@@ -146,19 +132,19 @@ const brands = computed<BrandItem[]>(() => {
   line-height: 1;
 }
 
-/* Marques sur une seule ligne */
+/* =========================================================
+   RANGÉE — même rythme que le carrousel produits
+   ========================================================= */
+
 .brands-row {
   display: flex;
-  gap: 18px;
-
+  gap: 16px;
   overflow-x: auto;
-
   padding-bottom: 6px;
-
   scroll-snap-type: x mandatory;
-
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
 }
 
 .brands-row::-webkit-scrollbar {
@@ -167,14 +153,11 @@ const brands = computed<BrandItem[]>(() => {
 
 .brand-link {
   display: block;
-
-  flex: 0 0 calc((100% - 54px) / 4);
-
+  /* Quatre marques visibles : plus larges que les produits, elles respirent mieux */
+  flex: 0 0 calc((100% - 3 * 16px) / 4);
   min-width: 0;
-
   color: inherit;
   text-decoration: none;
-
   scroll-snap-align: start;
 }
 
@@ -185,7 +168,11 @@ const brands = computed<BrandItem[]>(() => {
   }
 
   .brand-link {
-    flex-basis: calc((100% - 36px) / 3);
+    flex-basis: calc((100% - 2 * 14px) / 2.6);
+  }
+
+  .brands-row {
+    gap: 14px;
   }
 }
 
@@ -216,13 +203,12 @@ const brands = computed<BrandItem[]>(() => {
 
   .brands-row {
     gap: 12px;
-
     margin-right: calc(var(--container-padding) * -1);
     padding-right: var(--container-padding);
   }
 
   .brand-link {
-    flex: 0 0 72vw;
+    flex: 0 0 62%;
   }
 }
 

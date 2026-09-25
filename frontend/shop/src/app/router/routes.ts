@@ -13,6 +13,21 @@ export const routes: RouteRecordRaw[] = [
         name: "home",
         component: HomePage,
       },
+      {
+        path: "produits",
+        name: "catalog",
+        component: () => import("@/pages/catalog/CatalogPage.vue"),
+      },
+      {
+        path: "produits/:id",
+        name: "product",
+        component: () => import("@/pages/product/ProductPage.vue"),
+      },
+      {
+        path: "selection/:slug",
+        name: "section",
+        component: () => import("@/pages/catalog/SectionPage.vue"),
+      },
     ],
   },
 ];

@@ -375,13 +375,15 @@ onBeforeUnmount(() => {
 
 .site-menu {
   position: fixed;
-
   inset: 0;
 
-  z-index: 9999;
+  z-index: var(--z-menu);
 
   width: 100vw;
   height: 100vh;
+  /* dvh suit la hauteur réellement visible sur mobile,
+     barres du navigateur comprises */
+  height: 100dvh;
 
   pointer-events: none;
 }
@@ -392,11 +394,11 @@ onBeforeUnmount(() => {
 
 .site-menu__backdrop {
   position: fixed;
-
   inset: 0;
 
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
 
   background: rgba(0, 0, 0, 0.42);
 
@@ -414,10 +416,12 @@ onBeforeUnmount(() => {
   bottom: 0;
   left: 0;
 
-  z-index: 10000;
+  /* Suffit à passer au-dessus du voile, dans la même couche */
+  z-index: 1;
 
   width: min(430px, 88vw);
   height: 100vh;
+  height: 100dvh;
 
   display: flex;
   flex-direction: column;
@@ -443,7 +447,8 @@ onBeforeUnmount(() => {
 
   flex-shrink: 0;
 
-  height: 82px;
+  /* Même hauteur que l'en-tête du site, quelle que soit la taille d'écran */
+  height: var(--header-height);
 
   padding: 0 32px;
 
@@ -474,6 +479,10 @@ onBeforeUnmount(() => {
   height: 42px;
 
   padding: 0;
+
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .site-menu__close span {
@@ -505,6 +514,8 @@ onBeforeUnmount(() => {
   flex: 1;
 
   overflow-y: auto;
+  /* Le défilement du menu ne se propage pas à la page */
+  overscroll-behavior: contain;
 
   padding: 34px 32px 50px;
 }
@@ -558,13 +569,19 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 48px;
 
+  border: none;
   border-bottom: 1px solid #efeeeb;
+
+  background: transparent;
+  cursor: pointer;
 
   color: var(--color-text);
 
   font-size: 14px;
+  font-family: inherit;
 
   text-align: left;
+  text-decoration: none;
 
   transition:
     padding-left var(--transition-fast),
@@ -607,10 +624,15 @@ onBeforeUnmount(() => {
 
   padding: 0;
 
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
   color: var(--color-text-secondary);
 
   font-size: 11px;
   font-weight: 600;
+  font-family: inherit;
 
   letter-spacing: 0.1em;
 
@@ -673,6 +695,21 @@ onBeforeUnmount(() => {
   transform: translateX(-25px);
 }
 
+/* Respecte le réglage système de réduction des animations */
+@media (prefers-reduced-motion: reduce) {
+  .menu-enter-active,
+  .menu-leave-active,
+  .submenu-enter-active,
+  .submenu-leave-active {
+    transition-duration: 1ms;
+  }
+
+  .submenu-enter-from,
+  .submenu-leave-to {
+    transform: none;
+  }
+}
+
 /* =========================================================
    MOBILE
    ========================================================= */
@@ -683,8 +720,7 @@ onBeforeUnmount(() => {
   }
 
   .site-menu__header {
-    height: 64px;
-
+    /* La hauteur vient de --header-height, seul le retrait change */
     padding-inline: 20px;
   }
 

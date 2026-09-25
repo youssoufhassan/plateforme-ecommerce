@@ -1,6 +1,7 @@
 body {
   background: var(--color-background);
   color: var(--color-text);
+  padding-top: var(--header-height);
 }
 
 #app {
@@ -10,4 +11,7 @@ body {
 ::selection {
   background: var(--color-black);
   color: var(--color-white);
+}
+html {
+  scroll-padding-top: var(--header-height);
 }

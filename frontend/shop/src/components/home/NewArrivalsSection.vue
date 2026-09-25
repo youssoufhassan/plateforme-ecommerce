@@ -1,5 +1,15 @@
 <script setup lang="ts">
 import ProductCarousel from "@/components/product/ProductCarousel.vue";
+import type { Product } from "@/types/product";
+
+withDefaults(
+  defineProps<{
+    products: Product[];
+    loading?: boolean;
+    error?: string | null;
+  }>(),
+  { loading: false, error: null },
+);
 </script>
 
 <template>
@@ -7,7 +17,7 @@ import ProductCarousel from "@/components/product/ProductCarousel.vue";
     <div class="new-arrivals__container container">
       <div class="new-arrivals__header">
         <div class="new-arrivals__content">
-          <p class="new-arrivals__eyebrow">La sélection SIDRA</p>
+          <p class="new-arrivals__eyebrow">La sélection SHAHIN</p>
 
           <h2 class="new-arrivals__title">Nouveautés</h2>
 
@@ -16,13 +26,13 @@ import ProductCarousel from "@/components/product/ProductCarousel.vue";
           </p>
         </div>
 
-        <RouterLink to="/produits" class="new-arrivals__link">
+        <RouterLink to="/produits?sort=newest" class="new-arrivals__link">
           <span>Voir tout</span>
           <span class="new-arrivals__arrow" aria-hidden="true">→</span>
         </RouterLink>
       </div>
 
-      <ProductCarousel />
+      <ProductCarousel :products="products" :loading="loading" :error="error" />
     </div>
   </section>
 </template>
