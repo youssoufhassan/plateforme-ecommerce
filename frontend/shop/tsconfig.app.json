@@ -5,7 +5,10 @@
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
 
-    /* Linting */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,

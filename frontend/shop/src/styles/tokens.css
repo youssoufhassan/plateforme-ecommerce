@@ -1,0 +1,29 @@
+:root {
+  --color-black: #111111;
+  --color-white: #ffffff;
+  --color-background: #f8f7f4;
+  --color-surface: #ffffff;
+  --color-text: #171717;
+  --color-text-muted: #6f6f6f;
+  --color-border: #e5e3df;
+
+  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --container-max: 1440px;
+  --container-padding: 32px;
+
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+
+  --transition-fast: 160ms ease;
+  --transition-base: 240ms ease;
+  --transition-slow: 400ms ease;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --container-padding: 20px;
+  }
+}

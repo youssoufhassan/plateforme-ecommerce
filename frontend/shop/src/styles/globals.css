@@ -1,0 +1,13 @@
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--color-black);
+  color: var(--color-white);
+}
