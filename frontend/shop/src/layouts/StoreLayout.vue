@@ -1,43 +1,43 @@
 <script setup lang="ts">
+import { onMounted } from "vue";
 import { RouterView } from "vue-router";
 
 import SiteHeader from "@/components/navigation/SiteHeader.vue";
+import Footer from "@/components/navigation/Footer.vue";
+import CartPanel from "@/components/cart/CartPanel.vue";
+import { useCartStore } from "@/stores/cartStore";
+
+const cartStore = useCartStore();
+
+// Le panier est chargé une seule fois pour toute l'application
+onMounted(() => cartStore.load());
 </script>
 
 <template>
   <div class="store-layout">
     <SiteHeader />
 
-    <main class="store-layout__main">
+    <!-- Les pages fournissent leur propre <main> : ici, un simple conteneur -->
+    <div class="store-layout__content">
       <RouterView />
-    </main>
+    </div>
+
+    <Footer />
+
+    <!-- Panneau de confirmation après un ajout au panier -->
+    <CartPanel />
   </div>
 </template>
 
 <style scoped>
 .store-layout {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
-/*
- * Desktop :
- * le header fait exactement 82px.
- */
-.store-layout__main {
-  padding-top: 82px;
-}
-
-/*
- * Mobile :
- *
- * 64px = ligne du header
- * 54px = recherche + marge
- *
- * Total ≈ 118px
- */
-@media (max-width: 767px) {
-  .store-layout__main {
-    padding-top: 118px;
-  }
+.store-layout__content {
+  /* Pousse le pied de page en bas même sur une page courte */
+  flex: 1;
 }
 </style>

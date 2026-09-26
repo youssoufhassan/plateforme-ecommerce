@@ -6,11 +6,13 @@ import SearchIcon from "@/components/icons/SearchIcon.vue";
 import HeartIcon from "@/components/icons/HeartIcon.vue";
 import BagIcon from "@/components/icons/BagIcon.vue";
 import MenuIcon from "@/components/icons/MenuIcon.vue";
+import { useCartStore } from "@/stores/cartStore";
 
 import MobileMenu from "./MobileMenu.vue";
 
 const router = useRouter();
 const route = useRoute();
+const cartStore = useCartStore();
 
 const menuOpen = ref(false);
 const searchQuery = ref("");
@@ -59,9 +61,9 @@ watch(
         <RouterLink
           to="/"
           class="site-header__logo"
-          aria-label="SIDRA - Accueil"
+          aria-label="SHAHIN - Accueil"
         >
-          SIDRA
+          SHAHIN
         </RouterLink>
       </div>
 
@@ -80,15 +82,15 @@ watch(
 
       <!-- FAVORIS + CONNEXION + PANIER -->
       <div class="site-header__actions">
-        <RouterLink
-          to="/account/favorites"
-          class="header-icon"
-          aria-label="Mes favoris"
-        >
+        <RouterLink to="/favoris" class="header-icon" aria-label="Mes favoris">
           <HeartIcon />
         </RouterLink>
 
-        <RouterLink to="/login" class="header-icon" aria-label="Se connecter">
+        <RouterLink
+          to="/connexion"
+          class="header-icon"
+          aria-label="Se connecter"
+        >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle
               cx="12"
@@ -97,7 +99,6 @@ watch(
               stroke="currentColor"
               stroke-width="1.5"
             />
-
             <path
               d="M5.5 20c.8-3.4 3-5.2 6.5-5.2s5.7 1.8 6.5 5.2"
               stroke="currentColor"
@@ -107,8 +108,20 @@ watch(
           </svg>
         </RouterLink>
 
-        <RouterLink to="/cart" class="header-icon" aria-label="Mon panier">
+        <RouterLink
+          to="/panier"
+          class="header-icon header-icon--cart"
+          :aria-label="
+            cartStore.count
+              ? `Mon panier, ${cartStore.count} article${cartStore.count > 1 ? 's' : ''}`
+              : 'Mon panier'
+          "
+        >
           <BagIcon />
+
+          <span v-if="cartStore.count" class="header-icon__badge">
+            {{ cartStore.count }}
+          </span>
         </RouterLink>
       </div>
     </div>
@@ -140,7 +153,7 @@ watch(
 /* =========================================================
    STRUCTURE PRINCIPALE
 
-   [ ☰ SIDRA ] [ RECHERCHE FLEXIBLE ] [ ♡ 👤 🛍 ]
+   [ ☰ SHAHIN ] [ RECHERCHE FLEXIBLE ] [ ♡ 👤 🛍 ]
    ========================================================= */
 
 .site-header__inner {
@@ -154,7 +167,7 @@ watch(
   align-items: center;
 
   width: 100%;
-  height: 82px;
+  height: var(--header-height);
 
   padding-inline: var(--container-padding);
 
@@ -174,10 +187,6 @@ watch(
   min-width: max-content;
 }
 
-/* =========================================================
-   LOGO
-   ========================================================= */
-
 .site-header__logo {
   display: inline-flex;
   align-items: center;
@@ -193,6 +202,8 @@ watch(
 
   letter-spacing: 0.2em;
 
+  text-decoration: none;
+
   white-space: nowrap;
 }
 
@@ -201,6 +212,8 @@ watch(
    ========================================================= */
 
 .header-icon {
+  position: relative;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -212,9 +225,12 @@ watch(
 
   flex-shrink: 0;
 
+  border: none;
+
   color: var(--color-black);
 
   background: transparent;
+  cursor: pointer;
 
   transition:
     background var(--transition-fast),
@@ -228,6 +244,29 @@ watch(
 .header-icon svg {
   width: 21px;
   height: 21px;
+}
+
+/* Compteur du panier */
+.header-icon__badge {
+  position: absolute;
+  top: 4px;
+  right: 3px;
+
+  display: grid;
+  place-items: center;
+
+  min-width: 16px;
+  height: 16px;
+
+  padding-inline: 4px;
+
+  border-radius: 8px;
+
+  background: var(--color-black);
+  color: var(--color-white);
+
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* =========================================================
@@ -274,6 +313,7 @@ watch(
 
   color: var(--color-text);
 
+  font-family: inherit;
   font-size: 13px;
 
   transition:
@@ -310,10 +350,6 @@ watch(
    ========================================================= */
 
 @media (max-width: 1000px) {
-  .site-header__inner {
-    height: 74px;
-  }
-
   .site-header__logo {
     font-size: 20px;
   }
@@ -339,21 +375,10 @@ watch(
 
 /* =========================================================
    MOBILE
-
-   Même structure :
-
-   [ ☰ SIDRA ] [ RECHERCHE ] [ ♡ 👤 🛍 ]
    ========================================================= */
 
 @media (max-width: 767px) {
   .site-header__inner {
-    grid-template-columns:
-      auto
-      minmax(0, 1fr)
-      auto;
-
-    height: 64px;
-
     padding-inline: 8px;
   }
 
@@ -363,7 +388,6 @@ watch(
 
   .site-header__logo {
     font-size: 16px;
-
     letter-spacing: 0.14em;
   }
 
@@ -377,36 +401,35 @@ watch(
     height: 18px;
   }
 
+  .header-icon__badge {
+    top: 1px;
+    right: 0;
+  }
+
   .site-header__actions {
     gap: 0;
   }
 
   .site-header__search {
     min-width: 0;
-
     padding-inline: 7px;
   }
 
   .site-header__search-icon {
     left: 19px;
-
     width: 16px;
     height: 16px;
   }
 
   .site-header__search input {
     height: 38px;
-
     padding: 0 7px 0 37px;
-
     font-size: 11px;
   }
 
   .site-header__search input::placeholder {
     overflow: hidden;
-
     text-overflow: ellipsis;
-
     white-space: nowrap;
   }
 }
@@ -426,7 +449,6 @@ watch(
 
   .site-header__logo {
     font-size: 14px;
-
     letter-spacing: 0.1em;
   }
 
@@ -450,9 +472,7 @@ watch(
 
   .site-header__search input {
     height: 36px;
-
     padding-left: 31px;
-
     font-size: 10px;
   }
 }
