@@ -28,6 +28,31 @@ export const routes: RouteRecordRaw[] = [
         name: "section",
         component: () => import("@/pages/catalog/SectionPage.vue"),
       },
+      {
+        path: "panier",
+        name: "cart",
+        component: () => import("@/pages/cart/CartPage.vue"),
+      },
+      {
+        path: "connexion",
+        name: "login",
+        component: () => import("@/pages/auth/LoginPage.vue"),
+      },
+      {
+        path: "mot-de-passe-oublie",
+        name: "forgot-password",
+        component: () => import("@/pages/auth/ForgotPasswordPage.vue"),
+      },
+      {
+        path: "reinitialiser-mot-de-passe",
+        name: "reset-password",
+        component: () => import("@/pages/auth/ResetPasswordPage.vue"),
+      },
+      {
+        path: "verifier-email",
+        name: "verify-email",
+        component: () => import("@/pages/auth/VerifyEmailPage.vue"),
+      },
     ],
   },
 ];

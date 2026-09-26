@@ -5,7 +5,6 @@ import HeroSection from "@/components/home/HeroSection.vue";
 import NewArrivalsSection from "@/components/home/NewArrivalsSection.vue";
 import EditorialSelectionSection from "@/components/home/EditorialSelectionSection.vue";
 import BrandsSection from "@/components/home/BrandsSection.vue";
-import Footer from "@/components/navigation/Footer.vue";
 import { apiMessage, fetchHomepage } from "@/services/productService";
 import type { HomePayload } from "@/types/home";
 
@@ -49,8 +48,6 @@ onMounted(loadHomepage);
 
     <BrandsSection :products="data?.newest ?? []" />
   </main>
-
-  <Footer />
 </template>
 
 <style scoped>

@@ -2,27 +2,26 @@
 import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
 
-import { fullImageUrl } from "@/services/productService";
+import { apiMessage, fullImageUrl } from "@/services/productService";
 import HeartIcon from "@/components/icons/HeartIcon.vue";
 import { useFavorites } from "@/composables/useFavorites";
+import { useCartStore } from "@/stores/cartStore";
 import type { Product } from "@/types/product";
 
 const props = defineProps<{
   product: Product;
   /** Les premières cartes visibles chargent leur image immédiatement. */
   eager?: boolean;
-  /** Ajout au panier. Renvoie une promesse : permet d'attendre la réponse du serveur. */
-  onAdd?: (payload: { productId: string; variantId: string }) => Promise<void>;
 }>();
 
 const { isFavorite, toggleFavorite } = useFavorites();
+const cartStore = useCartStore();
 
 const adding = ref(false);
 const added = ref(false);
 const error = ref<string | null>(null);
 const imgError = ref(false);
-/** Nombre de contenances proposées, information utile en parfumerie. */
-const variantCount = computed(() => availableVariants.value.length);
+
 const productUrl = computed(() => `/produits/${props.product.id}`);
 
 const displayImage = computed(() => {
@@ -40,12 +39,15 @@ const availableVariants = computed(
 
 const isOutOfStock = computed(() => !props.product.available);
 
-/** Plusieurs tailles : le choix se fait sur la fiche produit. */
+/** Plusieurs contenances : le choix se fait sur la fiche produit. */
 const needsVariantChoice = computed(() => availableVariants.value.length > 1);
 
 const canQuickAdd = computed(
-  () => !!props.onAdd && !needsVariantChoice.value && !isOutOfStock.value,
+  () => !needsVariantChoice.value && !isOutOfStock.value,
 );
+
+/** Nombre de contenances proposées, information utile en parfumerie. */
+const variantCount = computed(() => availableVariants.value.length);
 
 /** Prix différents entre variantes : afficher « dès ». */
 const hasPriceRange = computed(() => {
@@ -75,20 +77,24 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   event.stopPropagation();
 
   const variant = availableVariants.value[0];
-  if (!props.onAdd || !variant || adding.value) {
-    return;
-  }
+  if (!variant || adding.value) return;
 
   adding.value = true;
   error.value = null;
 
   try {
-    await props.onAdd({ productId: props.product.id, variantId: variant.id });
+    await cartStore.add({
+      productId: props.product.id,
+      variantId: variant.id,
+      quantity: 1,
+      productName: props.product.name,
+      variantLabel: variant.label,
+    });
 
     added.value = true;
     setTimeout(() => (added.value = false), 1800);
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : "Ajout impossible";
+    error.value = apiMessage(e, "Ajout impossible");
     setTimeout(() => (error.value = null), 3000);
   } finally {
     adding.value = false;
@@ -119,9 +125,9 @@ async function handleAdd(event: MouseEvent): Promise<void> {
           {{ product.name.slice(0, 2).toUpperCase() }}
         </div>
 
-        <span v-if="isOutOfStock" class="product-card__unavailable">
-          Épuisé
-        </span>
+        <span v-if="isOutOfStock" class="product-card__unavailable"
+          >Épuisé</span
+        >
       </RouterLink>
 
       <button
@@ -185,7 +191,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
         </span>
 
         <RouterLink v-else :to="productUrl" class="product-card__add">
-          {{ needsVariantChoice ? "Choisir" : "Voir" }}
+          Choisir
         </RouterLink>
       </div>
 
@@ -340,6 +346,12 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   opacity: 0.6;
 }
 
+.product-card__variants {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+
 .product-card__footer {
   display: flex;
   align-items: center;
@@ -371,6 +383,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   color: var(--color-white);
   border: none;
   cursor: pointer;
+  font-family: inherit;
   font-size: 8.5px;
   font-weight: 500;
   letter-spacing: 0.07em;
@@ -403,7 +416,22 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   margin-top: 5px;
   font-size: 9.5px;
   line-height: 1.3;
-  color: #b00020;
+  color: var(--color-error);
+}
+
+/* Le bouton d'ajout s'efface tant que la carte n'est pas survolée (souris seulement) */
+@media (hover: hover) and (min-width: 1001px) {
+  .product-card__add {
+    opacity: 0;
+    transition:
+      opacity var(--transition-fast),
+      background var(--transition-fast);
+  }
+
+  .product-card:hover .product-card__add,
+  .product-card:focus-within .product-card__add {
+    opacity: 1;
+  }
 }
 
 /* =========================================================
@@ -445,26 +473,6 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   .product-card__add {
     padding: 5px 8px;
     font-size: 8px;
-  }
-}
-.product-card__variants {
-  margin: 4px 0 0;
-  color: var(--color-text-muted);
-  font-size: 10.5px;
-}
-
-/* Le bouton d'ajout s'efface tant que la carte n'est pas survolée (souris seulement) */
-@media (hover: hover) and (min-width: 1001px) {
-  .product-card__add {
-    opacity: 0;
-    transition:
-      opacity var(--transition-fast),
-      background var(--transition-fast);
-  }
-
-  .product-card:hover .product-card__add,
-  .product-card:focus-within .product-card__add {
-    opacity: 1;
   }
 }
 </style>
