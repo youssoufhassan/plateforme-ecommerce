@@ -53,6 +53,16 @@ export const routes: RouteRecordRaw[] = [
         name: "verify-email",
         component: () => import("@/pages/auth/VerifyEmailPage.vue"),
       },
+      {
+        path: "commande",
+        name: "checkout",
+        component: () => import("@/pages/checkout/CheckoutPage.vue"),
+      },
+      {
+        path: "commande/succes",
+        name: "order-success",
+        component: () => import("@/pages/checkout/OrderSuccessPage.vue"),
+      },
     ],
   },
 ];
