@@ -1,90 +1,148 @@
+/* =========================================================
+   SIDRA — jetons de design
+
+   Palette issue des matières de la parfumerie orientale :
+   encre, papier, sable, safran. Le safran est le seul accent,
+   il n'apparaît jamais en aplat.
+   ========================================================= */
+
 :root {
-  --color-black: #111111;
-  --color-white: #ffffff;
-  --color-background: #f8f7f4;
-  --color-surface: #ffffff;
-  --color-text: #171717;
-  --color-text-muted: #6f6f6f;
-  --color-border: #e5e3df;
-
-  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
-
-  --container-max: 1440px;
-  --container-padding: 32px;
-
-  --radius-sm: 2px;
-  --radius-md: 6px;
-  --radius-lg: 12px;
-
-  --transition-fast: 160ms ease;
-  --transition-base: 240ms ease;
-  --transition-slow: 400ms ease;
-}
-
-@media (max-width: 767px) {
-  :root {
-    --container-padding: 20px;
-  }
-}
-:root {
-  /* =========================================================
+  /* ---------------------------------------------------------
      COULEURS
-     ========================================================= */
+     --------------------------------------------------------- */
 
-  --color-black: #111111;
-  --color-white: #ffffff;
-  --color-background: #f8f7f4;
+  --color-ink: #000000;
+  --color-paper: #ffffff;
+  --color-page: #f2f2f1;
+  --color-sand: #edeae4;
+  --color-saffron: #b4761a;
+
+  /* Texte */
+  --color-text: #000000;
+  --color-text-secondary: #3d3d3b;
+  --color-text-muted: #767672;
+  --color-text-inverse: #ffffff;
+
+  /* Traits — deux niveaux seulement */
+  --color-line: #e0dfdb;
+  --color-line-strong: #000000;
+
+  /* Surfaces */
   --color-surface: #ffffff;
+  --color-surface-sunken: #f2f2f1;
+  --color-plate: #edeae4;
 
-  --color-text: #171717;
-  --color-text-secondary: #4a4a4a;
-  --color-text-muted: #6f6f6f;
+  /* États */
+  --color-error: #9b2226;
+  --color-success: #2f6b४7;
+  --color-accent: #b4761a;
 
-  --color-border: #e5e3df;
-  --color-border-strong: #c9c6c0;
+  /* Alias conservés pour ne rien casser pendant la transition */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-background: #f2f2f1;
+  --color-border: #e0dfdb;
+  --color-border-strong: #000000;
 
-  --color-error: #b00020;
-
-  /* =========================================================
+  /* ---------------------------------------------------------
      TYPOGRAPHIE
-     ========================================================= */
 
-  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+     Deux familles franchement distinctes.
+     Bodoni : titres uniquement, jamais sous 24 px.
+     Jost : tout le reste.
+     --------------------------------------------------------- */
 
-  /* =========================================================
+  --font-display: "Bodoni Moda", "Didot", "Times New Roman", serif;
+  --font-body: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Échelle modulaire, rapport 1,25 */
+  --text-2xs: 0.6875rem; /* 11px — mentions légales */
+  --text-xs: 0.75rem; /* 12px — métadonnées */
+  --text-sm: 0.8125rem; /* 13px — interface secondaire */
+  --text-base: 0.9375rem; /* 15px — interface, boutons */
+  --text-md: 1rem; /* 16px — texte courant */
+  --text-lg: 1.125rem; /* 18px — chapô */
+  --text-xl: 1.5rem; /* 24px — plancher du Bodoni */
+  --text-2xl: 1.875rem; /* 30px */
+  --text-3xl: 2.375rem; /* 38px */
+  --text-4xl: 3rem; /* 48px */
+  --text-5xl: 3.75rem; /* 60px */
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.03em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* ---------------------------------------------------------
+     ESPACEMENT — base 4
+     --------------------------------------------------------- */
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Rythme vertical entre sections */
+  --section-gap: var(--space-20);
+
+  /* ---------------------------------------------------------
      MISE EN PAGE
-     ========================================================= */
+     --------------------------------------------------------- */
 
   --container-max: 1440px;
-  --container-padding: 32px;
+  --container-padding: 2rem;
+  --header-height: 76px;
 
-  /* Hauteur de l'en-tête, reprise pour compenser sa position fixe */
-  --header-height: 82px;
+  /* Grille produit : gouttières serrées, colonnes larges */
+  --grid-gap-x: 1.25rem;
+  --grid-gap-y: 2.5rem;
 
-  /* =========================================================
+  /* ---------------------------------------------------------
      FORMES
-     ========================================================= */
 
-  --radius-sm: 2px;
-  --radius-md: 6px;
-  --radius-lg: 12px;
+     Presque tout est à angle vif. Le rayon ne sert qu'aux
+     éléments réellement circulaires (pastilles, boutons ronds).
+     --------------------------------------------------------- */
 
-  /* =========================================================
-     TRANSITIONS
-     ========================================================= */
+  --radius-none: 0;
+  --radius-pill: 999px;
 
-  --transition-fast: 160ms ease;
-  --transition-base: 240ms ease;
-  --transition-slow: 400ms ease;
+  /* Une seule ombre, pour les surfaces flottantes uniquement */
+  --shadow-overlay: 0 24px 60px rgba(0, 0, 0, 0.14);
 
-  /* =========================================================
-     EMPILEMENT DES COUCHES
-     Une seule échelle pour toute l'application, afin d'éviter
-     les surenchères de z-index dispersées dans les composants.
-     ========================================================= */
+  /* ---------------------------------------------------------
+     MOUVEMENT
 
+     Court et discret. Le mouvement répond à une action,
+     il n'anime pas la page tout seul.
+     --------------------------------------------------------- */
+
+  --transition-fast: 140ms cubic-bezier(0.2, 0, 0.2, 1);
+  --transition-base: 220ms cubic-bezier(0.2, 0, 0.2, 1);
+  --transition-slow: 380ms cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* ---------------------------------------------------------
+     EMPILEMENT
+     --------------------------------------------------------- */
+
+  --z-sticky: 50;
   --z-header: 100;
   --z-overlay: 200;
   --z-menu: 210;
@@ -92,15 +150,33 @@
   --z-toast: 400;
 }
 
+/* =========================================================
+   TABLETTE
+   ========================================================= */
+
 @media (max-width: 1000px) {
   :root {
-    --header-height: 74px;
+    --header-height: 68px;
+    --container-padding: 1.5rem;
+    --section-gap: var(--space-16);
   }
 }
 
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
 @media (max-width: 767px) {
   :root {
-    --container-padding: 20px;
-    --header-height: 64px;
+    --header-height: 60px;
+    --container-padding: 1.25rem;
+    --section-gap: var(--space-12);
+
+    --grid-gap-x: 0.875rem;
+    --grid-gap-y: 1.75rem;
+
+    /* Les grands titres respirent moins en petit écran */
+    --text-4xl: 2.25rem;
+    --text-5xl: 2.75rem;
   }
 }

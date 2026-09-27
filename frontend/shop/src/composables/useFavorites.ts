@@ -32,7 +32,7 @@ export function useFavorites() {
     return favorites.value.includes(productId);
   }
 
-  function toggleFavorite(productId: string): void {
+  function toggleFavorite(productId: string, name: string): void {
     favorites.value = isFavorite(productId)
       ? favorites.value.filter((id) => id !== productId)
       : [...favorites.value, productId];

@@ -17,7 +17,7 @@ withDefaults(
     <div class="new-arrivals__container container">
       <div class="new-arrivals__header">
         <div class="new-arrivals__content">
-          <p class="new-arrivals__eyebrow">La sélection SHAHIN</p>
+          <p class="new-arrivals__eyebrow">La sélection SIDRA</p>
 
           <h2 class="new-arrivals__title">Nouveautés</h2>
 

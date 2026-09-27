@@ -187,6 +187,11 @@ export const useCartStore = defineStore("cart", () => {
 
       writeLocal(localLines.value);
       await hydrateLocalCart();
+      lastAdded.value = {
+        name: payload.productName ?? "Article",
+        label: payload.variantLabel ?? null,
+      };
+      panelOpen.value = true;
     }
 
     lastAdded.value = {

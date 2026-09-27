@@ -65,11 +65,10 @@ const formattedPrice = computed(() =>
 );
 
 const favorite = computed(() => isFavorite(props.product.id));
-
 function handleFavorite(event: MouseEvent): void {
   event.preventDefault();
   event.stopPropagation();
-  toggleFavorite(props.product.id);
+  toggleFavorite(props.product.id, props.product.name);
 }
 
 async function handleAdd(event: MouseEvent): Promise<void> {

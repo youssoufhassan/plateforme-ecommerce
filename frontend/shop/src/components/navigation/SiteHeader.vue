@@ -1,116 +1,81 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { RouterLink, useRoute, useRouter } from "vue-router";
+import { ref } from "vue";
+import { RouterLink } from "vue-router";
 
 import SearchIcon from "@/components/icons/SearchIcon.vue";
 import HeartIcon from "@/components/icons/HeartIcon.vue";
 import BagIcon from "@/components/icons/BagIcon.vue";
 import MenuIcon from "@/components/icons/MenuIcon.vue";
+import UserIcon from "@/components/icons/UserIcon.vue";
+import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
 
+import CategoryNav from "./CategoryNav.vue";
 import MobileMenu from "./MobileMenu.vue";
+import SearchOverlay from "./SearchOverlay.vue";
 
-const router = useRouter();
-const route = useRoute();
+const authStore = useAuthStore();
 const cartStore = useCartStore();
 
 const menuOpen = ref(false);
-const searchQuery = ref("");
-
-function openMenu() {
-  menuOpen.value = true;
-}
-
-function closeMenu() {
-  menuOpen.value = false;
-}
-
-function submitSearch() {
-  const query = searchQuery.value.trim();
-  if (!query) return;
-
-  // « q » est le paramètre attendu par GET /api/products/search
-  router.push({ path: "/produits", query: { q: query } });
-}
-
-// Le champ reflète la recherche en cours, y compris après un rechargement
-watch(
-  () => route.query.q,
-  (value) => {
-    searchQuery.value = (value as string) || "";
-  },
-  { immediate: true },
-);
+const searchOpen = ref(false);
 </script>
 
 <template>
-  <header class="site-header">
-    <div class="site-header__inner">
-      <!-- MENU + LOGO -->
-      <div class="site-header__brand">
+  <header class="header">
+    <div class="container header__inner">
+      <div class="header__left">
         <button
           type="button"
-          class="header-icon"
+          class="btn-icon header__menu"
           aria-label="Ouvrir le menu"
           :aria-expanded="menuOpen"
-          @click="openMenu"
+          @click="menuOpen = true"
         >
           <MenuIcon />
         </button>
 
-        <RouterLink
-          to="/"
-          class="site-header__logo"
-          aria-label="SHAHIN - Accueil"
-        >
-          SHAHIN
+        <RouterLink to="/" class="header__logo" aria-label="SIDRA, accueil">
+          SIDRA
         </RouterLink>
       </div>
 
-      <!-- RECHERCHE -->
-      <form class="site-header__search" @submit.prevent="submitSearch">
-        <SearchIcon class="site-header__search-icon" />
+      <!--
+        La recherche est un déclencheur, pas un champ : l'ouverture
+        donne accès aux suggestions et à l'historique.
+      -->
+      <button type="button" class="header__search" @click="searchOpen = true">
+        <SearchIcon />
+        <span>Rechercher un parfum, une maison</span>
+      </button>
 
-        <input
-          v-model="searchQuery"
-          type="search"
-          name="q"
-          placeholder="Rechercher un parfum, une marque"
+      <div class="header__actions">
+        <button
+          type="button"
+          class="btn-icon header__search-icon"
           aria-label="Rechercher"
-        />
-      </form>
+          @click="searchOpen = true"
+        >
+          <SearchIcon />
+        </button>
 
-      <!-- FAVORIS + CONNEXION + PANIER -->
-      <div class="site-header__actions">
-        <RouterLink to="/favoris" class="header-icon" aria-label="Mes favoris">
+        <RouterLink to="/favoris" class="btn-icon" aria-label="Mes favoris">
           <HeartIcon />
         </RouterLink>
 
         <RouterLink
-          to="/connexion"
-          class="header-icon"
-          aria-label="Se connecter"
+          :to="authStore.isAuthenticated ? '/compte' : '/connexion'"
+          class="btn-icon"
+          :aria-label="
+            authStore.isAuthenticated ? 'Mon compte' : 'Se connecter'
+          "
         >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle
-              cx="12"
-              cy="8"
-              r="3.5"
-              stroke="currentColor"
-              stroke-width="1.5"
-            />
-            <path
-              d="M5.5 20c.8-3.4 3-5.2 6.5-5.2s5.7 1.8 6.5 5.2"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
+          <UserIcon />
         </RouterLink>
 
         <RouterLink
           to="/panier"
-          class="header-icon header-icon--cart"
+          class="btn-icon header__cart"
           :aria-label="
             cartStore.count
               ? `Mon panier, ${cartStore.count} article${cartStore.count > 1 ? 's' : ''}`
@@ -119,361 +84,187 @@ watch(
         >
           <BagIcon />
 
-          <span v-if="cartStore.count" class="header-icon__badge">
+          <span v-if="cartStore.count" class="header__badge numeric">
             {{ cartStore.count }}
           </span>
         </RouterLink>
       </div>
     </div>
+
+    <CategoryNav />
   </header>
 
-  <MobileMenu :open="menuOpen" @close="closeMenu" />
+  <MobileMenu :open="menuOpen" @close="menuOpen = false" />
+  <SearchOverlay :open="searchOpen" @close="searchOpen = false" />
 </template>
 
 <style scoped>
-/* =========================================================
-   HEADER
-   ========================================================= */
-
-.site-header {
+.header {
   position: fixed;
   top: 0;
   right: 0;
   left: 0;
-
   z-index: var(--z-header);
 
-  width: 100%;
-
-  background: #ffffff;
-
-  border-bottom: 1px solid var(--color-border);
+  background: var(--color-paper);
+  border-bottom: 1px solid var(--color-line);
 }
 
-/* =========================================================
-   STRUCTURE PRINCIPALE
-
-   [ ☰ SHAHIN ] [ RECHERCHE FLEXIBLE ] [ ♡ 👤 🛍 ]
-   ========================================================= */
-
-.site-header__inner {
+.header__inner {
   display: grid;
-
-  grid-template-columns:
-    auto
-    minmax(0, 1fr)
-    auto;
-
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-
-  width: 100%;
+  gap: var(--space-6);
   height: var(--header-height);
-
-  padding-inline: var(--container-padding);
-
-  background: #ffffff;
 }
 
 /* =========================================================
-   MENU + LOGO
+   MARQUE
    ========================================================= */
 
-.site-header__brand {
+.header__left {
   display: flex;
   align-items: center;
-
-  gap: 8px;
-
+  gap: var(--space-2);
   min-width: max-content;
 }
 
-.site-header__logo {
-  display: inline-flex;
-  align-items: center;
-
-  color: var(--color-black);
-
+.header__logo {
   font-family: var(--font-display);
-
-  font-size: 22px;
-  font-weight: 600;
-
+  font-size: 26px;
+  font-weight: var(--weight-medium);
   line-height: 1;
-
-  letter-spacing: 0.2em;
-
-  text-decoration: none;
-
+  letter-spacing: 0.14em;
+  color: var(--color-ink);
   white-space: nowrap;
-}
-
-/* =========================================================
-   ICONES
-   ========================================================= */
-
-.header-icon {
-  position: relative;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 42px;
-  height: 42px;
-
-  padding: 0;
-
-  flex-shrink: 0;
-
-  border: none;
-
-  color: var(--color-black);
-
-  background: transparent;
-  cursor: pointer;
-
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.header-icon:hover {
-  background: #f5f4f1;
-}
-
-.header-icon svg {
-  width: 21px;
-  height: 21px;
-}
-
-/* Compteur du panier */
-.header-icon__badge {
-  position: absolute;
-  top: 4px;
-  right: 3px;
-
-  display: grid;
-  place-items: center;
-
-  min-width: 16px;
-  height: 16px;
-
-  padding-inline: 4px;
-
-  border-radius: 8px;
-
-  background: var(--color-black);
-  color: var(--color-white);
-
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
 }
 
 /* =========================================================
    RECHERCHE
    ========================================================= */
 
-.site-header__search {
-  position: relative;
-
+.header__search {
   display: flex;
   align-items: center;
+  gap: var(--space-3);
 
   width: 100%;
-  min-width: 0;
+  max-width: 460px;
+  height: 42px;
+  padding-inline: var(--space-4);
 
-  padding-inline: clamp(20px, 4vw, 64px);
-}
+  margin-inline: auto;
 
-.site-header__search-icon {
-  position: absolute;
-
-  left: calc(clamp(20px, 4vw, 64px) + 14px);
-
-  width: 18px;
-  height: 18px;
+  border: 1px solid var(--color-line);
+  background: var(--color-page);
+  cursor: text;
 
   color: var(--color-text-muted);
-
-  pointer-events: none;
-}
-
-.site-header__search input {
-  display: block;
-
-  width: 100%;
-  height: 42px;
-
-  padding: 0 16px 0 44px;
-
-  border: 1px solid var(--color-border);
-  border-radius: 0;
-
-  background: #f7f6f3;
-
-  color: var(--color-text);
-
-  font-family: inherit;
-  font-size: 13px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  text-align: left;
 
   transition:
     border-color var(--transition-fast),
     background var(--transition-fast);
 }
 
-.site-header__search input::placeholder {
-  color: var(--color-text-muted);
+.header__search:hover {
+  border-color: var(--color-text-muted);
+  background: var(--color-paper);
 }
 
-.site-header__search input:focus {
-  border-color: var(--color-border-strong);
+.header__search svg {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+}
 
-  background: #ffffff;
+.header__search span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* En mobile, la recherche devient une icône */
+.header__search-icon {
+  display: none;
 }
 
 /* =========================================================
-   ACTIONS DROITE
+   ACTIONS
    ========================================================= */
 
-.site-header__actions {
+.header__actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-
-  gap: 2px;
-
+  gap: var(--space-1);
   min-width: max-content;
 }
 
+.header__cart {
+  position: relative;
+}
+
+.header__badge {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+
+  display: grid;
+  place-items: center;
+
+  min-width: 17px;
+  height: 17px;
+  padding-inline: 4px;
+
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-text-inverse);
+
+  font-size: 10px;
+  line-height: 1;
+}
+
 /* =========================================================
-   TABLETTE
+   TABLETTE ET MOBILE
    ========================================================= */
 
 @media (max-width: 1000px) {
-  .site-header__logo {
-    font-size: 20px;
+  .header__inner {
+    grid-template-columns: auto 1fr auto;
+    gap: var(--space-3);
   }
 
-  .site-header__search {
-    padding-inline: 20px;
+  /* Le champ de recherche cède la place à une icône */
+  .header__search {
+    display: none;
   }
 
-  .site-header__search-icon {
-    left: 34px;
+  .header__search-icon {
+    display: grid;
   }
 
-  .header-icon {
-    width: 38px;
-    height: 38px;
-  }
-
-  .header-icon svg {
-    width: 19px;
-    height: 19px;
+  .header__logo {
+    font-size: 22px;
   }
 }
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
 
 @media (max-width: 767px) {
-  .site-header__inner {
-    padding-inline: 8px;
-  }
-
-  .site-header__brand {
-    gap: 3px;
-  }
-
-  .site-header__logo {
-    font-size: 16px;
-    letter-spacing: 0.14em;
-  }
-
-  .header-icon {
-    width: 33px;
-    height: 33px;
-  }
-
-  .header-icon svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .header-icon__badge {
-    top: 1px;
-    right: 0;
-  }
-
-  .site-header__actions {
-    gap: 0;
-  }
-
-  .site-header__search {
-    min-width: 0;
-    padding-inline: 7px;
-  }
-
-  .site-header__search-icon {
-    left: 19px;
-    width: 16px;
-    height: 16px;
-  }
-
-  .site-header__search input {
-    height: 38px;
-    padding: 0 7px 0 37px;
-    font-size: 11px;
-  }
-
-  .site-header__search input::placeholder {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-/* =========================================================
-   TRÈS PETITS ÉCRANS
-   ========================================================= */
-
-@media (max-width: 380px) {
-  .site-header__inner {
-    padding-inline: 5px;
-  }
-
-  .site-header__brand {
-    gap: 1px;
-  }
-
-  .site-header__logo {
-    font-size: 14px;
+  .header__logo {
+    font-size: 19px;
     letter-spacing: 0.1em;
   }
 
-  .header-icon {
-    width: 30px;
-    height: 30px;
+  .header__actions {
+    gap: 0;
   }
+}
 
-  .header-icon svg {
-    width: 17px;
-    height: 17px;
-  }
-
-  .site-header__search {
-    padding-inline: 4px;
-  }
-
-  .site-header__search-icon {
-    left: 14px;
-  }
-
-  .site-header__search input {
-    height: 36px;
-    padding-left: 31px;
-    font-size: 10px;
+@media (max-width: 380px) {
+  .header__logo {
+    font-size: 17px;
   }
 }
 </style>

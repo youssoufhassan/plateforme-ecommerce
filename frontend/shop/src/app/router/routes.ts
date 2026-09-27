@@ -63,6 +63,42 @@ export const routes: RouteRecordRaw[] = [
         name: "order-success",
         component: () => import("@/pages/checkout/OrderSuccessPage.vue"),
       },
+      {
+        path: "compte",
+        component: () => import("@/pages/account/AccountPage.vue"),
+        children: [
+          {
+            path: "",
+            name: "account-orders",
+            component: () => import("@/pages/account/OrdersSection.vue"),
+          },
+          {
+            path: "informations",
+            name: "account-profile",
+            component: () => import("@/pages/account/ProfileSection.vue"),
+          },
+          {
+            path: "adresses",
+            name: "account-addresses",
+            component: () => import("@/pages/account/AddressesSection.vue"),
+          },
+          {
+            path: "securite",
+            name: "account-security",
+            component: () => import("@/pages/account/SecuritySection.vue"),
+          },
+          {
+            path: "donnees",
+            name: "account-privacy",
+            component: () => import("@/pages/account/PrivacySection.vue"),
+          },
+        ],
+      },
+      {
+        path: "legal/:slug",
+        name: "legal",
+        component: () => import("@/pages/legal/LegalPage.vue"),
+      },
     ],
   },
 ];
