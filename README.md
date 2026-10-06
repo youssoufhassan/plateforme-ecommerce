@@ -919,11 +919,3 @@ Git · GitHub
 **Projet fonctionnel — développement continu**
 
 Le backend constitue le socle métier de la plateforme SHAHIN et est conçu pour évoluer progressivement vers une exploitation réelle.
-
----
-
-## Licence
-
-Projet personnel — tous droits réservés.
-
-Le code est publié à des fins de présentation et de portfolio. Toute réutilisation commerciale doit faire l'objet d'une autorisation préalable.
