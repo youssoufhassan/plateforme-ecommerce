@@ -1,532 +1,648 @@
-# SHAHIN — Plateforme e-commerce
+# SIDRA — Plateforme e-commerce full-stack
 
-Plateforme e-commerce complète développée avec **Spring Boot, Vue 3, TypeScript et PostgreSQL**, conçue pour gérer la vente en ligne de parfums, cosmétiques et produits lifestyle auprès d'une clientèle en France et dans l'Union européenne.
+**SIDRA** est une plateforme e-commerce développée avec Java, Spring Boot, Vue 3, TypeScript et PostgreSQL, destinée à la vente en ligne de parfums, de cosmétiques et de produits lifestyle en France et dans l'Union européenne.
 
-Le projet intègre un parcours e-commerce complet : **catalogue, authentification, panier, checkout, paiement Stripe, commandes, facturation, livraison, TVA, gestion des stocks, remboursements, comptes clients, administration et intégration de fournisseurs**.
+Le projet couvre les principaux processus d'une boutique en ligne : catalogue, authentification, panier, commandes, paiement Stripe, facturation, livraison, TVA, gestion des stocks, remboursements, administration et intégration de fournisseurs.
 
-> Projet personnel développé dans une démarche de conception d'une application e-commerce complète, avec une attention particulière portée à la sécurité, à la modularité du backend et aux contraintes réelles d'une boutique en ligne.
+Il s'agit d'un projet personnel orienté **développement logiciel full-stack, conception d'API REST et architecture backend**, conçu pour évoluer progressivement vers une exploitation commerciale réelle.
+
+## Sommaire
+
+* [Présentation](#présentation)
+* [Architecture générale](#architecture-générale)
+* [Fonctionnalités](#fonctionnalités)
+* [Architecture technique](#architecture-technique)
+* [Sécurité](#sécurité)
+* [Tests](#tests)
+* [Structure du projet](#structure-du-projet)
+* [Installation et démarrage](#installation-et-démarrage)
+* [Configuration](#configuration)
+* [Choix d'architecture](#choix-darchitecture)
+* [Limites et évolutions](#limites-et-évolutions)
+* [Objectifs techniques](#objectifs-techniques)
+* [Auteur](#auteur)
 
 ---
 
-## Aperçu
+## Présentation
 
-SHAHIN repose sur une architecture séparant clairement :
+SIDRA repose sur une architecture séparant clairement les différentes responsabilités de l'application :
 
-* le **frontend client** ;
-* le **back-office administrateur** ;
-* le **backend REST** ;
-* la **base de données PostgreSQL** ;
-* les services de paiement, d'e-mail, de stockage et de fournisseurs.
+* **Boutique en ligne** : interface destinée aux clients.
+* **Back-office administrateur** : interface de gestion de la boutique.
+* **Backend REST** : API centralisant la logique métier.
+* **Base de données PostgreSQL** : stockage des données persistantes.
+* **Services externes** : paiement, e-mails, stockage de fichiers et fournisseurs.
 
-Le backend a été conçu autour de modules métier indépendants afin de faciliter l'évolution de la plateforme.
+Le backend est organisé par domaines métier afin de faciliter la maintenance, les évolutions et l'intégration de nouveaux services.
 
 ### Architecture générale
 
 ```text
-                         ┌──────────────────────┐
-                         │      SHAHIN SHOP     │
-                         │    Vue 3 / TypeScript│
-                         └──────────┬───────────┘
-                                    │
-                                    │ REST / JSON
-                                    ▼
-┌─────────────────────────────────────────────────────────┐
-│                    SPRING BOOT API                      │
-│                                                         │
-│  Identity     Catalog       Cart        Order           │
-│  Payment      Shipping      Invoice     Storage         │
-│  Supplier     Admin         Mail        Legal           │
-└───────────────┬─────────────────────────┬───────────────┘
-                │                         │
-                ▼                         ▼
-       ┌────────────────┐       ┌────────────────────┐
-       │   PostgreSQL   │       │ Services externes  │
-       │                │       │                    │
-       │ Flyway         │       │ Stripe             │
-       │ Transactions  │       │ Email              │
-       │ Stock         │       │ Fournisseurs       │
-       └────────────────┘       └────────────────────┘
+                   ┌─────────────────────────┐
+                   │       SIDRA SHOP        │
+                   │    Vue 3 / TypeScript   │
+                   └────────────┬────────────┘
+                                │
+                                │ REST / JSON
+                                ▼
+┌────────────────────────────────────────────────────────┐
+│                    SIDRA BACKEND                       │
+│                                                        │
+│ Identity  Catalog  Cart  Order  Payment  Shipping      │
+│ Invoice   Supplier  Admin  Storage  Mail  Legal        │
+└─────────────────────────┬──────────────────────────────┘
+                          │
+                ┌─────────┴──────────┐
+                ▼                    ▼
+      ┌──────────────────┐  ┌──────────────────────┐
+      │   PostgreSQL     │  │  Services externes   │
+      │                  │  │                      │
+      │ Données métier   │  │ Stripe               │
+      │ Transactions     │  │ E-mails              │
+      │ Migrations       │  │ Fournisseurs         │
+      └──────────────────┘  │ Stockage de fichiers │
+                            └──────────────────────┘
 
-                         ▲
-                         │
-                  REST / JSON
-                         │
-              ┌──────────┴──────────┐
-              │   SHAHIN ADMIN     │
-              │ Vue 3 / TypeScript │
-              └────────────────────┘
+                   ┌─────────────────────────┐
+                   │      SIDRA ADMIN        │
+                   │    Vue 3 / TypeScript   │
+                   └────────────┬────────────┘
+                                │
+                                └── REST / JSON
+                                    vers le backend
 ```
+
+Les deux applications frontend utilisent la même API. Les règles métier et les opérations sensibles sont centralisées côté serveur.
 
 ---
 
 ## Fonctionnalités
 
-### Authentification et comptes
+### 1. Authentification et comptes clients
 
-* Inscription et connexion sécurisées
-* Authentification par JWT
-* Gestion du profil utilisateur
-* Gestion des adresses
-* Vérification de l'adresse e-mail
-* Renvoi du lien de vérification
-* Mot de passe oublié
-* Réinitialisation sécurisée du mot de passe
-* Invalidation des sessions après changement de mot de passe
-* Gestion des rôles et accès administrateur
+Le module d'identité gère les comptes utilisateurs et les mécanismes d'authentification.
 
-### Catalogue
+Fonctionnalités :
 
-* Gestion des produits
-* Catégories
-* Marques
-* Images multiples
-* Notes olfactives
-* Disponibilité
-* Prix
-* Stock
-* Références produits
-* Variantes de produit
-* Recherche serveur
-* Pagination
-* Filtres combinables
-* Tri des résultats
+* Inscription et connexion.
+* Authentification par JWT.
+* Gestion du profil utilisateur.
+* Gestion des adresses.
+* Vérification de l'adresse e-mail.
+* Renvoi du lien de vérification.
+* Mot de passe oublié et réinitialisation.
+* Invalidation des sessions après un changement de mot de passe.
+* Gestion des rôles et contrôle des accès administrateur.
 
-Les variantes permettent notamment de gérer plusieurs contenances d'un même produit avec des prix, références et stocks indépendants.
+Les opérations liées aux comptes sont traitées par le backend, qui contrôle les autorisations avant d'accéder aux ressources protégées.
+
+### 2. Catalogue produits
+
+Le catalogue centralise les informations commerciales et les données nécessaires à la présentation des produits.
+
+Il prend notamment en charge :
+
+* Produits, catégories et marques.
+* Images multiples.
+* Notes olfactives.
+* Prix et disponibilité.
+* Références produits.
+* Variantes de produits.
+* Gestion du stock.
+* Recherche côté serveur.
+* Pagination.
+* Filtres combinables.
+* Tri des résultats.
+
+Les variantes permettent de représenter plusieurs contenances d'un même parfum avec des références, des prix et des stocks indépendants.
 
 Exemple :
 
 ```text
-Yara
-├── 30 ml
-├── 50 ml
-└── 100 ml
+Parfum Yara
+├── Variante 30 ml
+├── Variante 50 ml
+└── Variante 100 ml
 ```
 
-Chaque variante possède ses propres informations commerciales et logistiques.
+Chaque variante peut être gérée indépendamment dans le catalogue et les règles de disponibilité.
 
----
+### 3. Panier
 
-## Panier
-
-Le panier permet :
-
-* l'ajout de produits ;
-* la sélection d'une variante ;
-* la modification des quantités ;
-* la suppression d'articles ;
-* le calcul du sous-total ;
-* le calcul des frais de livraison ;
-* le calcul de la TVA ;
-* le calcul du montant total ;
-* la vérification de la disponibilité du stock.
-
-Les montants sensibles sont recalculés **côté serveur** afin d'éviter qu'un client puisse modifier le prix envoyé à l'API.
-
----
-
-## Checkout et commandes
-
-Le parcours de commande prend en charge :
-
-* commande avec compte ;
-* commande invité ;
-* adresse de livraison obligatoire ;
-* adresse de facturation ;
-* validation serveur des adresses ;
-* livraison dans l'Union européenne ;
-* calcul serveur des frais de livraison ;
-* calcul de la TVA ;
-* prix TTC ;
-* création d'une commande figée ;
-* confirmation du paiement ;
-* traitement manuel de la commande.
-
-### Adresse figée
-
-L'adresse utilisée lors de la commande est enregistrée directement dans la commande.
-
-Ainsi :
-
-```text
-Profil utilisateur
-       │
-       ├── Adresse actuelle
-       │
-       └── Adresse historique
-               │
-               ▼
-           Commande
-```
-
-Une modification ultérieure du profil ne modifie donc jamais une commande passée.
-
----
-
-## Paiement Stripe
-
-Le paiement est réalisé avec **Stripe Checkout**.
-
-Le backend ne considère pas simplement la redirection du navigateur comme une preuve de paiement.
-
-La confirmation définitive repose sur le **webhook Stripe**.
-
-```text
-Client
-  │
-  ▼
-Checkout
-  │
-  ▼
-Stripe
-  │
-  │ paiement confirmé
-  ▼
-Webhook
-  │
-  ▼
-Spring Boot
-  │
-  ├── Confirmation commande
-  ├── Mise à jour paiement
-  ├── Traitement stock
-  ├── Génération facture
-  └── Notification client
-```
-
-Cette architecture évite de faire confiance uniquement au navigateur du client.
-
----
-
-## Frais de livraison
-
-Les frais de livraison sont calculés exclusivement par le backend.
-
-Ils dépendent notamment :
-
-* du pays ;
-* de la zone de livraison ;
-* du montant de la commande ;
-* du poids lorsque celui-ci est disponible ;
-* du seuil de gratuité configuré.
-
-Les frais sont calculés **une seule fois par commande**, indépendamment du mode d'approvisionnement final des produits.
-
-Le montant calculé est ensuite figé dans la commande.
-
----
-
-## TVA
-
-Les prix présentés au client sont exprimés **TTC**.
-
-Le backend décompose ensuite le montant :
-
-```text
-Prix TTC
-   │
-   ├── Prix HT
-   │
-   └── TVA
-```
-
-Le taux de TVA applicable est enregistré avec la commande afin qu'une modification ultérieure de la configuration fiscale ne puisse pas modifier l'historique des commandes.
-
-Le modèle permet également de gérer différents taux selon les pays européens.
-
----
-
-## Facturation
-
-Une facture est générée automatiquement pour les commandes payées.
-
-Le système prend en charge :
-
-* numérotation des factures ;
-* génération PDF ;
-* date de facture ;
-* identité du vendeur ;
-* identité du client ;
-* adresse de facturation ;
-* détail des produits ;
-* quantités ;
-* prix unitaires HT ;
-* total HT ;
-* TVA ;
-* total TTC ;
-* frais de livraison ;
-* téléchargement de la facture ;
-* accès administrateur aux factures.
-
-Une facture émise est considérée comme un document historique et ne doit pas être modifiée comme une simple donnée commerciale.
-
----
-
-## Remboursements
-
-Le back-office permet d'effectuer :
-
-* un remboursement total ;
-* un remboursement partiel.
-
-Le remboursement déclenche un appel réel à l'API Stripe.
-
-Le système assure également :
-
-* la restauration du stock propre ;
-* l'enregistrement du montant remboursé ;
-* la date ;
-* le motif ;
-* l'administrateur ayant effectué l'opération ;
-* l'envoi d'un e-mail au client.
-
----
-
-## Gestion des stocks
-
-Le stock est géré côté serveur.
+Le panier permet au client de préparer sa commande avant de passer au paiement.
 
 Fonctionnalités :
 
-* stock disponible ;
-* décrément lors du traitement de la commande ;
-* restauration lors d'un remboursement ou retour ;
-* blocage de la vente lorsque le stock propre est épuisé ;
-* seuil d'alerte configurable ;
-* historique des mouvements ;
-* entrées ;
-* sorties ;
-* corrections ;
-* retours.
+* Ajout d'articles.
+* Sélection d'une variante.
+* Modification des quantités.
+* Suppression d'articles.
+* Calcul du sous-total.
+* Calcul des frais de livraison.
+* Calcul de la TVA.
+* Calcul du montant total.
+* Vérification de la disponibilité des produits.
 
----
+Les prix et les montants financiers sont recalculés côté serveur. Le backend ne fait pas confiance aux montants transmis par le frontend.
 
-## Architecture hybride d'approvisionnement
+Cette approche limite les risques de manipulation des prix ou des totaux de commande.
 
-SHAHIN supporte deux modes de fulfillment :
+### 4. Checkout et gestion des commandes
+
+Le processus de commande prend en charge :
+
+* Commandes avec compte client.
+* Commandes invitées.
+* Adresse de livraison.
+* Adresse de facturation.
+* Validation serveur des données de commande.
+* Gestion des destinations de livraison configurées.
+* Calcul serveur des frais de livraison.
+* Calcul de la TVA.
+* Gestion des prix TTC.
+* Enregistrement des lignes de commande.
+* Confirmation du paiement.
+* Traitement des commandes par l'administration.
+
+#### Conservation de l'historique des commandes
+
+Les informations importantes utilisées lors de la commande sont enregistrées dans celle-ci afin de préserver l'historique commercial.
+
+Par exemple, l'adresse enregistrée dans une commande ne doit pas être remplacée automatiquement lorsque le client modifie son adresse dans son profil.
+
+Le même principe s'applique aux prix, aux frais de livraison et aux informations fiscales enregistrés au moment de l'achat.
+
+### 5. Paiement Stripe
+
+Le paiement en ligne est intégré à l'aide de **Stripe Checkout**.
+
+Le backend distingue la redirection du client après paiement de la confirmation effective du règlement.
+
+Le flux de traitement repose sur les événements Stripe reçus par webhook.
 
 ```text
-                    Commande
-                       │
-                       ▼
-               Validation manuelle
-                       │
-             ┌─────────┴─────────┐
-             │                   │
-             ▼                   ▼
-        OWN_STOCK             DROPSHIP
-             │                   │
-             ▼                   ▼
-       Stock SHAHIN          Fournisseur
-             │                   │
-             ▼                   ▼
-        Expédition            Expédition
+Client
+  │
+  ▼
+SIDRA Shop
+  │
+  ▼
+Backend Spring Boot
+  │
+  ▼
+Stripe Checkout
+  │
+  ▼
+Paiement
+  │
+  ▼
+Événement Stripe
+  │
+  ▼
+Webhook SIDRA
+  │
+  ├── Vérification de l'événement
+  ├── Mise à jour du paiement
+  ├── Confirmation de la commande
+  ├── Traitement du stock
+  ├── Génération de la facture
+  └── Notification du client
 ```
 
-### OWN_STOCK
+La confirmation du paiement est traitée côté serveur. Une simple redirection du navigateur vers une page de succès ne constitue pas une preuve de paiement.
 
-Le produit est disponible dans le stock propre de SHAHIN.
+Le traitement des événements doit également tenir compte des notifications répétées afin d'éviter les opérations en double.
+
+### 6. Frais de livraison
+
+Les frais de livraison sont calculés par le backend à partir des règles configurées.
+
+Les critères peuvent notamment inclure :
+
+* Pays de destination.
+* Zone de livraison.
+* Montant de la commande.
+* Poids des produits, lorsqu'il est disponible.
+* Seuil de gratuité configuré.
+
+Le montant retenu est enregistré dans la commande afin de conserver l'historique du calcul.
+
+Le calcul des frais de livraison est indépendant du mode d'approvisionnement choisi pour les produits.
+
+### 7. TVA et montants commerciaux
+
+Les prix affichés au client sont destinés à être exprimés TTC.
+
+Le backend distingue les montants hors taxes, la TVA et les montants TTC.
 
 ```text
-SHAHIN
+Montant de la commande
+          │
+          ├── Montant HT
+          │
+          ├── TVA applicable
+          │
+          └── Montant TTC
+```
+
+Les informations fiscales utilisées lors de la commande sont enregistrées avec celle-ci afin de préserver l'historique des transactions.
+
+Le modèle est conçu pour prendre en charge des règles fiscales différentes selon les destinations, sous réserve de la configuration et de la validation des règles applicables.
+
+### 8. Facturation
+
+Le module de facturation permet de produire et de consulter les factures associées aux commandes payées.
+
+Fonctionnalités prévues dans le module :
+
+* Numérotation des factures.
+* Date de facture.
+* Identité du vendeur.
+* Identité du client.
+* Adresse de facturation.
+* Détail des produits.
+* Quantités et prix unitaires.
+* Montants HT.
+* Détail de la TVA.
+* Montant TTC.
+* Frais de livraison.
+* Génération de PDF.
+* Téléchargement par le client.
+* Consultation depuis le back-office.
+
+Une facture émise constitue un document historique. Les modifications ultérieures des données du catalogue ou du profil client ne doivent pas modifier rétroactivement son contenu.
+
+### 9. Remboursements
+
+Le back-office permet de gérer les remboursements totaux et partiels.
+
+Le processus de remboursement comprend notamment :
+
+* Appel à l'API Stripe.
+* Enregistrement du montant remboursé.
+* Date du remboursement.
+* Motif de l'opération.
+* Identification de l'administrateur à l'origine de l'action.
+* Notification du client.
+* Traitement associé du stock, selon les règles applicables.
+
+Les opérations doivent conserver une trace permettant de rapprocher le remboursement de la commande et du paiement d'origine.
+
+La restauration du stock doit être adaptée au type de remboursement et à la situation réelle du produit : un remboursement financier ne signifie pas systématiquement qu'un produit physique est retourné et revendable.
+
+### 10. Gestion des stocks
+
+Le stock est géré côté serveur et associé aux produits ou à leurs variantes.
+
+Fonctionnalités :
+
+* Consultation du stock disponible.
+* Mise à jour du stock lors du traitement des commandes.
+* Blocage des ventes lorsque le stock propre est insuffisant.
+* Seuil d'alerte configurable.
+* Historique des mouvements.
+* Entrées et sorties de stock.
+* Corrections manuelles.
+* Gestion des retours.
+
+Les mouvements de stock doivent être cohérents avec les opérations de commande et de remboursement afin de limiter les écarts entre le stock enregistré et le stock réel.
+
+### 11. Approvisionnement hybride : stock propre et dropshipping
+
+SIDRA prévoit deux modes d'approvisionnement : le stock propre et le dropshipping.
+
+```text
+                   Commande payée
+                         │
+                         ▼
+                Traitement manuel
+                         │
+               ┌─────────┴─────────┐
+               │                   │
+               ▼                   ▼
+           OWN_STOCK             DROPSHIP
+               │                   │
+               ▼                   ▼
+       Stock de SIDRA       Fournisseur externe
+               │                   │
+               ▼                   ▼
+        Préparation         Préparation fournisseur
+               │                   │
+               ▼                   ▼
+        Expédition client   Expédition client
+```
+
+#### OWN_STOCK
+
+Le produit est disponible dans le stock propre de SIDRA.
+
+```text
+SIDRA
   │
   ▼
-Préparation
+Préparation de la commande
   │
   ▼
-Transporteur
+Expédition
   │
   ▼
 Client
 ```
 
-### DROPSHIP
+#### DROPSHIP
 
-Le produit est transmis à un fournisseur compatible.
+Le produit est approvisionné auprès d'un fournisseur qui prend en charge la préparation et l'expédition directe au client, lorsque ce service est effectivement proposé par le fournisseur.
 
 ```text
-SHAHIN
+SIDRA
+  │
+  ▼
+Transmission de la commande
   │
   ▼
 Fournisseur
   │
   ▼
-Préparation
+Préparation et expédition
   │
   ▼
 Client
 ```
 
-La source d'approvisionnement est déterminée **manuellement après paiement**.
+Le choix de la source d'approvisionnement est réalisé manuellement après paiement.
 
-Le statut `PAID` signifie donc :
+Le statut `PAID` correspond à une commande payée qui attend son traitement. Le passage à `PREPARING` indique que la commande a été prise en charge.
 
-> commande payée et en attente de traitement manuel.
+Le mode dropshipping ne garantit pas, à lui seul, qu'un fournisseur accepte une commande ou expédie directement au client : ces capacités dépendent du partenaire intégré.
 
-Le passage à `PREPARING` indique que la commande a été prise en charge.
+### 12. Intégration des fournisseurs
 
----
-
-## Architecture fournisseurs
-
-Le backend utilise une architecture d'adaptateurs afin de pouvoir intégrer différents fournisseurs sans coupler le cœur métier à une API particulière.
+Le backend utilise une architecture d'adaptateurs afin de séparer la logique métier de SIDRA des API propres à chaque fournisseur.
 
 ```text
-SupplierService
-      │
-      ▼
-SupplierAdapter
-      │
- ┌────┴──────────────┐
- │                   │
- ▼                   ▼
-Supplier A       Supplier B
-Adapter           Adapter
+               SupplierService
+                      │
+                      ▼
+               SupplierAdapter
+                      │
+              ┌───────┴────────┐
+              │                │
+              ▼                ▼
+       Supplier A        Supplier B
+         Adapter            Adapter
 ```
 
-Les adaptateurs peuvent gérer notamment :
+Selon les capacités de chaque fournisseur, les adaptateurs peuvent prendre en charge :
 
-* récupération des produits ;
-* import catalogue ;
-* synchronisation des prix ;
-* synchronisation des stocks ;
-* création de commandes ;
-* récupération des informations de suivi ;
-* gestion des erreurs ;
-* authentification fournisseur.
+* Authentification à l'API.
+* Récupération des produits.
+* Import du catalogue.
+* Synchronisation des prix.
+* Synchronisation des stocks.
+* Transmission des commandes.
+* Récupération des informations de suivi.
+* Gestion des erreurs et des réponses fournisseur.
 
-Cette abstraction permet d'ajouter un nouveau fournisseur sans réécrire le système de commandes.
+Cette abstraction facilite l'ajout de nouveaux partenaires sans coupler directement le cœur métier à une API spécifique.
 
----
+Les fonctionnalités réellement disponibles dépendent des opérations prises en charge par chaque fournisseur et de la configuration de son intégration.
 
-## Favoris
+### 13. Favoris
 
-Les utilisateurs connectés peuvent enregistrer des produits dans leurs favoris.
+Le module de favoris permet aux utilisateurs connectés d'enregistrer des produits pour les retrouver plus tard.
 
-Caractéristiques :
+Fonctionnalités :
 
-* un produit ne peut être ajouté qu'une seule fois ;
-* suppression possible ;
-* conservation d'un produit indisponible ;
-* indication de l'indisponibilité ;
-* association directe à l'utilisateur.
+* Ajout aux favoris.
+* Suppression des favoris.
+* Prévention des doublons pour un même produit.
+* Conservation des références de produits devenus indisponibles.
+* Affichage de l'indisponibilité.
+* Association des favoris au compte utilisateur.
 
----
+### 14. E-mails transactionnels
 
-## Emails transactionnels
+Le backend centralise les e-mails liés aux principales opérations de la boutique.
 
-Le backend gère plusieurs communications transactionnelles :
+Les notifications peuvent notamment concerner :
 
-* vérification d'e-mail ;
-* réinitialisation du mot de passe ;
-* confirmation de commande ;
-* informations de commande ;
-* remboursement ;
-* informations liées au traitement.
+* Vérification de l'adresse e-mail.
+* Réinitialisation du mot de passe.
+* Confirmation de commande.
+* Informations sur le traitement de la commande.
+* Remboursement.
+* Transmission de documents ou d'informations utiles au client.
 
-Les templates sont centralisés côté backend.
+Les modèles d'e-mails sont regroupés dans les ressources du backend.
 
 ```text
 backend/
-└── src/main/resources/
-    └── templates/
-        ├── invoice/
-        └── mail/
+└── src/
+    └── main/
+        └── resources/
+            └── templates/
+                ├── invoice/
+                └── mail/
 ```
 
+L'envoi effectif des e-mails dépend de la configuration du service de messagerie.
+
+### 15. Données personnelles et RGPD
+
+La plateforme prévoit des mécanismes de gestion des données personnelles, notamment :
+
+* Gestion du consentement marketing.
+* Accès aux données du compte.
+* Export des données personnelles.
+* Suppression du compte.
+* Contrôle des accès.
+* Gestion de la conservation des données.
+* Protection des informations liées aux commandes.
+
+La suppression d'un compte ne signifie pas nécessairement la suppression immédiate de toutes les données associées. Certaines informations peuvent devoir être conservées pendant les durées légales applicables, notamment pour les obligations comptables.
+
+La conformité effective dépend également des procédures opérationnelles, des durées de conservation configurées, des traitements des prestataires et des documents d'information destinés aux utilisateurs.
+
+### 16. Pages et contenus légaux
+
+L'API permet de servir les contenus légaux de la plateforme, notamment :
+
+* Mentions légales.
+* Conditions générales de vente.
+* Politique de confidentialité.
+* Politique de cookies.
+* Politique de retour.
+* Informations relatives au droit de rétractation.
+
+Ces contenus doivent être maintenus à jour en fonction des activités réellement exercées et des obligations applicables à SIDRA.
+
 ---
 
-## RGPD et données personnelles
+## Architecture technique
 
-Le backend prévoit les mécanismes nécessaires à la gestion des données personnelles :
+### Backend
 
-* consentement marketing ;
-* gestion du compte ;
-* export des données personnelles ;
-* suppression du compte ;
-* contrôle des accès ;
-* limitation de conservation ;
-* gestion des informations nécessaires à la commande.
+| Technologie     | Utilisation                          |
+| --------------- | ------------------------------------ |
+| Java 21         | Langage de programmation             |
+| Spring Boot     | Développement de l'API backend       |
+| Spring Security | Authentification et autorisations    |
+| JWT             | Authentification par jeton           |
+| Spring Data     | Accès aux données                    |
+| PostgreSQL      | Base de données relationnelle        |
+| Flyway          | Versionnement des migrations SQL     |
+| Maven           | Gestion du build et des dépendances  |
+| Stripe          | Paiement et remboursements           |
+| Docker          | Environnement de développement       |
+| REST / JSON     | Communication entre les applications |
 
-Les données liées aux commandes et aux documents comptables sont conservées selon les obligations applicables, indépendamment de la suppression du compte client lorsque cela est nécessaire.
+### Frontend
 
----
+| Technologie | Utilisation                       |
+| ----------- | --------------------------------- |
+| Vue 3       | Interfaces utilisateur            |
+| TypeScript  | Typage statique                   |
+| Pinia       | Gestion de l'état applicatif      |
+| Vite        | Serveur de développement et build |
+| CSS         | Présentation et responsive design |
 
-## Pages et contenus légaux
+Deux applications frontend distinctes sont développées :
 
-L'API permet de servir les contenus légaux de la plateforme :
+* **Shop** : interface de la boutique destinée aux clients.
+* **Admin** : interface de gestion destinée aux administrateurs.
 
-* mentions légales ;
-* CGV ;
-* politique de confidentialité ;
-* politique de cookies ;
-* politique de retour ;
-* droit de rétractation.
+### Infrastructure et services
+
+* PostgreSQL.
+* Docker et Docker Compose.
+* Stripe Checkout et webhooks.
+* Service de messagerie.
+* Stockage des fichiers.
+* API des fournisseurs.
+* Git et GitHub pour le versionnement du code.
 
 ---
 
 ## Sécurité
 
-Le backend intègre plusieurs mécanismes de sécurité :
+La sécurité est principalement prise en charge par le backend.
 
-* JWT ;
-* contrôle des rôles ;
-* validation côté serveur ;
-* protection des endpoints administrateurs ;
-* contrôle de propriété des ressources ;
-* gestion centralisée des erreurs ;
-* limitation des tentatives de connexion ;
-* limitation des requêtes ;
-* verrouillage temporaire après échecs répétés ;
-* journalisation des opérations administratives sensibles ;
-* secrets externalisés.
+Les mécanismes prévus comprennent :
 
-Les clés privées et informations sensibles ne sont pas destinées à être stockées dans le dépôt.
+* Authentification JWT.
+* Contrôle des rôles et autorisations.
+* Protection des endpoints administrateurs.
+* Validation des données reçues.
+* Vérification de la propriété des ressources.
+* Gestion centralisée des erreurs.
+* Limitation des tentatives de connexion.
+* Limitation du nombre de requêtes.
+* Verrouillage temporaire après plusieurs échecs d'authentification.
+* Journalisation des opérations administratives sensibles.
+* Externalisation des secrets et des paramètres sensibles.
+
+Les données financières et les règles métier critiques ne doivent pas dépendre uniquement des contrôles réalisés dans le navigateur.
+
+Les clés secrètes, mots de passe et jetons d'accès ne doivent pas être versionnés dans le dépôt Git.
 
 ---
 
-## Stack technique
+## Organisation du backend
 
-### Backend
-
-| Technologie     | Utilisation                    |
-| --------------- | ------------------------------ |
-| Java 21         | Langage                        |
-| Spring Boot     | Framework backend              |
-| Spring Security | Sécurité et authentification   |
-| JWT             | Authentification stateless     |
-| Spring Data     | Accès aux données              |
-| PostgreSQL      | Base de données                |
-| Flyway          | Migrations SQL                 |
-| Maven           | Gestion du projet              |
-| Stripe          | Paiement                       |
-| Docker          | Environnement d'exécution      |
-| REST API        | Communication frontend/backend |
-
-### Frontend
-
-| Technologie | Utilisation            |
-| ----------- | ---------------------- |
-| Vue 3       | Interface utilisateur  |
-| TypeScript  | Typage                 |
-| Pinia       | Gestion d'état         |
-| Vite        | Build et développement |
-| CSS         | Interface responsive   |
-
-Deux applications frontend sont présentes :
+Le backend est organisé par domaines métier afin de séparer les responsabilités.
 
 ```text
-frontend/
-├── shop/
-└── admin/
+com.parfum.ecommerce
+├── admin
+├── cart
+├── catalog
+├── common
+├── home
+├── identity
+├── invoice
+├── legal
+├── mail
+├── order
+├── payment
+├── shipping
+├── storage
+└── supplier
+    ├── adapters
+    └── dto
 ```
 
-### Infrastructure
+Cette organisation permet de regrouper les règles métier liées à un même domaine tout en limitant les dépendances entre les modules.
 
-* PostgreSQL
-* Docker / Docker Compose
-* Stripe Webhooks
-* système de stockage des fichiers
-* Git / GitHub
+Le package Java conserve son nom technique `com.parfum.ecommerce` : il s'agit du nom de l'espace de noms du code, et non du nom commercial de la boutique.
+
+---
+
+## Base de données et migrations
+
+PostgreSQL constitue le stockage relationnel principal de SIDRA.
+
+Les évolutions du schéma sont versionnées avec Flyway.
+
+```text
+Application Spring Boot
+          │
+          ▼
+      Spring Data
+          │
+          ▼
+      PostgreSQL
+          ▲
+          │
+        Flyway
+```
+
+Les migrations permettent de versionner la structure de la base de données et de reproduire les évolutions du schéma dans les environnements concernés.
+
+Les données persistantes comprennent notamment les informations relatives aux utilisateurs, aux produits, aux commandes, aux paiements, aux stocks et aux factures.
+
+---
+
+## API REST
+
+Le backend expose une API REST consommée par les deux applications frontend.
+
+```text
+┌─────────────────────┐
+│     SIDRA SHOP      │
+│  Vue 3 / TypeScript │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│                     │
+│   SIDRA BACKEND     │
+│   Spring Boot API   │
+│                     │
+└──────────▲──────────┘
+           │
+           ▲
+┌──────────┴──────────┐
+│     SIDRA ADMIN     │
+│  Vue 3 / TypeScript │
+└─────────────────────┘
+```
+
+Les endpoints sont organisés autour des domaines métier :
+
+* Identité et comptes.
+* Catalogue.
+* Panier.
+* Commandes.
+* Paiement.
+* Livraison.
+* Facturation.
+* Favoris.
+* Administration.
+* Fournisseurs.
+* Contenus légaux.
+
+Les autorisations et validations nécessaires sont réalisées côté serveur.
 
 ---
 
@@ -539,14 +655,11 @@ plateforme-ecommerce/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com/parfum/ecommerce/
-│   │   │   │
 │   │   │   └── resources/
 │   │   │       ├── db/migration/
 │   │   │       ├── static/images/
 │   │   │       └── templates/
-│   │   │
 │   │   └── test/
-│   │
 │   └── pom.xml
 │
 ├── frontend/
@@ -572,142 +685,104 @@ plateforme-ecommerce/
 │           └── views/
 │
 ├── infra/
-│
 ├── docs/
-│
 └── README.md
 ```
 
----
-
-## Organisation du backend
-
-Le backend est organisé par domaines métier :
-
-```text
-com.parfum.ecommerce
-│
-├── admin
-├── cart
-├── catalog
-├── common
-├── home
-├── identity
-├── invoice
-├── legal
-├── mail
-├── order
-├── payment
-├── shipping
-├── storage
-└── supplier
-    ├── adapters
-    └── dto
-```
-
-Cette organisation permet de séparer les responsabilités plutôt que de regrouper toute la logique dans une architecture technique unique.
-
----
-
-## Base de données
-
-PostgreSQL constitue le stockage principal.
-
-Les évolutions du schéma sont gérées avec **Flyway**.
-
-```text
-Application
-     │
-     ▼
-Spring Data
-     │
-     ▼
-PostgreSQL
-     ▲
-     │
-   Flyway
-```
-
-Les migrations permettent de versionner l'évolution de la structure de la base et de reproduire l'environnement de développement.
-
----
-
-## API REST
-
-L'application expose une API REST consommée par les deux interfaces frontend :
-
-```text
-                 ┌──────────────┐
-                 │  Shop Vue 3  │
-                 └──────┬───────┘
-                        │
-                        ▼
-                 ┌──────────────┐
-                 │              │
-                 │ Spring Boot  │
-                 │     API      │
-                 │              │
-                 └──────┬───────┘
-                        ▲
-                        │
-                 ┌──────┴───────┐
-                 │ Admin Vue 3   │
-                 └───────────────┘
-```
-
-Les endpoints sont organisés autour des différents domaines métier : identité, catalogue, panier, commandes, paiement, livraison, administration, fournisseurs, etc.
+Cette structure distingue le backend, les deux interfaces frontend, les ressources d'infrastructure et la documentation.
 
 ---
 
 ## Tests
 
-Les flux critiques sont couverts par des tests automatisés, notamment :
+Les tests automatisés permettent de vérifier les comportements importants et de limiter les régressions lors des évolutions du projet.
 
-* inscription ;
-* connexion ;
-* authentification ;
-* gestion du panier ;
-* calcul des montants ;
-* checkout ;
-* confirmation du paiement ;
-* webhook Stripe ;
-* gestion du stock ;
-* annulation ;
-* remboursement.
+Les scénarios concernés comprennent notamment :
 
-L'objectif est de protéger les règles métier critiques contre les régressions.
+* Inscription et connexion.
+* Authentification et autorisations.
+* Gestion du panier.
+* Calcul des montants.
+* Checkout.
+* Confirmation du paiement.
+* Traitement des webhooks Stripe.
+* Gestion du stock.
+* Annulation de commande.
+* Remboursements.
+
+Les tests d'intégration avec des services externes peuvent nécessiter des environnements de test et des configurations spécifiques.
 
 ---
 
-## Démarrage du projet
+## Installation et démarrage
 
 ### Prérequis
 
-Installer :
+Installer les outils suivants :
 
-* Java 21
-* Maven
-* Node.js
-* npm
-* Docker Desktop
-* PostgreSQL via Docker
-* un compte Stripe pour les paiements
+* Java 21.
+* Maven, si le projet n'utilise pas le wrapper Maven.
+* Node.js et npm.
+* Docker Desktop ou Docker Engine.
+* Git.
+* Un compte Stripe pour tester les paiements.
 
-### Backend
-
-Depuis le dossier backend :
+### 1. Récupérer le projet
 
 ```bash
-./mvnw spring-boot:run
+git clone <URL_DU_DEPOT>
+cd plateforme-ecommerce
 ```
 
-Sous Windows :
+Remplacer `<URL_DU_DEPOT>` par l'adresse réelle du dépôt Git.
+
+### 2. Configurer les variables d'environnement
+
+Créer une configuration locale pour PostgreSQL, l'authentification, Stripe, la messagerie et les éventuels fournisseurs.
+
+Ne jamais publier les valeurs secrètes dans le dépôt.
+
+### 3. Démarrer PostgreSQL
+
+Depuis le répertoire contenant le fichier Docker Compose :
+
+```bash
+docker compose up -d
+```
+
+Vérifier que le conteneur est démarré :
+
+```bash
+docker ps
+```
+
+La configuration Docker doit correspondre aux paramètres de connexion utilisés par le backend.
+
+### 4. Démarrer le backend
+
+Depuis le répertoire `backend/`, sous Windows :
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-### Frontend Shop
+Sous Linux ou macOS :
+
+```bash
+./mvnw spring-boot:run
+```
+
+Si le wrapper Maven n'est pas présent, utiliser Maven installé localement :
+
+```bash
+mvn spring-boot:run
+```
+
+Au démarrage, vérifier les logs pour confirmer que l'application se connecte à PostgreSQL et que les migrations Flyway s'exécutent correctement.
+
+### 5. Démarrer la boutique
+
+Dans un terminal :
 
 ```bash
 cd frontend/shop
@@ -715,7 +790,9 @@ npm install
 npm run dev
 ```
 
-### Frontend Admin
+### 6. Démarrer le back-office
+
+Dans un autre terminal :
 
 ```bash
 cd frontend/admin
@@ -723,27 +800,15 @@ npm install
 npm run dev
 ```
 
-### Base de données
-
-L'environnement PostgreSQL peut être démarré avec Docker Compose :
-
-```bash
-docker compose up -d
-```
-
-Vérification :
-
-```bash
-docker ps
-```
+Les adresses locales d'accès aux interfaces sont indiquées par Vite dans le terminal. Les ports dépendent de la configuration de chaque application.
 
 ---
 
 ## Configuration
 
-Les informations sensibles doivent être fournies par variables d'environnement ou par une configuration locale non versionnée.
+Les paramètres sensibles doivent être fournis par des variables d'environnement ou par une configuration locale exclue du dépôt Git.
 
-Exemples :
+Exemples de paramètres :
 
 ```text
 DATABASE_URL
@@ -763,134 +828,182 @@ SUPPLIER_API_URL
 SUPPLIER_API_KEY
 ```
 
-Aucune clé secrète réelle ne doit être commitée dans Git.
+Les noms exacts attendus dépendent de la configuration Spring Boot et des propriétés définies dans le projet.
+
+Les clés de production ne doivent jamais être utilisées dans les environnements de test ni exposées au frontend.
 
 ---
 
-## Webhook Stripe en développement
+## Tester les webhooks Stripe en local
 
-Pour tester les paiements localement, Stripe CLI peut être utilisé pour rediriger les événements vers le backend :
+Stripe CLI permet de transférer les événements Stripe vers le backend pendant le développement.
+
+Exemple :
 
 ```bash
-stripe listen --forward-to localhost:8080/...
+stripe listen --forward-to localhost:8080/<CHEMIN_WEBHOOK>
 ```
 
-Le secret du webhook est ensuite fourni via la configuration locale.
+Remplacer `<CHEMIN_WEBHOOK>` par le chemin réel de l'endpoint webhook configuré dans le backend.
+
+Stripe CLI fournit alors un secret de signature pour l'environnement local. Ce secret doit être utilisé dans la configuration locale de l'application.
+
+Les tests doivent notamment vérifier la validation de la signature et le comportement du backend lors de la réception répétée d'un même événement.
 
 ---
 
 ## Gestion des erreurs
 
-Le backend possède une gestion centralisée des erreurs afin de fournir des réponses API cohérentes.
+Le backend dispose d'une gestion centralisée des erreurs afin de fournir des réponses API cohérentes.
 
-Les erreurs métier, validation, authentification, autorisation et erreurs techniques sont distinguées afin d'éviter de retourner des informations internes inutiles au client.
+Les erreurs de validation, les erreurs métier, les problèmes d'authentification et d'autorisation ainsi que les erreurs techniques doivent être distingués.
+
+Les réponses envoyées au client ne doivent pas exposer de secrets, de traces internes ou de détails sensibles de l'infrastructure.
 
 ---
 
 ## Observabilité et exploitation
 
-Le backend prévoit également :
+Les besoins d'exploitation comprennent notamment :
 
-* endpoint de santé ;
-* logs structurés ;
-* surveillance des erreurs ;
-* sauvegarde de la base de données ;
-* documentation de l'API ;
-* suivi des commandes fournisseur ;
-* traçabilité des opérations administratives sensibles.
+* Vérification de l'état de santé du backend.
+* Journalisation des erreurs.
+* Traçabilité des opérations administratives sensibles.
+* Sauvegarde et restauration de la base de données.
+* Surveillance des paiements et des commandes.
+* Suivi des opérations fournisseur.
+* Documentation des interfaces API.
+* Gestion des secrets et des configurations par environnement.
+
+La mise en production nécessite également une configuration adaptée de l'hébergement, du HTTPS, des sauvegardes, de la surveillance et de la gestion des incidents.
 
 ---
 
 ## Choix d'architecture
 
-Quelques choix structurants du projet :
+### Calculs financiers côté serveur
 
-### Calculs côté serveur
+Les prix, les frais de livraison, la TVA, le stock et les totaux de commande sont recalculés ou validés par le backend.
 
-Les prix, frais de livraison, taxes, stock et totaux de commande sont recalculés côté backend.
-
-Le frontend ne constitue jamais une source de vérité pour les montants financiers.
+Le frontend ne constitue pas une source de vérité pour les montants financiers.
 
 ### Paiement confirmé par webhook
 
-Le paiement est confirmé par Stripe côté serveur plutôt que par une simple information provenant du navigateur.
+Le backend s'appuie sur les événements Stripe pour confirmer les paiements, plutôt que sur une simple redirection du navigateur.
 
-### Commande immuable
+### Conservation des données de commande
 
-Les informations importantes d'une commande sont figées au moment de sa création :
+Les informations commerciales importantes sont enregistrées avec la commande :
 
-* adresse ;
-* prix ;
-* TVA ;
-* frais de livraison ;
-* lignes de commande ;
-* informations de facturation.
+* Adresse de livraison.
+* Adresse de facturation.
+* Prix des produits.
+* Frais de livraison.
+* Informations fiscales.
+* Lignes de commande.
+
+Cette approche permet de conserver un historique cohérent même si le catalogue ou le profil client évolue.
 
 ### Adaptateurs fournisseurs
 
-Les fournisseurs sont isolés derrière des adaptateurs afin de permettre leur remplacement ou leur multiplication.
+Les fournisseurs sont isolés derrière des adaptateurs. Cette séparation facilite l'ajout ou le remplacement d'un partenaire sans réécrire les règles métier principales.
 
 ### Séparation Shop / Admin
 
-L'interface client et le back-office sont deux applications frontend distinctes consommant la même API.
+La boutique et le back-office sont deux applications frontend distinctes qui consomment la même API REST.
+
+Cette séparation facilite l'évolution indépendante des interfaces tout en centralisant les règles métier dans le backend.
+
+### Migrations versionnées
+
+Flyway permet de versionner les évolutions de la base de données et de rendre les changements de schéma reproductibles.
 
 ---
 
-## Fonctionnalités volontairement hors périmètre
+## Limites et évolutions
 
-Certaines fonctionnalités sont prévues pour une évolution ultérieure :
+Certaines fonctionnalités ne font pas partie du périmètre actuel ou restent à approfondir.
 
-* avis clients avec achat vérifié et modération ;
-* promotions et codes promo ;
-* historique de prix nécessaire aux prix barrés ;
-* automatisation complète du fulfillment fournisseur ;
-* amélioration avancée du moteur de recherche ;
-* optimisation logistique selon le volume.
+### Évolutions envisagées
 
-Ces éléments ne sont pas nécessaires au fonctionnement du socle e-commerce actuel.
+* Avis clients avec achat vérifié et modération.
+* Promotions et codes de réduction.
+* Historique des prix pour les règles relatives aux prix barrés.
+* Automatisation avancée du traitement des commandes fournisseurs.
+* Amélioration du moteur de recherche.
+* Optimisation de la logistique selon le volume de commandes.
+
+### Dépendances liées aux fournisseurs
+
+Le dropshipping nécessite un fournisseur qui accepte effectivement de recevoir les commandes, de préparer les produits et de les expédier directement aux clients.
+
+La présence d'un catalogue ou d'une API de produits ne suffit pas à garantir cette capacité.
+
+Avant toute exploitation commerciale, chaque intégration doit être vérifiée concernant :
+
+1. La réception et la confirmation des commandes.
+2. La disponibilité réelle des produits.
+3. La préparation et l'expédition directe.
+4. Le suivi des colis.
+5. La gestion des annulations et des retours.
+6. Les délais, les frais et les conditions commerciales.
 
 ---
 
-## Limites connues
+## Objectifs techniques
 
-Le dropshipping dépend de la disponibilité d'un véritable fournisseur logistique.
+Le développement de SIDRA permet de mettre en pratique plusieurs domaines du développement logiciel.
 
-Une base de données de produits ou un catalogue ne constitue pas à lui seul un service de dropshipping.
+### Backend et conception logicielle
 
-L'intégration fournisseur est donc conçue pour pouvoir être branchée à un partenaire capable de :
+* Développement Java avec Spring Boot.
+* Conception d'API REST.
+* Organisation par domaines métier.
+* Gestion des dépendances.
+* Validation des données.
+* Gestion centralisée des erreurs.
+* Transactions et règles métier.
 
-1. recevoir une commande ;
-2. préparer le produit ;
-3. expédier directement au client ;
-4. fournir un numéro de suivi.
+### Bases de données
 
----
+* Modélisation relationnelle.
+* PostgreSQL.
+* Accès aux données avec Spring Data.
+* Migrations SQL avec Flyway.
+* Conservation de l'historique des commandes.
 
-## Objectifs techniques du projet
+### Sécurité
 
-Ce projet a notamment permis de travailler sur :
+* Authentification JWT.
+* Contrôle des rôles et des autorisations.
+* Protection des endpoints.
+* Validation côté serveur.
+* Gestion des opérations sensibles.
 
-* conception d'une API REST ;
-* architecture Spring Boot ;
-* conception d'une base relationnelle ;
-* migrations de schéma ;
-* authentification JWT ;
-* gestion des rôles ;
-* sécurité backend ;
-* gestion transactionnelle ;
-* intégration d'une API de paiement ;
-* webhooks ;
-* gestion des stocks ;
-* génération de documents PDF ;
-* envoi d'e-mails transactionnels ;
-* architecture par domaines métier ;
-* intégration de fournisseurs externes ;
-* développement frontend Vue 3 ;
-* TypeScript ;
-* gestion d'état avec Pinia ;
-* Docker ;
-* Git ;
-* tests automatisés.
+### Intégrations et services externes
+
+* Intégration de Stripe.
+* Traitement des webhooks.
+* Génération de factures PDF.
+* Envoi d'e-mails transactionnels.
+* Conception d'adaptateurs pour des fournisseurs externes.
+
+### Frontend
+
+* Développement avec Vue 3.
+* TypeScript.
+* Gestion d'état avec Pinia.
+* Communication avec une API REST.
+* Séparation entre interface client et administration.
+
+### Outils et environnement
+
+* Git et GitHub.
+* Maven.
+* npm et Vite.
+* Docker et Docker Compose.
+* Tests automatisés.
+* Gestion de configuration par environnement.
 
 ---
 
@@ -898,9 +1011,9 @@ Ce projet a notamment permis de travailler sur :
 
 **Youssouf Hassan**
 
-Étudiant en L3 Informatique — Université de Bordeaux
+Étudiant en L3 Informatique à l'Université de Bordeaux.
 
-Projet personnel orienté **développement logiciel full-stack et conception backend**.
+Projet personnel orienté **développement logiciel full-stack, conception backend et intégration de services externes**.
 
 ### Technologies principales
 
@@ -908,7 +1021,7 @@ Projet personnel orienté **développement logiciel full-stack et conception bac
 Java · Spring Boot · Spring Security · JWT
 PostgreSQL · Flyway · Maven
 Vue 3 · TypeScript · Pinia · Vite
-Docker · Stripe · REST API
+Docker · Stripe · API REST
 Git · GitHub
 ```
 
@@ -916,6 +1029,8 @@ Git · GitHub
 
 ## Statut du projet
 
-**Projet fonctionnel — développement continu**
+**SIDRA — Projet personnel en développement continu.**
 
-Le backend constitue le socle métier de la plateforme SHAHIN et est conçu pour évoluer progressivement vers une exploitation réelle.
+La plateforme repose sur un backend Spring Boot, une base PostgreSQL et deux applications frontend distinctes. Elle est conçue pour faire évoluer progressivement ses fonctionnalités métier et ses intégrations externes vers une exploitation réelle.
+
+Le périmètre effectivement opérationnel dépend de l'état du code, des tests réalisés et de la configuration des services externes.
