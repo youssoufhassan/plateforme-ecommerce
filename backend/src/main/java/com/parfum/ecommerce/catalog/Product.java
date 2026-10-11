@@ -122,4 +122,20 @@ public java.math.BigDecimal getLowestPrice() {
             .min(java.math.BigDecimal::compareTo)
             .orElse(this.price);
 }
+    /**
+     * Rattachements multiples. La colonne category_id reste la catégorie
+     * principale, utilisée pour le fil d'Ariane.
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "product_categories",
+        joinColumns = @JoinColumn(name = "product_id"),
+        inverseJoinColumns = @JoinColumn(name = "category_id"))
+    private java.util.Set<Category> categories = new java.util.HashSet<>();
+
+    public java.util.Set<Category> getCategories() { return categories; }
+
+    public void setCategories(java.util.Set<Category> categories) {
+        this.categories = categories;
+    }
 }
