@@ -10,7 +10,6 @@ export interface PageResponse<T> {
 }
 
 export interface CatalogFilters {
-  categories: string[];
   brands: string[];
   minPrice: number | null;
   maxPrice: number | null;
@@ -27,6 +26,21 @@ export interface SearchParams {
   sort?: string;
   page?: number;
   size?: number;
+}
+
+/** Un nœud de l'arborescence de catégories, avec ses enfants. */
+export interface CategoryNode {
+  id: string;
+  name: string;
+  slug: string;
+  /** Chemin complet : "homme/parfums/eaux-de-parfum". */
+  path: string;
+  depth: number;
+  position: number;
+  active: boolean;
+  /** Produits disponibles dans toute la branche, sous-niveaux compris. */
+  productCount: number;
+  children: CategoryNode[];
 }
 
 export type ProductPage = PageResponse<Product>;

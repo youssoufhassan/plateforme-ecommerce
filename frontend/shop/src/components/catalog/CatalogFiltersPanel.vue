@@ -42,9 +42,8 @@ const showAllBrands = ref(false);
 const minPrice = ref<string>("");
 const maxPrice = ref<string>("");
 
-// Sections repliables : les plus utilisées sont ouvertes par défaut
+// Sections repliables
 const openGroups = ref<Record<string, boolean>>({
-  category: true,
   brand: true,
   price: true,
 });
@@ -60,6 +59,15 @@ watch(
     maxPrice.value = value.maxPrice?.toString() ?? "";
   },
   { immediate: true, deep: true },
+);
+
+// Changer de catégorie renouvelle la liste : la recherche repart à zéro
+watch(
+  () => props.filters,
+  () => {
+    brandQuery.value = "";
+    showAllBrands.value = false;
+  },
 );
 
 /** Marques filtrées par la recherche, puis limitées tant que « Voir plus » n'est pas cliqué. */
@@ -84,7 +92,6 @@ const hiddenBrandCount = computed(() =>
 
 const hasActiveFilters = computed(() =>
   Boolean(
-    props.active.category ||
     props.active.brand ||
     props.active.minPrice ||
     props.active.maxPrice ||
@@ -92,9 +99,9 @@ const hasActiveFilters = computed(() =>
   ),
 );
 
-/** Cliquer sur un filtre déjà actif le retire. */
-function toggle(key: "category" | "brand", value: string): void {
-  emit("update", { [key]: props.active[key] === value ? undefined : value });
+/** Cliquer sur une marque déjà active la retire. */
+function toggleBrand(value: string): void {
+  emit("update", { brand: props.active.brand === value ? undefined : value });
 }
 
 function applyPrice(): void {
@@ -145,40 +152,7 @@ function toggleAvailable(event: Event): void {
         </label>
       </section>
 
-      <!-- Catégories -->
-      <section v-if="filters?.categories?.length" class="filters__group">
-        <button
-          type="button"
-          class="filters__toggle"
-          :aria-expanded="openGroups.category"
-          @click="toggleGroup('category')"
-        >
-          <span class="filters__label">Catégorie</span>
-          <span
-            class="filters__chevron"
-            :class="{ 'filters__chevron--open': openGroups.category }"
-          >
-            ⌄
-          </span>
-        </button>
-
-        <ul v-show="openGroups.category" class="filters__list">
-          <li v-for="category in filters.categories" :key="category">
-            <button
-              type="button"
-              class="filters__option"
-              :class="{
-                'filters__option--active': active.category === category,
-              }"
-              @click="toggle('category', category)"
-            >
-              {{ category }}
-            </button>
-          </li>
-        </ul>
-      </section>
-
-      <!-- Marques -->
+      <!-- Marques, limitées à la catégorie consultée -->
       <section v-if="filters?.brands?.length" class="filters__group">
         <button
           type="button"
@@ -199,8 +173,9 @@ function toggleAvailable(event: Event): void {
         </button>
 
         <div v-show="openGroups.brand">
-          <!-- Recherche : indispensable dès que les marques se multiplient -->
+          <!-- Recherche : utile dès que les marques se multiplient -->
           <input
+            v-if="filters.brands.length > BRAND_PREVIEW"
             v-model="brandQuery"
             type="search"
             class="filters__search"
@@ -218,7 +193,7 @@ function toggleAvailable(event: Event): void {
                 type="button"
                 class="filters__option"
                 :class="{ 'filters__option--active': active.brand === brand }"
-                @click="toggle('brand', brand)"
+                @click="toggleBrand(brand)"
               >
                 {{ brand }}
               </button>
@@ -238,7 +213,7 @@ function toggleAvailable(event: Event): void {
         </div>
       </section>
 
-      <!-- Prix -->
+      <!-- Prix, borné à la catégorie consultée -->
       <section class="filters__group">
         <button
           type="button"

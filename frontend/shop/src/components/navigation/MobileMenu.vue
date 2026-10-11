@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 
 import { RouterLink } from "vue-router";
 
-import { useProductStore } from "@/stores/productStore";
+import api from "@/services/http/api";
+import type { CategoryNode } from "@/types/catalog";
 
 /* =========================================================
    PROPS / EVENTS
@@ -18,124 +26,52 @@ const emit = defineEmits<{
 }>();
 
 /* =========================================================
-   STORE
+   ARBORESCENCE DU BACKEND
    ========================================================= */
 
-const productStore = useProductStore();
+const tree = ref<CategoryNode[]>([]);
+const brands = ref<string[]>([]);
+const loading = ref(true);
 
 /* =========================================================
-   MENU
+   NAVIGATION
+
+   Le chemin parcouru : vide à la racine, un nœud par niveau
+   descendu. Permet une profondeur illimitée.
    ========================================================= */
 
-type MenuItem = {
-  label: string;
-  to?: string;
-  children?: MenuItem[];
-};
+const trail = ref<CategoryNode[]>([]);
+const brandsOpen = ref(false);
 
-const activeMenuLabel = ref<string | null>(null);
+const current = computed(() => trail.value[trail.value.length - 1] ?? null);
 
-/* =========================================================
-   MARQUES DU BACKEND
-   ========================================================= */
+const children = computed(() =>
+  current.value ? current.value.children : tree.value,
+);
 
-const brands = computed(() => {
-  const map = new Map<string, string>();
-
-  for (const product of productStore.products) {
-    const brand = product.brand?.trim();
-
-    if (!brand) {
-      continue;
-    }
-
-    const key = brand.toLowerCase();
-
-    if (!map.has(key)) {
-      map.set(key, brand);
-    }
-  }
-
-  return Array.from(map.values()).slice(0, 30);
-});
-
-/* =========================================================
-   MENU PRINCIPAL
-   ========================================================= */
-
-const menuItems = computed<MenuItem[]>(() => [
-  {
-    label: "Parfum",
-
-    children: [
-      {
-        label: "Tous les parfums",
-        to: "/produits?category=parfum",
-      },
-      {
-        label: "Homme",
-        to: "/produits?category=homme",
-      },
-      {
-        label: "Femme",
-        to: "/produits?category=femme",
-      },
-      {
-        label: "Unisexe",
-        to: "/produits?category=unisex",
-      },
-    ],
-  },
-
-  {
-    label: "Nouveautés",
-    to: "/produits?sort=newest",
-  },
-
-  {
-    label: "Marques",
-
-    children: brands.value.map((brand) => ({
-      label: brand,
-      to: `/produits?brand=${encodeURIComponent(brand)}`,
-    })),
-  },
-
-  {
-    label: "Bons plans & cadeaux",
-    to: "/produits?promotion=true",
-  },
-]);
-
-/* =========================================================
-   MENU ACTIF
-   ========================================================= */
-
-const activeMenu = computed<MenuItem | null>(() => {
-  if (!activeMenuLabel.value) {
-    return null;
-  }
-
-  return (
-    menuItems.value.find((item) => item.label === activeMenuLabel.value) || null
-  );
-});
+const inSubMenu = computed(() => trail.value.length > 0 || brandsOpen.value);
 
 /* =========================================================
    OUVERTURE / FERMETURE
    ========================================================= */
 
-function openSubMenu(label: string) {
-  activeMenuLabel.value = label;
+function enter(node: CategoryNode) {
+  trail.value = [...trail.value, node];
 }
 
-function backToMainMenu() {
-  activeMenuLabel.value = null;
+function openBrands() {
+  brandsOpen.value = true;
+}
+
+function back() {
+  if (brandsOpen.value) {
+    brandsOpen.value = false;
+    return;
+  }
+  trail.value = trail.value.slice(0, -1);
 }
 
 function close() {
-  activeMenuLabel.value = null;
-
   emit("close");
 }
 
@@ -150,6 +86,26 @@ function handleEscape(event: KeyboardEvent) {
 }
 
 /* =========================================================
+   CHARGEMENT
+   ========================================================= */
+
+onMounted(async () => {
+  try {
+    const [treeResponse, filtersResponse] = await Promise.all([
+      api.get<CategoryNode[]>("/categories/tree"),
+      api.get<{ brands: string[] }>("/products/filters"),
+    ]);
+
+    tree.value = treeResponse.data;
+    brands.value = filtersResponse.data.brands ?? [];
+  } catch {
+    // Sans arbre, seules les sections fixes restent disponibles
+  } finally {
+    loading.value = false;
+  }
+});
+
+/* =========================================================
    BODY SCROLL
    ========================================================= */
 
@@ -157,10 +113,6 @@ watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) {
-      if (productStore.products.length === 0) {
-        productStore.fetchProducts();
-      }
-
       await nextTick();
 
       document.addEventListener("keydown", handleEscape);
@@ -171,7 +123,9 @@ watch(
 
       document.body.classList.remove("no-scroll");
 
-      activeMenuLabel.value = null;
+      // Le menu rouvre toujours à la racine
+      trail.value = [];
+      brandsOpen.value = false;
     }
   },
 );
@@ -226,40 +180,101 @@ onBeforeUnmount(() => {
                ================================================= -->
 
           <Transition name="submenu">
-            <div v-if="activeMenu" class="site-menu__submenu">
-              <button
-                type="button"
-                class="site-menu__back"
-                @click="backToMainMenu"
-              >
-                <span>←</span>
+            <div v-if="inSubMenu" class="site-menu__submenu">
+              <button type="button" class="site-menu__back" @click="back">
+                <span>‹</span>
 
                 <span> Retour </span>
               </button>
 
-              <div class="site-menu__submenu-heading">
-                <span class="site-menu__eyebrow"> SIDRA </span>
+              <!-- MARQUES -->
 
-                <h2>
-                  {{ activeMenu.label }}
-                </h2>
-              </div>
+              <template v-if="brandsOpen">
+                <div class="site-menu__submenu-heading">
+                  <span class="site-menu__eyebrow"> SIDRA </span>
 
-              <nav class="site-menu__links">
-                <RouterLink
-                  v-for="child in activeMenu.children"
-                  :key="child.label"
-                  :to="child.to || '#'"
-                  class="site-menu__link"
-                  @click="close"
-                >
-                  <span>
-                    {{ child.label }}
-                  </span>
+                  <h2>Marques</h2>
+                </div>
 
-                  <span class="site-menu__arrow"> → </span>
-                </RouterLink>
-              </nav>
+                <nav class="site-menu__links">
+                  <RouterLink
+                    v-for="brand in brands"
+                    :key="brand"
+                    :to="{ path: '/produits', query: { brand } }"
+                    class="site-menu__link"
+                    @click="close"
+                  >
+                    <span>{{ brand }}</span>
+
+                    <span class="site-menu__chevron"> › </span>
+                  </RouterLink>
+                </nav>
+              </template>
+
+              <!-- CATÉGORIE -->
+
+              <template v-else-if="current">
+                <div class="site-menu__submenu-heading">
+                  <span class="site-menu__eyebrow"> SIDRA </span>
+
+                  <h2>
+                    {{ current.name }}
+                  </h2>
+                </div>
+
+                <nav class="site-menu__links">
+                  <!-- Accès direct à toute la branche -->
+                  <RouterLink
+                    :to="{
+                      path: '/produits',
+                      query: { category: current.path },
+                    }"
+                    class="site-menu__link site-menu__link--all"
+                    @click="close"
+                  >
+                    <span> Tout voir </span>
+
+                    <span class="site-menu__count">
+                      {{ current.productCount }}
+                    </span>
+                  </RouterLink>
+
+                  <template v-for="node in children" :key="node.id">
+                    <!-- Un nœud avec enfants ouvre le niveau suivant -->
+                    <button
+                      v-if="node.children.length"
+                      type="button"
+                      class="site-menu__link site-menu__link--button"
+                      @click="enter(node)"
+                    >
+                      <span>
+                        {{ node.name }}
+                      </span>
+
+                      <span class="site-menu__chevron"> › </span>
+                    </button>
+
+                    <!-- Une feuille mène au catalogue -->
+                    <RouterLink
+                      v-else
+                      :to="{
+                        path: '/produits',
+                        query: { category: node.path },
+                      }"
+                      class="site-menu__link"
+                      @click="close"
+                    >
+                      <span>
+                        {{ node.name }}
+                      </span>
+
+                      <span class="site-menu__count">
+                        {{ node.productCount }}
+                      </span>
+                    </RouterLink>
+                  </template>
+                </nav>
+              </template>
             </div>
           </Transition>
 
@@ -267,37 +282,37 @@ onBeforeUnmount(() => {
                MENU PRINCIPAL
                ================================================= -->
 
-          <div v-if="!activeMenu" class="site-menu__content">
+          <div v-if="!inSubMenu" class="site-menu__content">
             <!-- COMPTE -->
 
             <section class="site-menu__section">
               <span class="site-menu__eyebrow"> COMPTE </span>
 
               <nav class="site-menu__links">
-                <RouterLink to="/login" class="site-menu__link" @click="close">
+                <RouterLink
+                  to="/connexion"
+                  class="site-menu__link"
+                  @click="close"
+                >
                   <span> Se connecter </span>
 
-                  <span class="site-menu__arrow"> → </span>
+                  <span class="site-menu__chevron"> › </span>
                 </RouterLink>
 
                 <RouterLink
-                  to="/account/favorites"
+                  to="/favoris"
                   class="site-menu__link"
                   @click="close"
                 >
                   <span> Mes favoris </span>
 
-                  <span class="site-menu__arrow"> → </span>
+                  <span class="site-menu__chevron"> › </span>
                 </RouterLink>
 
-                <RouterLink
-                  to="/account/orders"
-                  class="site-menu__link"
-                  @click="close"
-                >
+                <RouterLink to="/compte" class="site-menu__link" @click="close">
                   <span> Suivre ma commande </span>
 
-                  <span class="site-menu__arrow"> → </span>
+                  <span class="site-menu__chevron"> › </span>
                 </RouterLink>
               </nav>
             </section>
@@ -307,38 +322,70 @@ onBeforeUnmount(() => {
             <section class="site-menu__section">
               <span class="site-menu__eyebrow"> CATÉGORIES </span>
 
-              <nav class="site-menu__links">
-                <template v-for="item in menuItems" :key="item.label">
-                  <!-- AVEC SOUS-MENU -->
+              <p v-if="loading" class="site-menu__state">Chargement</p>
 
+              <nav v-else class="site-menu__links">
+                <!-- Les racines de l'arborescence -->
+                <template v-for="node in tree" :key="node.id">
                   <button
-                    v-if="item.children"
+                    v-if="node.children.length"
                     type="button"
                     class="site-menu__link site-menu__link--button"
-                    @click="openSubMenu(item.label)"
+                    @click="enter(node)"
                   >
                     <span>
-                      {{ item.label }}
+                      {{ node.name }}
                     </span>
 
-                    <span class="site-menu__arrow"> → </span>
+                    <span class="site-menu__chevron"> › </span>
                   </button>
-
-                  <!-- LIEN SIMPLE -->
 
                   <RouterLink
                     v-else
-                    :to="item.to || '#'"
+                    :to="{ path: '/produits', query: { category: node.path } }"
                     class="site-menu__link"
                     @click="close"
                   >
                     <span>
-                      {{ item.label }}
+                      {{ node.name }}
                     </span>
 
-                    <span class="site-menu__arrow"> → </span>
+                    <span class="site-menu__count">
+                      {{ node.productCount }}
+                    </span>
                   </RouterLink>
                 </template>
+
+                <RouterLink
+                  :to="{ path: '/produits', query: { sort: 'newest' } }"
+                  class="site-menu__link"
+                  @click="close"
+                >
+                  <span> Nouveautés </span>
+
+                  <span class="site-menu__chevron"> › </span>
+                </RouterLink>
+
+                <button
+                  v-if="brands.length"
+                  type="button"
+                  class="site-menu__link site-menu__link--button"
+                  @click="openBrands"
+                >
+                  <span> Marques </span>
+
+                  <span class="site-menu__chevron"> › </span>
+                </button>
+
+                <RouterLink
+                  to="/produits"
+                  class="site-menu__link"
+                  @click="close"
+                >
+                  <span> Tout le catalogue </span>
+
+                  <span class="site-menu__chevron"> › </span>
+                </RouterLink>
               </nav>
             </section>
 
@@ -348,16 +395,34 @@ onBeforeUnmount(() => {
               <span class="site-menu__eyebrow"> AUTRES </span>
 
               <nav class="site-menu__links">
-                <RouterLink to="/help" class="site-menu__link" @click="close">
-                  <span> Aide & contact </span>
+                <RouterLink
+                  to="/legal/retours"
+                  class="site-menu__link"
+                  @click="close"
+                >
+                  <span> Livraison &amp; retours </span>
 
-                  <span class="site-menu__arrow"> → </span>
+                  <span class="site-menu__chevron"> › </span>
                 </RouterLink>
 
-                <RouterLink to="/stores" class="site-menu__link" @click="close">
-                  <span> Livraison & retours </span>
+                <RouterLink
+                  to="/legal/cgv"
+                  class="site-menu__link"
+                  @click="close"
+                >
+                  <span> Conditions de vente </span>
 
-                  <span class="site-menu__arrow"> → </span>
+                  <span class="site-menu__chevron"> › </span>
+                </RouterLink>
+
+                <RouterLink
+                  to="/legal/mentions-legales"
+                  class="site-menu__link"
+                  @click="close"
+                >
+                  <span> Mentions légales </span>
+
+                  <span class="site-menu__chevron"> › </span>
                 </RouterLink>
               </nav>
             </section>
@@ -551,6 +616,11 @@ onBeforeUnmount(() => {
   letter-spacing: 0.18em;
 }
 
+.site-menu__state {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
 /* =========================================================
    LIENS
    ========================================================= */
@@ -599,14 +669,43 @@ onBeforeUnmount(() => {
   padding-bottom: 0;
 }
 
-.site-menu__arrow {
-  font-size: 16px;
-
-  transition: transform var(--transition-base);
+/* Accès à la branche entière, mis en avant */
+.site-menu__link--all {
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
-.site-menu__link:hover .site-menu__arrow {
+/* =========================================================
+   CHEVRON ET COMPTEUR
+   ========================================================= */
+
+.site-menu__chevron {
+  flex-shrink: 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 19px;
+  line-height: 1;
+
+  transition:
+    transform var(--transition-base),
+    color var(--transition-base);
+}
+
+.site-menu__link:hover .site-menu__chevron {
   transform: translateX(4px);
+  color: var(--color-text);
+}
+
+/* Le nombre de produits évite d'ouvrir une rubrique vide */
+.site-menu__count {
+  flex-shrink: 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* =========================================================
@@ -640,7 +739,8 @@ onBeforeUnmount(() => {
 }
 
 .site-menu__back span:first-child {
-  font-size: 17px;
+  font-size: 19px;
+  line-height: 1;
 }
 
 .site-menu__submenu-heading {

@@ -8,6 +8,7 @@ import type {
 } from "@/types/catalog";
 import type { HomePayload } from "@/types/home";
 import type { Product } from "@/types/product";
+import type { CategoryNode } from "@/types/catalog";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
@@ -66,8 +67,13 @@ export async function searchProducts(
 }
 
 /** Valeurs disponibles pour construire les filtres du catalogue. */
-export async function fetchCatalogFilters(): Promise<CatalogFilters> {
-  const { data } = await api.get<CatalogFilters>("/products/filters");
+/** Valeurs des filtres, limitées à la branche consultée si elle est fournie. */
+export async function fetchCatalogFilters(
+  category?: string,
+): Promise<CatalogFilters> {
+  const { data } = await api.get<CatalogFilters>("/products/filters", {
+    params: category ? { category } : undefined,
+  });
   return data;
 }
 
@@ -97,5 +103,17 @@ export async function fetchProducts(): Promise<Product[]> {
   const { data } = await api.get<Product[]>("/products");
   return data;
 }
+/** Arborescence des catégories remplies. */
+export async function fetchCategoryTree(): Promise<CategoryNode[]> {
+  const { data } = await api.get<CategoryNode[]>("/categories/tree");
+  return data;
+}
 
+/** Chaîne des ancêtres d'une catégorie, de la racine au nœud. */
+export async function fetchBreadcrumb(path: string): Promise<CategoryNode[]> {
+  const { data } = await api.get<CategoryNode[]>("/categories/breadcrumb", {
+    params: { path },
+  });
+  return data;
+}
 export type { Product };
