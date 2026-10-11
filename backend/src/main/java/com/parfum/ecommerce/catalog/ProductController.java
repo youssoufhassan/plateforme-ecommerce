@@ -23,16 +23,19 @@ public class ProductController {
     private final HomeService homeService;
     private final ProductAdminSearchService productAdminSearchService;
     private final ProductEditService productEditService;
+    private final CategoryTreeService categoryTreeService;
     public ProductController(ProductService productService,
                               ProductSearchService productSearchService,
                               HomeService homeService,
                               ProductAdminSearchService productAdminSearchService,
-                              ProductEditService productEditService) {
+                              ProductEditService productEditService,
+                              CategoryTreeService categoryTreeService) {
         this.productService = productService;
         this.productSearchService = productSearchService;
         this.homeService = homeService;
         this.productAdminSearchService = productAdminSearchService;
         this.productEditService = productEditService;
+        this.categoryTreeService = categoryTreeService;
     }
 
     // ===== Public : routes fixes (AVANT /{id}) =====
@@ -58,11 +61,10 @@ public class ProductController {
                 availableOnly, sort, page, size);
     }
 
-    @GetMapping("/filters")
-    public Map<String, Object> filters() {
-        return productSearchService.filters();
+        @GetMapping("/filters")
+    public Map<String, Object> filters(@RequestParam(required = false) String category) {
+        return productSearchService.filters(category);
     }
-
     @GetMapping("/home")
     public Map<String, Object> homepage(@RequestParam(defaultValue = "8") int limit) {
         return homeService.homepage(limit);
@@ -184,5 +186,11 @@ public class ProductController {
     @PutMapping("/admin/variants/cost-prices")
     public Map<String, Object> bulkSetCostPrice(@RequestBody Map<String, List<Map<String, Object>>> body) {
         return productEditService.bulkSetCostPrice(body.get("variants"));
+    }
+        @PutMapping("/admin/{id}/categories")
+    public ResponseEntity<Void> setCategories(@PathVariable UUID id,
+                                               @RequestBody Map<String, List<UUID>> body) {
+        categoryTreeService.setProductCategories(id, body.get("categoryIds"));
+        return ResponseEntity.noContent().build();
     }
 }

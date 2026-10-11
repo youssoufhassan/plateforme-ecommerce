@@ -177,4 +177,26 @@ public final class ProductSpecifications {
             return cb.exists(sub);
         };
     }
+        /**
+     * Filtre sur une branche entière : "homme" remonte aussi
+     * "homme/parfums" et "homme/parfums/eaux-de-parfum".
+     * Accepte un chemin, un slug ou un nom, pour rester compatible
+     * avec les liens déjà en circulation.
+     */
+    public static Specification<Product> inCategoryBranch(String value) {
+        return (root, query, cb) -> {
+            query.distinct(true);
+
+            jakarta.persistence.criteria.Join<Product, Category> category =
+                    root.join("categories", jakarta.persistence.criteria.JoinType.INNER);
+
+            String needle = value.trim().toLowerCase();
+
+            return cb.or(
+                    cb.equal(cb.lower(category.get("path")), needle),
+                    cb.like(cb.lower(category.get("path")), escapeLike(needle) + "/%", '\\'),
+                    cb.equal(cb.lower(category.get("slug")), needle),
+                    cb.equal(cb.lower(category.get("name")), needle));
+        };
+    }
 }

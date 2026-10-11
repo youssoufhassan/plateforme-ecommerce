@@ -6,10 +6,16 @@ import ProductCard from "@/components/product/ProductCard.vue";
 import CatalogFiltersPanel from "@/components/catalog/CatalogFiltersPanel.vue";
 import {
   apiMessage,
+  fetchBreadcrumb,
   fetchCatalogFilters,
+  fetchCategoryTree,
   searchProducts,
 } from "@/services/productService";
-import type { CatalogFilters, SearchParams } from "@/types/catalog";
+import type {
+  CatalogFilters,
+  CategoryNode,
+  SearchParams,
+} from "@/types/catalog";
 import type { Product } from "@/types/product";
 
 const route = useRoute();
@@ -22,6 +28,9 @@ const filters = ref<CatalogFilters | null>(null);
 const totalElements = ref(0);
 const hasNext = ref(false);
 const currentPage = ref(0);
+
+const tree = ref<CategoryNode[]>([]);
+const breadcrumb = ref<CategoryNode[]>([]);
 
 const loading = ref(false);
 const loadingMore = ref(false);
@@ -51,13 +60,34 @@ const activeParams = computed<SearchParams>(() => {
   };
 });
 
+/** La catégorie consultée : le dernier maillon du fil d'Ariane. */
+const currentCategory = computed(
+  () => breadcrumb.value[breadcrumb.value.length - 1] ?? null,
+);
+
+/** Le chemin brut ne s'affiche jamais : on montre le nom lisible. */
+const categoryName = computed(() => currentCategory.value?.name ?? null);
+
+/**
+ * Sous-catégories proposées : celles de la branche consultée,
+ * ou les racines quand on entre dans le catalogue sans filtre.
+ */
+const subCategories = computed(() => {
+  if (currentCategory.value) return currentCategory.value.children;
+  if (!activeParams.value.category && !activeParams.value.q) return tree.value;
+  return [];
+});
+
 /** Pastilles des filtres appliqués, chacune retirable d'un clic. */
 const activeChips = computed(() => {
   const { category, brand, minPrice, maxPrice, availableOnly } =
     activeParams.value;
   const chips: Array<{ key: string; label: string }> = [];
 
-  if (category) chips.push({ key: "category", label: category });
+  // Le nom lisible plutôt que le chemin complet
+  if (category) {
+    chips.push({ key: "category", label: categoryName.value ?? category });
+  }
   if (brand) chips.push({ key: "brand", label: brand });
   if (availableOnly) chips.push({ key: "availableOnly", label: "En stock" });
 
@@ -72,26 +102,20 @@ const activeChips = computed(() => {
   return chips;
 });
 
-/** Le fil d'Ariane dit où l'on est, pas ce qu'on a tapé. */
-const breadcrumbLabel = computed(() => {
-  const { brand, category } = activeParams.value;
-  if (brand) return brand;
-  if (category) return category;
-  return "Catalogue";
-});
-
 const heading = computed(() => {
-  const { q, category, brand } = activeParams.value;
+  const { q, brand } = activeParams.value;
   if (q) return q;
   if (brand) return brand;
-  if (category) return category;
-  return "Tous les parfums";
+  if (categoryName.value) return categoryName.value;
+  return "Tout le catalogue";
 });
 
+/** Une catégorie se passe de sous-titre : son contenu parle pour elle. */
 const subheading = computed(() => {
   const { brand } = activeParams.value;
   if (brand) return "La maison et ses créations";
-  return "Notre sélection de fragrances et de produits venus d'ailleurs";
+  if (currentCategory.value) return null;
+  return "Parfums, beauté, mode et art de vivre";
 });
 
 /** Part du catalogue déjà chargée, pour la barre de progression. */
@@ -122,6 +146,35 @@ async function loadProducts(): Promise<void> {
     totalElements.value = 0;
   } finally {
     loading.value = false;
+  }
+}
+
+/** Le fil d'Ariane et les sous-catégories suivent la branche consultée. */
+async function loadCategoryContext(): Promise<void> {
+  const path = activeParams.value.category;
+
+  if (!path) {
+    breadcrumb.value = [];
+    return;
+  }
+
+  try {
+    breadcrumb.value = await fetchBreadcrumb(path);
+  } catch {
+    // Chemin inconnu : on retombe sur un affichage neutre
+    breadcrumb.value = [];
+  }
+}
+
+/**
+ * Les marques et la fourchette de prix se limitent à la branche :
+ * proposer Rolex sous « Parfums » n'aurait aucun sens.
+ */
+async function loadFilters(): Promise<void> {
+  try {
+    filters.value = await fetchCatalogFilters(activeParams.value.category);
+  } catch {
+    // Sans les filtres, la liste reste utilisable : inutile d'alarmer
   }
 }
 
@@ -166,6 +219,13 @@ function removeChip(key: string): void {
     updateQuery({ minPrice: undefined, maxPrice: undefined });
     return;
   }
+
+  // Changer de catégorie invalide la marque : elle peut ne plus exister
+  if (key === "category") {
+    updateQuery({ category: undefined, brand: undefined });
+    return;
+  }
+
   updateQuery({ [key]: undefined });
 }
 
@@ -177,12 +237,20 @@ function clearFilters(): void {
   });
 }
 
-watch(() => route.query, loadProducts, { immediate: true, deep: true });
+watch(
+  () => route.query,
+  () => {
+    loadProducts();
+    loadCategoryContext();
+    loadFilters();
+  },
+  { immediate: true, deep: true },
+);
 
-fetchCatalogFilters()
-  .then((data) => (filters.value = data))
+fetchCategoryTree()
+  .then((data) => (tree.value = data))
   .catch(() => {
-    // Sans les filtres, la liste reste utilisable : inutile d'alarmer
+    // Sans arbre, la page reste utilisable
   });
 </script>
 
@@ -193,13 +261,49 @@ fetchCatalogFilters()
       <nav class="catalog__breadcrumb" aria-label="Fil d'Ariane">
         <RouterLink to="/">Accueil</RouterLink>
         <span aria-hidden="true">/</span>
-        <span>{{ breadcrumbLabel }}</span>
+
+        <template v-if="breadcrumb.length">
+          <RouterLink to="/produits">Catalogue</RouterLink>
+
+          <template v-for="(node, index) in breadcrumb" :key="node.id">
+            <span aria-hidden="true">/</span>
+
+            <!-- Le dernier maillon est la page courante : pas de lien -->
+            <span v-if="index === breadcrumb.length - 1">{{ node.name }}</span>
+
+            <RouterLink
+              v-else
+              :to="{ path: '/produits', query: { category: node.path } }"
+            >
+              {{ node.name }}
+            </RouterLink>
+          </template>
+        </template>
+
+        <span v-else>Catalogue</span>
       </nav>
 
       <header class="catalog__intro">
         <h1 class="catalog__title">{{ heading }}</h1>
-        <p class="catalog__subtitle">{{ subheading }}</p>
+        <p v-if="subheading" class="catalog__subtitle">{{ subheading }}</p>
       </header>
+
+      <!-- Sous-catégories : la navigation continue depuis la page -->
+      <nav
+        v-if="subCategories.length"
+        class="subcategories"
+        aria-label="Sous-catégories"
+      >
+        <RouterLink
+          v-for="node in subCategories"
+          :key="node.id"
+          :to="{ path: '/produits', query: { category: node.path } }"
+          class="subcategories__item"
+        >
+          {{ node.name }}
+          <span class="subcategories__count">{{ node.productCount }}</span>
+        </RouterLink>
+      </nav>
     </div>
 
     <!-- Titre lu par les lecteurs d'écran, invisible à l'écran -->
@@ -372,6 +476,7 @@ fetchCatalogFilters()
 
 .catalog__breadcrumb {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding-top: 22px;
@@ -408,6 +513,47 @@ fetchCatalogFilters()
   color: var(--color-text-muted);
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* =========================================================
+   SOUS-CATÉGORIES
+   ========================================================= */
+
+.subcategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.subcategories__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 16px;
+
+  border: 1px solid var(--color-border);
+
+  color: var(--color-text);
+  font-size: 13px;
+  text-decoration: none;
+
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.subcategories__item:hover {
+  border-color: var(--color-text);
+  background: #f5f4f1;
+}
+
+/* Le compteur évite d'ouvrir une rubrique quasi vide */
+.subcategories__count {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* =========================================================

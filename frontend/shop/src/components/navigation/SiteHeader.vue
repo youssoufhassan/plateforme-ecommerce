@@ -10,7 +10,6 @@ import UserIcon from "@/components/icons/UserIcon.vue";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
 
-import CategoryNav from "./CategoryNav.vue";
 import MobileMenu from "./MobileMenu.vue";
 import SearchOverlay from "./SearchOverlay.vue";
 
@@ -90,8 +89,6 @@ const searchOpen = ref(false);
         </RouterLink>
       </div>
     </div>
-
-    <CategoryNav />
   </header>
 
   <MobileMenu :open="menuOpen" @close="menuOpen = false" />
