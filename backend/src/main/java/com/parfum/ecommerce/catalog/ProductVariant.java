@@ -68,4 +68,31 @@ public class ProductVariant {
     public void setActive(boolean active) { this.active = active; }
     public Integer getPosition() { return position; }
     public void setPosition(Integer position) { this.position = position; }
+        /**
+     * Les valeurs qui composent cette variante : une par axe.
+     * Un parfum en a une (« 100 ml »), un vêtement deux (« M » et « Noir »).
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "variant_option_values",
+        joinColumns = @JoinColumn(name = "variant_id"),
+        inverseJoinColumns = @JoinColumn(name = "option_value_id"))
+    private java.util.Set<ProductOptionValue> optionValues = new java.util.LinkedHashSet<>();
+
+    public java.util.Set<ProductOptionValue> getOptionValues() { return optionValues; }
+
+    public void setOptionValues(java.util.Set<ProductOptionValue> optionValues) {
+        this.optionValues = optionValues;
+    }
+
+    /** Libellé reconstruit depuis les axes : « M / Noir ». */
+    public String buildLabel() {
+        if (optionValues.isEmpty()) return label;
+
+        return optionValues.stream()
+                .sorted(java.util.Comparator.comparing(v -> v.getOption().getPosition()))
+                .map(ProductOptionValue::getValue)
+                .reduce((a, b) -> a + " / " + b)
+                .orElse(label);
+    }
 }

@@ -35,3 +35,6 @@ build/
 run-dev.ps1
 
 uploads/
+
+# Script local contenant une clé sensible
+run-dev.ps1

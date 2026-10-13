@@ -45,4 +45,17 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
           AND (LOWER(c.path) = :path OR LOWER(c.path) LIKE CONCAT(:path, '/%'))
     """)
     java.math.BigDecimal findMaxPriceInBranch(@Param("path") String path);
+        /**
+     * Marques classées par nombre de produits.
+     * Le seuil écarte les marques à référence unique : un bandeau
+     * de maisons perd son sens avec un seul produit par nom.
+     */
+    @Query("""
+        SELECT p.brand FROM Product p
+        WHERE p.active = true AND p.brand IS NOT NULL AND p.brand <> ''
+        GROUP BY p.brand
+        HAVING COUNT(p) >= 2
+        ORDER BY COUNT(p) DESC, p.brand ASC
+    """)
+    java.util.List<String> findTopBrands(org.springframework.data.domain.Pageable pageable);
 }

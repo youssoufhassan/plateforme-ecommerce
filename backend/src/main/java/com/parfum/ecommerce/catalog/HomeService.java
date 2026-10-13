@@ -27,12 +27,13 @@ public class HomeService {
     private final ProductService productService;
     private final HomeSectionService homeSectionService;
 
-
-    public HomeService(ProductRepository productRepository,
-                        CategoryRepository categoryRepository,
-                        OrderItemRepository orderItemRepository,
-                        ProductService productService,
-                        HomeSectionService homeSectionService) {
+    public HomeService(
+            ProductRepository productRepository,
+            CategoryRepository categoryRepository,
+            OrderItemRepository orderItemRepository,
+            ProductService productService,
+            HomeSectionService homeSectionService
+    ) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.orderItemRepository = orderItemRepository;
@@ -40,27 +41,57 @@ public class HomeService {
         this.homeSectionService = homeSectionService;
     }
 
+    /**
+     * Données nécessaires à la page d'accueil.
+     */
     @Transactional(readOnly = true)
     public Map<String, Object> homepage(int limit) {
         int safeLimit = Math.min(Math.max(limit, 1), 12);
 
         Map<String, Object> home = new LinkedHashMap<>();
+
         home.put("featured", featured(safeLimit));
         home.put("newest", newest(safeLimit));
         home.put("bestSellers", bestSellers(safeLimit));
-        home.put("categories", categoryRepository.findAll().stream()
-                .map(c -> Map.of("id", c.getId(), "name", c.getName()))
-                .toList());
-                home.put("sections", homeSectionService.publicSections(safeLimit));
+
+        home.put(
+                "categories",
+                categoryRepository.findAll().stream()
+                        .map(c -> Map.of(
+                                "id", c.getId(),
+                                "name", c.getName()
+                        ))
+                        .toList()
+        );
+
+        home.put(
+                "sections",
+                homeSectionService.publicSections(safeLimit)
+        );
+
+        // Marques les mieux représentées dans le catalogue.
+        home.put(
+                "topBrands",
+                productRepository.findTopBrands(
+                        PageRequest.of(0, 10)
+                )
+        );
+
         return home;
     }
 
-    /** Produits choisis par l'administrateur. À défaut, les nouveautés. */
+    /**
+     * Produits sélectionnés par l'administrateur.
+     * Si aucun produit n'est mis en avant, affiche les nouveautés.
+     */
     @Transactional(readOnly = true)
     public List<ProductResponse> featured(int limit) {
         List<ProductResponse> result = productRepository.findAll(
-                        available().and(ProductSpecifications.isFeatured()),
-                        PageRequest.of(0, limit, byNewest()))
+                        available().and(
+                                ProductSpecifications.isFeaturedOnly()
+                        ),
+                        PageRequest.of(0, limit, byNewest())
+                )
                 .stream()
                 .map(productService::toResponse)
                 .toList();
@@ -68,9 +99,15 @@ public class HomeService {
         return result.isEmpty() ? newest(limit) : result;
     }
 
+    /**
+     * Produits les plus récemment ajoutés.
+     */
     @Transactional(readOnly = true)
     public List<ProductResponse> newest(int limit) {
-        return productRepository.findAll(available(), PageRequest.of(0, limit, byNewest()))
+        return productRepository.findAll(
+                        available(),
+                        PageRequest.of(0, limit, byNewest())
+                )
                 .stream()
                 .map(productService::toResponse)
                 .toList();
@@ -78,33 +115,45 @@ public class HomeService {
 
     /**
      * Meilleures ventes des 90 derniers jours.
-     * Liste vide tant qu'aucune commande n'a été payée : le frontend masque alors la section.
+     * Retourne une liste vide lorsqu'aucune vente n'est enregistrée.
      */
     @Transactional(readOnly = true)
     public List<ProductResponse> bestSellers(int limit) {
         List<UUID> ids = orderItemRepository.findBestSellerIds(
                 LocalDateTime.now().minusDays(BESTSELLER_WINDOW_DAYS),
-                PageRequest.of(0, limit));
+                PageRequest.of(0, limit)
+        );
 
         if (ids.isEmpty()) {
             return List.of();
         }
 
         List<Product> products = productRepository.findAll(
-                available().and(ProductSpecifications.idIn(ids)));
+                available().and(ProductSpecifications.idIn(ids))
+        );
 
-        // Rétablit l'ordre de vente, que la requête de chargement ne conserve pas
+        // Conserve l'ordre des meilleures ventes.
         return products.stream()
-                .sorted(Comparator.comparingInt(p -> ids.indexOf(p.getId())))
+                .sorted(Comparator.comparingInt(
+                        product -> ids.indexOf(product.getId())
+                ))
                 .map(productService::toResponse)
                 .toList();
     }
 
+    /**
+     * Produits actifs et disponibles.
+     */
     private Specification<Product> available() {
-        return ProductSpecifications.isActive().and(ProductSpecifications.isAvailable());
+        return ProductSpecifications.isActive()
+                .and(ProductSpecifications.isAvailable());
     }
 
+    /**
+     * Tri par date de création décroissante.
+     */
     private Sort byNewest() {
-        return Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id"));
+        return Sort.by(Sort.Direction.DESC, "createdAt")
+                .and(Sort.by(Sort.Direction.ASC, "id"));
     }
 }

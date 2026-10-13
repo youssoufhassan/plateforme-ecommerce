@@ -2,6 +2,8 @@ package com.parfum.ecommerce.catalog;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import com.parfum.ecommerce.supplier.Supplier;
 @Entity
@@ -57,6 +59,16 @@ private java.util.List<ProductVariant> variants = new java.util.ArrayList<>();
 private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
 @Column(nullable = false)
 private boolean featured = false;
+    /** HOMME, FEMME, UNISEXE ou ENFANT. Facette, pas catégorie. */
+    @Column(length = 20)
+    private String gender;
+
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC")
+    private List<ProductOption> options = new ArrayList<>();
+
+    public List<ProductOption> getOptions() { return options; }
 
 public boolean isFeatured() { return featured; }
 public void setFeatured(boolean featured) { this.featured = featured; }
@@ -84,7 +96,8 @@ public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 public java.util.List<ProductImage> getImages() { return images; }
 public String getBrand() { return brand; }
 public void setBrand(String brand) { this.brand = brand; }
-
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 public String getFulfillmentType() { return fulfillmentType; }
 public void setFulfillmentType(String fulfillmentType) { this.fulfillmentType = fulfillmentType; }
 

@@ -1,6 +1,8 @@
 package com.parfum.ecommerce.catalog;
 
 import com.parfum.ecommerce.catalog.dto.CreateProductRequest;
+import com.parfum.ecommerce.catalog.dto.ProductAdminResponse;
+import com.parfum.ecommerce.catalog.dto.ProductOptionResponse;
 import com.parfum.ecommerce.catalog.dto.ProductResponse;
 import com.parfum.ecommerce.catalog.dto.VariantAdminResponse;
 import com.parfum.ecommerce.catalog.dto.VariantResponse;
@@ -8,12 +10,11 @@ import com.parfum.ecommerce.catalog.dto.VariantResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import com.parfum.ecommerce.catalog.dto.ProductAdminResponse;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 public class ProductService {
@@ -51,12 +52,14 @@ public class ProductService {
 
             product.setCategory(category);
         }
+
         ProductVariant variant = new ProductVariant();
         variant.setProduct(product);
         variant.setLabel("Standard");
         variant.setPrice(request.getPrice());
         variant.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
         product.getVariants().add(variant);
+
         Product saved = productRepository.save(product);
 
         return toResponse(saved);
@@ -109,35 +112,77 @@ public class ProductService {
                 .toList();
     }
 
-   public ProductResponse toResponse(Product product) {
-    List<VariantResponse> variants = product.getActiveVariants().stream()
-            .map(v -> new VariantResponse(v.getId(), v.getLabel(), v.getPrice(), v.isAvailable()))
-            .toList();
+    /** Vue boutique d'un produit : aucune donnée commerciale interne. */
+    @Transactional(readOnly = true)
+    public ProductResponse toResponse(Product product) {
+        List<VariantResponse> variants = product.getVariants().stream()
+                .filter(ProductVariant::isActive)
+                .sorted(Comparator.comparing(ProductVariant::getPosition))
+                .map(variant -> new VariantResponse(
+                        variant.getId(),
+                        variant.getLabel(),
+                        variant.getPrice(),
+                        isVariantAvailable(product, variant),
+                        variant.getOptionValues().stream()
+                                .map(ProductOptionValue::getId)
+                                .toList()))
+                .toList();
 
-    return new ProductResponse(
-            product.getId(),
-            product.getName(),
-            product.getDescription(),
-            product.getBrand(),
-            product.getLowestPrice(),
-            product.isAvailable(),
-            product.getImageUrl(),
-            product.getImages().stream().map(ProductImage::getUrl).toList(),
-            product.getCategory() != null ? product.getCategory().getName() : null,
-            variants
-    );
-}
+        List<ProductOptionResponse> options = product.getOptions().stream()
+                .sorted(Comparator.comparing(ProductOption::getPosition))
+                .map(option -> new ProductOptionResponse(
+                        option.getId(),
+                        option.getName(),
+                        option.getPosition(),
+                        option.getValues().stream()
+                                .map(value -> new ProductOptionResponse.OptionValue(
+                                        value.getId(), value.getValue(), value.getPosition()))
+                                .toList()))
+                .toList();
+
+        List<String> imageUrls = product.getImages().stream()
+                .sorted(Comparator.comparing(ProductImage::getPosition))
+                .map(ProductImage::getUrl)
+                .toList();
+
+        return new ProductResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getBrand(),
+                product.getLowestPrice(),
+                product.isAvailable(),
+                product.getImageUrl(),
+                imageUrls,
+                product.getCategory() != null ? product.getCategory().getName() : null,
+                variants,
+                options);
+    }
+
+    /**
+     * Une variante en dropshipping est réputée disponible : le stock
+     * est tenu par le fournisseur, pas par nous.
+     */
+    private boolean isVariantAvailable(Product product, ProductVariant variant) {
+        if (!"OWN_STOCK".equals(product.getFulfillmentType())) {
+            return true;
+        }
+        return variant.getStockQuantity() != null && variant.getStockQuantity() > 0;
+    }
+
     private ProductAdminResponse toAdminResponse(Product product) {
         List<VariantAdminResponse> variants = product.getVariants().stream()
                 .map(ProductVariantService::toResponse)
                 .toList();
 
         ProductVariant cheapest = product.getActiveVariants().stream()
-                .min(java.util.Comparator.comparing(ProductVariant::getPrice))
+                .min(Comparator.comparing(ProductVariant::getPrice))
                 .orElse(null);
 
         BigDecimal cost = cheapest != null ? cheapest.getCostPrice() : product.getCostPrice();
-        BigDecimal margin = cheapest != null ? ProductVariantService.toResponse(cheapest).marginPercent() : null;
+        BigDecimal margin = cheapest != null
+                ? ProductVariantService.toResponse(cheapest).marginPercent()
+                : null;
 
         int totalStock = product.getActiveVariants().stream()
                 .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
@@ -163,6 +208,7 @@ public class ProductService {
                 variants
         );
     }
+
     /** Fiche produit publique : un produit désactivé est introuvable côté boutique. */
     @Transactional(readOnly = true)
     public ProductResponse getActiveById(UUID id) {
@@ -171,10 +217,12 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
         return toResponse(product);
     }
-public List<ProductAdminResponse> getAllProductsAdmin() {
-    return productRepository.findAll().stream().map(this::toAdminResponse).toList();
-}
-        @Transactional
+
+    public List<ProductAdminResponse> getAllProductsAdmin() {
+        return productRepository.findAll().stream().map(this::toAdminResponse).toList();
+    }
+
+    @Transactional
     public ProductAdminResponse setFeatured(UUID id, boolean featured) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
@@ -185,7 +233,7 @@ public List<ProductAdminResponse> getAllProductsAdmin() {
         return toAdminResponse(product);
     }
 
-        /**
+    /**
      * Applique une action à plusieurs produits d'un coup.
      * Renvoie le nombre de produits réellement modifiés.
      */
@@ -225,7 +273,8 @@ public List<ProductAdminResponse> getAllProductsAdmin() {
                 "updated", updated,
                 "notFound", productIds.size() - products.size());
     }
-        /** Réponse admin d'un produit, réutilisable par les autres services. */
+
+    /** Réponse admin d'un produit, réutilisable par les autres services. */
     @Transactional(readOnly = true)
     public ProductAdminResponse adminResponseOf(Product product) {
         return toAdminResponse(product);

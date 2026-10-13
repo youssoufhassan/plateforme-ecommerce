@@ -3,7 +3,9 @@ package com.parfum.ecommerce.catalog;
 import com.parfum.ecommerce.catalog.dto.CreateProductRequest;
 import com.parfum.ecommerce.catalog.dto.ProductAdminListItem;
 import com.parfum.ecommerce.catalog.dto.ProductAdminResponse;
+import com.parfum.ecommerce.catalog.dto.ProductOptionResponse;
 import com.parfum.ecommerce.catalog.dto.ProductResponse;
+import com.parfum.ecommerce.catalog.dto.UpdateProductRequest;
 import com.parfum.ecommerce.common.dto.PageResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -24,21 +26,27 @@ public class ProductController {
     private final ProductAdminSearchService productAdminSearchService;
     private final ProductEditService productEditService;
     private final CategoryTreeService categoryTreeService;
+    private final VariantOptionService variantOptionService;
+
     public ProductController(ProductService productService,
                               ProductSearchService productSearchService,
                               HomeService homeService,
                               ProductAdminSearchService productAdminSearchService,
                               ProductEditService productEditService,
-                              CategoryTreeService categoryTreeService) {
+                              CategoryTreeService categoryTreeService,
+                              VariantOptionService variantOptionService) {
         this.productService = productService;
         this.productSearchService = productSearchService;
         this.homeService = homeService;
         this.productAdminSearchService = productAdminSearchService;
         this.productEditService = productEditService;
         this.categoryTreeService = categoryTreeService;
+        this.variantOptionService = variantOptionService;
     }
 
-    // ===== Public : routes fixes (AVANT /{id}) =====
+    // =========================================================
+    // PUBLIC — routes fixes, déclarées AVANT /{id}
+    // =========================================================
 
     @GetMapping
     public List<ProductResponse> getAllProducts() {
@@ -61,10 +69,12 @@ public class ProductController {
                 availableOnly, sort, page, size);
     }
 
-        @GetMapping("/filters")
+    /** Les marques et les prix se limitent à la branche consultée. */
+    @GetMapping("/filters")
     public Map<String, Object> filters(@RequestParam(required = false) String category) {
         return productSearchService.filters(category);
     }
+
     @GetMapping("/home")
     public Map<String, Object> homepage(@RequestParam(defaultValue = "8") int limit) {
         return homeService.homepage(limit);
@@ -80,7 +90,9 @@ public class ProductController {
         return homeService.bestSellers(Math.min(Math.max(limit, 1), 12));
     }
 
-    // ===== Admin : routes fixes (AVANT /admin/{id}) =====
+    // =========================================================
+    // ADMIN — routes fixes, déclarées AVANT /admin/{id}
+    // =========================================================
 
     @GetMapping("/admin/search")
     public PageResponse<ProductAdminListItem> searchAdmin(
@@ -106,13 +118,28 @@ public class ProductController {
         return productAdminSearchService.filters();
     }
 
+    /** Variantes sans coût d'achat, à compléter pour rendre les marges fiables. */
+    @GetMapping("/admin/variants/missing-cost")
+    public List<Map<String, Object>> variantsMissingCost(
+            @RequestParam(defaultValue = "100") int limit) {
+        return productEditService.variantsMissingCost(Math.min(Math.max(limit, 1), 200));
+    }
+
+    /** Saisie groupée des coûts d'achat. */
+    @PutMapping("/admin/variants/cost-prices")
+    public Map<String, Object> bulkSetCostPrice(
+            @RequestBody Map<String, List<Map<String, Object>>> body) {
+        return productEditService.bulkSetCostPrice(body.get("variants"));
+    }
+
     @GetMapping("/admin")
     public List<ProductAdminResponse> getAllProductsAdmin() {
         return productService.getAllProductsAdmin();
     }
 
     @PostMapping("/admin")
-    public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
+    public ResponseEntity<ProductResponse> createProduct(
+            @Valid @RequestBody CreateProductRequest request) {
         return ResponseEntity.ok(productService.createProduct(request));
     }
 
@@ -121,34 +148,42 @@ public class ProductController {
         @SuppressWarnings("unchecked")
         List<String> rawIds = (List<String>) body.get("productIds");
 
-        List<UUID> ids = rawIds == null ? List.of() : rawIds.stream().map(UUID::fromString).toList();
+        List<UUID> ids = rawIds == null
+                ? List.of()
+                : rawIds.stream().map(UUID::fromString).toList();
 
         return productService.bulkAction(ids,
                 (String) body.get("action"),
                 body.get("value") != null ? body.get("value").toString() : null);
     }
 
-    // ===== Admin : routes variables =====
-    /** Variantes sans coût d'achat, à compléter pour rendre les marges fiables. */
-    @GetMapping("/admin/variants/missing-cost")
-    public List<Map<String, Object>> variantsMissingCost(@RequestParam(defaultValue = "100") int limit) {
-        return productEditService.variantsMissingCost(Math.min(Math.max(limit, 1), 200));
-    }
+    // =========================================================
+    // ADMIN — routes variables
+    // =========================================================
+
     @GetMapping("/admin/{id}")
     public ProductResponse getProductAdmin(@PathVariable UUID id) {
         return productService.getById(id);
     }
 
     @PutMapping("/admin/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(@PathVariable UUID id,
-                                                          @Valid @RequestBody CreateProductRequest request) {
+    public ResponseEntity<ProductResponse> updateProduct(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateProductRequest request) {
         return ResponseEntity.ok(productService.updateProduct(id, request));
     }
-        /** Modification partielle : seuls les champs fournis sont appliqués. */
+
+    /** Modification partielle : seuls les champs fournis sont appliqués. */
     @PatchMapping("/admin/{id}")
     public ProductAdminResponse patchProduct(@PathVariable UUID id,
-                                              @Valid @RequestBody com.parfum.ecommerce.catalog.dto.UpdateProductRequest request) {
+                                              @Valid @RequestBody UpdateProductRequest request) {
         return productEditService.update(id, request);
+    }
+
+    @PutMapping("/admin/{id}/featured")
+    public ProductAdminResponse setFeatured(@PathVariable UUID id,
+                                             @RequestBody Map<String, Boolean> body) {
+        return productService.setFeatured(id, Boolean.TRUE.equals(body.get("featured")));
     }
 
     /** Applique une marge à toutes les variantes, à partir de leur coût d'achat. */
@@ -156,12 +191,48 @@ public class ProductController {
     public ProductAdminResponse applyMarkup(@PathVariable UUID id,
                                              @RequestBody Map<String, Object> body) {
         return productEditService.applyMarkup(id,
-                new java.math.BigDecimal(body.get("markupPercent").toString()));
+                new BigDecimal(body.get("markupPercent").toString()));
     }
-    @PutMapping("/admin/{id}/featured")
-    public ProductAdminResponse setFeatured(@PathVariable UUID id,
-                                             @RequestBody Map<String, Boolean> body) {
-        return productService.setFeatured(id, Boolean.TRUE.equals(body.get("featured")));
+
+    /** Rattachements multiples : un produit peut vivre dans plusieurs branches. */
+    @PutMapping("/admin/{id}/categories")
+    public ResponseEntity<Void> setCategories(@PathVariable UUID id,
+                                               @RequestBody Map<String, List<UUID>> body) {
+        categoryTreeService.setProductCategories(id, body.get("categoryIds"));
+        return ResponseEntity.noContent().build();
+    }
+
+    // ===== Axes de variation =====
+
+    @GetMapping("/admin/{id}/options")
+    public List<ProductOptionResponse> options(@PathVariable UUID id) {
+        return variantOptionService.options(id);
+    }
+
+    /** Définit les axes et leurs valeurs. Les variantes seront à régénérer. */
+    @PutMapping("/admin/{id}/options")
+    public List<ProductOptionResponse> defineOptions(
+            @PathVariable UUID id,
+            @RequestBody Map<String, List<Map<String, Object>>> body) {
+        return variantOptionService.defineOptions(id, body.get("options"));
+    }
+
+    /**
+     * Crée toutes les combinaisons manquantes.
+     * Sans cela, 5 tailles × 6 couleurs demanderaient 30 créations à la main.
+     */
+    @PostMapping("/admin/{id}/variants/generate")
+    public Map<String, Object> generateVariants(@PathVariable UUID id,
+                                                 @RequestBody Map<String, Object> body) {
+        return variantOptionService.generateVariants(
+                id,
+                new BigDecimal(body.get("price").toString()),
+                body.get("costPrice") != null
+                        ? new BigDecimal(body.get("costPrice").toString())
+                        : null,
+                body.get("stock") != null
+                        ? Integer.parseInt(body.get("stock").toString())
+                        : 0);
     }
 
     @DeleteMapping("/admin/{id}")
@@ -170,7 +241,9 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    // ===== Public : routes variables (EN DERNIER) =====
+    // =========================================================
+    // PUBLIC — routes variables, déclarées EN DERNIER
+    // =========================================================
 
     @GetMapping("/{id}/similar")
     public List<ProductResponse> similar(@PathVariable UUID id,
@@ -181,16 +254,5 @@ public class ProductController {
     @GetMapping("/{id}")
     public ProductResponse getProduct(@PathVariable UUID id) {
         return productService.getActiveById(id);
-    }
-        /** Saisie groupée des coûts d'achat. */
-    @PutMapping("/admin/variants/cost-prices")
-    public Map<String, Object> bulkSetCostPrice(@RequestBody Map<String, List<Map<String, Object>>> body) {
-        return productEditService.bulkSetCostPrice(body.get("variants"));
-    }
-        @PutMapping("/admin/{id}/categories")
-    public ResponseEntity<Void> setCategories(@PathVariable UUID id,
-                                               @RequestBody Map<String, List<UUID>> body) {
-        categoryTreeService.setProductCategories(id, body.get("categoryIds"));
-        return ResponseEntity.noContent().build();
     }
 }
