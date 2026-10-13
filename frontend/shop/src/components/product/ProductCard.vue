@@ -37,17 +37,49 @@ const availableVariants = computed(
   () => props.product.variants?.filter((variant) => variant.available) ?? [],
 );
 
+const options = computed(() => props.product.options ?? []);
+
 const isOutOfStock = computed(() => !props.product.available);
 
-/** Plusieurs contenances : le choix se fait sur la fiche produit. */
-const needsVariantChoice = computed(() => availableVariants.value.length > 1);
+/**
+ * Le choix se fait sur la fiche dès qu'il y a plusieurs axes,
+ * plusieurs valeurs sur un axe, ou simplement plusieurs variantes.
+ */
+const needsVariantChoice = computed(() => {
+  if (options.value.length > 1) return true;
+  if (options.value.length === 1) return options.value[0].values.length > 1;
+  return availableVariants.value.length > 1;
+});
 
 const canQuickAdd = computed(
   () => !needsVariantChoice.value && !isOutOfStock.value,
 );
 
-/** Nombre de contenances proposées, information utile en parfumerie. */
-const variantCount = computed(() => availableVariants.value.length);
+/**
+ * Résumé des déclinaisons, adapté au type de produit :
+ * « 3 contenances » pour un parfum, « 4 tailles » pour un vêtement.
+ */
+const variantSummary = computed(() => {
+  if (options.value.length === 1) {
+    const option = options.value[0];
+    if (option.values.length < 2) return null;
+
+    const label = option.name.toLowerCase();
+    return `${option.values.length} ${label}${label.endsWith("s") ? "" : "s"}`;
+  }
+
+  if (options.value.length > 1) {
+    return options.value
+      .map((option) => option.name.toLowerCase())
+      .join(" et ");
+  }
+
+  if (availableVariants.value.length > 1) {
+    return `${availableVariants.value.length} déclinaisons`;
+  }
+
+  return null;
+});
 
 /** Prix différents entre variantes : afficher « dès ». */
 const hasPriceRange = computed(() => {
@@ -65,6 +97,7 @@ const formattedPrice = computed(() =>
 );
 
 const favorite = computed(() => isFavorite(props.product.id));
+
 function handleFavorite(event: MouseEvent): void {
   event.preventDefault();
   event.stopPropagation();
@@ -156,8 +189,8 @@ async function handleAdd(event: MouseEvent): Promise<void> {
         {{ product.name }}
       </RouterLink>
 
-      <p v-if="variantCount > 1" class="product-card__variants">
-        {{ variantCount }} contenances
+      <p v-if="variantSummary" class="product-card__variants">
+        {{ variantSummary }}
       </p>
 
       <div class="product-card__footer">
@@ -232,7 +265,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
 .product-card__image {
   width: 100%;
   height: 100%;
-  /* contain : le flacon entier reste visible, jamais rogné */
+  /* contain : le produit entier reste visible, jamais rogné */
   object-fit: contain;
   padding: 12px;
   transition: transform 400ms ease;
@@ -349,6 +382,12 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   margin: 4px 0 0;
   color: var(--color-text-muted);
   font-size: 10.5px;
+  /* Les noms d'axes viennent de l'admin : première lettre en majuscule */
+  text-transform: lowercase;
+}
+
+.product-card__variants::first-letter {
+  text-transform: uppercase;
 }
 
 .product-card__footer {

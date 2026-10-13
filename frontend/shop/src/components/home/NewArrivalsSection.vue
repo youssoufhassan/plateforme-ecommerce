@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { RouterLink } from "vue-router";
+
 import ProductCarousel from "@/components/product/ProductCarousel.vue";
 import type { Product } from "@/types/product";
 
@@ -7,8 +9,18 @@ withDefaults(
     products: Product[];
     loading?: boolean;
     error?: string | null;
+    /** Paramétrable : la section sert aussi aux meilleures ventes. */
+    title?: string;
+    subtitle?: string;
+    seeAllTo?: string;
   }>(),
-  { loading: false, error: null },
+  {
+    loading: false,
+    error: null,
+    title: "Nouveautés",
+    subtitle: "Les dernières pièces ajoutées à notre sélection.",
+    seeAllTo: "/produits?sort=newest",
+  },
 );
 </script>
 
@@ -17,18 +29,15 @@ withDefaults(
     <div class="new-arrivals__container container">
       <div class="new-arrivals__header">
         <div class="new-arrivals__content">
-          <p class="new-arrivals__eyebrow">La sélection SIDRA</p>
+          <h2 class="new-arrivals__title">{{ title }}</h2>
 
-          <h2 class="new-arrivals__title">Nouveautés</h2>
-
-          <p class="new-arrivals__description">
-            Découvrez les dernières fragrances ajoutées à notre sélection.
+          <p v-if="subtitle" class="new-arrivals__description">
+            {{ subtitle }}
           </p>
         </div>
 
-        <RouterLink to="/produits?sort=newest" class="new-arrivals__link">
-          <span>Voir tout</span>
-          <span class="new-arrivals__arrow" aria-hidden="true">→</span>
+        <RouterLink :to="seeAllTo" class="new-arrivals__link">
+          Voir tout
         </RouterLink>
       </div>
 
@@ -40,7 +49,7 @@ withDefaults(
 <style scoped>
 .new-arrivals {
   width: 100%;
-  padding-block: 40px 20px;
+  padding-block: var(--space-12) var(--space-6);
 }
 
 .new-arrivals__container {
@@ -51,141 +60,84 @@ withDefaults(
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 32px;
-  margin-bottom: 24px;
+  gap: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .new-arrivals__content {
   min-width: 0;
 }
 
-.new-arrivals__eyebrow {
-  margin: 0 0 7px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
 .new-arrivals__title {
   margin: 0;
-  font-size: clamp(26px, 2.2vw, 34px);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.025em;
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
   color: var(--color-text);
 }
 
 .new-arrivals__description {
-  max-width: 560px;
-  margin: 9px 0 0;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
+  max-width: 52ch;
+  margin: var(--space-2) 0 0;
   color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
 }
 
+/* Le soulignement se renforce au survol, sans déplacer le texte */
 .new-arrivals__link {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--color-text);
   color: var(--color-text);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.3;
-  text-decoration: none;
-  transition:
-    opacity 0.2s ease,
-    gap 0.2s ease;
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-color: var(--color-line);
+  transition: text-decoration-color var(--transition-fast);
 }
 
 .new-arrivals__link:hover {
-  opacity: 0.65;
-  gap: 11px;
+  text-decoration-color: currentColor;
 }
 
-.new-arrivals__arrow {
-  font-size: 15px;
-  line-height: 1;
-}
+/* =========================================================
+   TABLETTE
+   ========================================================= */
 
-/* Tablet */
 @media (max-width: 1000px) {
   .new-arrivals {
-    padding-block: 36px 40px;
+    padding-block: var(--space-10) var(--space-6);
   }
 
   .new-arrivals__header {
-    margin-bottom: 22px;
-  }
-
-  .new-arrivals__title {
-    font-size: 30px;
+    margin-bottom: var(--space-5);
   }
 }
 
-/* Mobile */
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
 @media (max-width: 767px) {
   .new-arrivals {
-    padding-block: 32px 14px;
+    padding-block: var(--space-8) var(--space-4);
   }
 
   .new-arrivals__header {
     align-items: flex-start;
-    gap: 18px;
-    margin-bottom: 20px;
-  }
-
-  .new-arrivals__eyebrow {
-    margin-bottom: 6px;
-    font-size: 10px;
-  }
-
-  .new-arrivals__title {
-    font-size: 26px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
   }
 
   .new-arrivals__description {
     max-width: 100%;
-    margin-top: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
   }
 
   .new-arrivals__link {
     margin-top: 2px;
-    font-size: 12px;
-  }
-
-  .new-arrivals__arrow {
-    font-size: 14px;
-  }
-}
-
-/* Très petits écrans */
-@media (max-width: 420px) {
-  .new-arrivals {
-    padding-block: 28px 32px;
-  }
-
-  .new-arrivals__header {
-    gap: 12px;
-  }
-
-  .new-arrivals__title {
-    font-size: 24px;
-  }
-
-  .new-arrivals__description {
-    font-size: 12px;
-  }
-
-  .new-arrivals__link {
-    font-size: 11px;
+    font-size: var(--text-xs);
   }
 }
 </style>

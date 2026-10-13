@@ -3,23 +3,28 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import SimilarProducts from "@/components/product/SimilarProducts.vue";
+import VariantPicker from "@/components/product/VariantPicker.vue";
 import {
   apiMessage,
   fetchProduct,
   fullImageUrl,
 } from "@/services/productService";
 import { useFavorites } from "@/composables/useFavorites";
+import { useCartStore } from "@/stores/cartStore";
 import HeartIcon from "@/components/icons/HeartIcon.vue";
 import type { Product, ProductVariant } from "@/types/product";
 
 const route = useRoute();
 const { isFavorite, toggleFavorite } = useFavorites();
+const cartStore = useCartStore();
 
 const product = ref<Product | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
-const selectedVariantId = ref<string | null>(null);
+/** Valeur retenue pour chaque axe, indexée par identifiant d'axe. */
+const selection = ref<Record<string, string>>({});
+
 const activeImageIndex = ref(0);
 const imgError = ref(false);
 
@@ -44,24 +49,40 @@ const images = computed(() => {
 
 const activeImage = computed(() => images.value[activeImageIndex.value] ?? "");
 
-const availableVariants = computed(
-  () => product.value?.variants?.filter((variant) => variant.available) ?? [],
-);
-
+const options = computed(() => product.value?.options ?? []);
 const allVariants = computed(() => product.value?.variants ?? []);
 
-/** Plusieurs contenances : le sélecteur n'a de sens que dans ce cas. */
-const showVariantPicker = computed(
-  () =>
-    allVariants.value.length > 1 || allVariants.value[0]?.label !== "Standard",
-);
+/** Le sélecteur n'a de sens qu'avec de vraies déclinaisons. */
+const showVariantPicker = computed(() => {
+  if (options.value.length === 0) return false;
+  if (options.value.length > 1) return true;
+  // Un axe à valeur unique ne mérite pas de sélecteur
+  return options.value[0].values.length > 1;
+});
 
+/** La variante correspondant à la combinaison choisie, si elle existe. */
 const selectedVariant = computed<ProductVariant | null>(() => {
-  if (!selectedVariantId.value) return null;
+  const chosen = Object.values(selection.value);
+
+  if (chosen.length === 0) {
+    return (
+      allVariants.value.find((v) => v.available) ?? allVariants.value[0] ?? null
+    );
+  }
+
   return (
-    allVariants.value.find((v) => v.id === selectedVariantId.value) ?? null
+    allVariants.value.find((variant) =>
+      chosen.every((valueId) => variant.optionValueIds?.includes(valueId)),
+    ) ?? null
   );
 });
+
+/** Tous les axes doivent être renseignés avant l'ajout au panier. */
+const selectionComplete = computed(
+  () =>
+    options.value.length === 0 ||
+    Object.keys(selection.value).length === options.value.length,
+);
 
 const displayPrice = computed(
   () => selectedVariant.value?.price ?? product.value?.price ?? 0,
@@ -74,12 +95,52 @@ const formattedPrice = computed(() =>
 );
 
 const canAddToCart = computed(
-  () => !!selectedVariant.value?.available && !adding.value,
+  () =>
+    selectionComplete.value &&
+    !!selectedVariant.value?.available &&
+    !adding.value,
 );
 
 const favorite = computed(() =>
   product.value ? isFavorite(product.value.id) : false,
 );
+
+/**
+ * Change la valeur d'un axe.
+ * Si la combinaison obtenue n'existe pas, les autres axes sont réinitialisés :
+ * mieux vaut redemander un choix que laisser le client bloqué.
+ */
+function handleSelect(payload: { optionId: string; valueId: string }): void {
+  const next = { ...selection.value, [payload.optionId]: payload.valueId };
+
+  const exists = allVariants.value.some((variant) =>
+    Object.values(next).every((id) => variant.optionValueIds?.includes(id)),
+  );
+
+  selection.value = exists ? next : { [payload.optionId]: payload.valueId };
+}
+
+/** Présélectionne la première combinaison disponible. */
+function preselect(data: Product): void {
+  const firstAvailable =
+    data.variants?.find((v) => v.available) ?? data.variants?.[0] ?? null;
+
+  if (!firstAvailable?.optionValueIds || !data.options) {
+    selection.value = {};
+    return;
+  }
+
+  const initial: Record<string, string> = {};
+
+  for (const option of data.options) {
+    const match = option.values.find((v) =>
+      firstAvailable.optionValueIds?.includes(v.id),
+    );
+    if (match) initial[option.id] = match.id;
+  }
+
+  selection.value = initial;
+}
 
 async function loadProduct(id: string): Promise<void> {
   loading.value = true;
@@ -87,15 +148,13 @@ async function loadProduct(id: string): Promise<void> {
   imgError.value = false;
   activeImageIndex.value = 0;
   quantity.value = 1;
+  addError.value = null;
 
   try {
     const data = await fetchProduct(id);
     product.value = data;
 
-    // Première variante disponible pré-sélectionnée : l'achat est possible d'emblée
-    const firstAvailable = data.variants?.find((variant) => variant.available);
-    selectedVariantId.value =
-      firstAvailable?.id ?? data.variants?.[0]?.id ?? null;
+    preselect(data);
   } catch (e: unknown) {
     error.value = apiMessage(e, "Ce produit est introuvable.");
     product.value = null;
@@ -111,8 +170,18 @@ async function handleAddToCart(): Promise<void> {
   addError.value = null;
 
   try {
-    // TODO : brancher le panier au ticket suivant
-    addError.value = "Le panier arrive très bientôt.";
+    await cartStore.add({
+      productId: product.value.id,
+      variantId: selectedVariant.value.id,
+      quantity: quantity.value,
+      productName: product.value.name,
+      variantLabel: selectedVariant.value.label,
+    });
+
+    added.value = true;
+    setTimeout(() => (added.value = false), 2000);
+  } catch (e: unknown) {
+    addError.value = apiMessage(e, "L'ajout au panier a échoué.");
   } finally {
     adding.value = false;
   }
@@ -225,44 +294,25 @@ watch(
               </span>
             </p>
 
-            <!-- Contenances -->
-            <fieldset v-if="showVariantPicker" class="variants">
-              <legend class="variants__legend">Contenance</legend>
+            <!-- Déclinaisons : une rangée par axe -->
+            <VariantPicker
+              v-if="showVariantPicker"
+              :product="product"
+              :selection="selection"
+              class="purchase__picker"
+              @select="handleSelect"
+            />
 
-              <div class="variants__options">
-                <button
-                  v-for="variant in allVariants"
-                  :key="variant.id"
-                  type="button"
-                  class="variants__option"
-                  :class="{
-                    'variants__option--active':
-                      variant.id === selectedVariantId,
-                    'variants__option--disabled': !variant.available,
-                  }"
-                  :disabled="!variant.available"
-                  :aria-pressed="variant.id === selectedVariantId"
-                  @click="selectedVariantId = variant.id"
-                >
-                  <span>{{ variant.label }}</span>
-                  <span class="variants__option-price">
-                    {{
-                      new Intl.NumberFormat("fr-FR", {
-                        style: "currency",
-                        currency: "EUR",
-                      }).format(variant.price)
-                    }}
-                  </span>
-                </button>
-              </div>
-
-              <p
-                v-if="selectedVariant && !selectedVariant.available"
-                class="variants__notice"
-              >
-                Cette contenance est momentanément épuisée.
-              </p>
-            </fieldset>
+            <p
+              v-if="
+                showVariantPicker &&
+                selectionComplete &&
+                !selectedVariant?.available
+              "
+              class="purchase__notice"
+            >
+              Cette combinaison est momentanément épuisée.
+            </p>
 
             <!-- Quantité et achat -->
             <div class="purchase__actions">
@@ -301,6 +351,12 @@ watch(
                 <span v-if="added">Ajouté au panier</span>
                 <span v-else-if="adding">Ajout en cours</span>
                 <span v-else-if="!product.available">Produit épuisé</span>
+                <span v-else-if="!selectionComplete"
+                  >Choisissez vos options</span
+                >
+                <span v-else-if="!selectedVariant?.available">
+                  Combinaison épuisée
+                </span>
                 <span v-else>Ajouter au panier</span>
               </button>
 
@@ -312,13 +368,13 @@ watch(
                   favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'
                 "
                 :aria-pressed="favorite"
-                @click="toggleFavorite(product.id)"
+                @click="toggleFavorite(product.id, product.name)"
               >
                 <HeartIcon />
               </button>
             </div>
 
-            <p v-if="addError" class="purchase__message" role="status">
+            <p v-if="addError" class="purchase__message" role="alert">
               {{ addError }}
             </p>
 
@@ -520,71 +576,15 @@ watch(
 }
 
 /* =========================================================
-   CONTENANCES
+   DÉCLINAISONS
    ========================================================= */
 
-.variants {
-  margin: 28px 0 0;
-  padding: 0;
-  border: none;
+.purchase__picker {
+  margin-top: 28px;
 }
 
-.variants__legend {
-  padding: 0;
-  margin-bottom: 10px;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.variants__options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.variants__option {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 96px;
-  padding: 11px 14px;
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-white);
-  cursor: pointer;
-  color: var(--color-text);
-  font-family: inherit;
-  font-size: 13px;
-  text-align: left;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.variants__option:hover:not(:disabled) {
-  border-color: var(--color-text);
-}
-
-.variants__option--active {
-  border-color: var(--color-text);
-  background: var(--color-text);
-  color: var(--color-white);
-}
-
-.variants__option--disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-  text-decoration: line-through;
-}
-
-.variants__option-price {
-  font-size: 11px;
-  opacity: 0.75;
-}
-
-.variants__notice {
-  margin: 10px 0 0;
+.purchase__notice {
+  margin: 12px 0 0;
   color: var(--color-text-muted);
   font-size: 12px;
 }
@@ -682,7 +682,7 @@ watch(
 
 .purchase__message {
   margin: 12px 0 0;
-  color: var(--color-text-muted);
+  color: var(--color-error);
   font-size: 12px;
 }
 

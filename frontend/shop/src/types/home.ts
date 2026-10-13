@@ -7,7 +7,6 @@ export interface HomeSection {
   subtitle: string | null;
   position: number;
   active: boolean;
-  /** Nombre total de produits de la section, au-delà de ceux affichés. */
   totalCount: number;
   products: Product[];
 }
@@ -23,4 +22,6 @@ export interface HomePayload {
   bestSellers: Product[];
   sections: HomeSection[];
   categories: HomeCategory[];
+  /** Marques les mieux représentées, pour le bandeau de maisons. */
+  topBrands: string[];
 }
