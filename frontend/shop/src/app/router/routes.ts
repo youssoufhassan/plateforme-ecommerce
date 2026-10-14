@@ -29,6 +29,11 @@ export const routes: RouteRecordRaw[] = [
         component: () => import("@/pages/catalog/SectionPage.vue"),
       },
       {
+        path: "favoris",
+        name: "favorites",
+        component: () => import("@/pages/favorites/FavoritesPage.vue"),
+      },
+      {
         path: "panier",
         name: "cart",
         component: () => import("@/pages/cart/CartPage.vue"),

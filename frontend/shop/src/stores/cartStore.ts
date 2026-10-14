@@ -11,7 +11,7 @@ import {
 import { apiMessage, fetchProduct } from "@/services/productService";
 import type { Cart, CartItem, LocalCartLine } from "@/types/cart";
 
-const STORAGE_KEY = "shahin:cart";
+const STORAGE_KEY = "sidra:cart";
 const FREE_SHIPPING_THRESHOLD = 40;
 const FLAT_SHIPPING = 4.9;
 const VAT_RATE = 20;

@@ -7,7 +7,6 @@ const subscribed = ref(false);
 
 function subscribe() {
   const value = email.value.trim();
-
   if (!value) return;
 
   subscribed.value = true;
@@ -17,14 +16,14 @@ function subscribe() {
 
 <template>
   <footer class="site-footer">
-    <!-- NEWSLETTER -->
+    <!-- NEWSLETTER ÉDITORIALE -->
     <section class="site-footer__newsletter">
-      <div class="site-footer__newsletter-inner">
+      <div class="site-footer__newsletter-inner container">
         <div class="site-footer__newsletter-content">
+          <span class="site-footer__newsletter-eyebrow">LETTRE D'INFORMATION</span>
           <h2>Entrez dans l'univers SIDRA.</h2>
-
           <p>
-            Recevez nos nouveautés, nos sélections et nos inspirations parfumées
+            Recevez nos nouveautés de saison, nos sélections exclusives et nos inspirations éditoriales
             directement dans votre boîte mail.
           </p>
         </div>
@@ -38,115 +37,99 @@ function subscribe() {
               aria-label="Votre adresse e-mail"
               required
             />
-
             <button type="submit">S'inscrire</button>
           </div>
 
-          <p v-if="subscribed" class="site-footer__success">
-            Merci. Vous êtes maintenant inscrit à la newsletter SIDRA.
+          <p v-if="subscribed" class="site-footer__success" role="status">
+            Merci. Vous êtes désormais inscrit(e) aux communications exclusives SIDRA.
           </p>
         </form>
       </div>
     </section>
 
     <!-- FOOTER PRINCIPAL -->
-    <div class="site-footer__main">
+    <div class="site-footer__main container">
       <div class="site-footer__top">
         <!-- MARQUE -->
         <div class="site-footer__brand-column">
-          <RouterLink
-            to="/"
-            class="site-footer__logo"
-            aria-label="SIDRA - Accueil"
-          >
+          <RouterLink to="/" class="site-footer__logo" aria-label="SIDRA — Accueil">
             SIDRA
           </RouterLink>
 
           <p class="site-footer__brand-description">
-            Une sélection de parfums et de produits de beauté pensée pour celles
-            et ceux qui recherchent une signature différente.
+            Enseigne e-commerce contemporaine dédiée aux créations d'exception :
+            mode masculine et féminine, haute parfumerie, joaillerie, maroquinerie, maison et électronique.
           </p>
         </div>
 
-        <!-- BOUTIQUE -->
+        <!-- BOUTIQUE & UNIVERS -->
         <div class="site-footer__column">
           <h3>Boutique</h3>
-
-          <nav>
-            <RouterLink to="/produits"> Tous les produits </RouterLink>
-
-            <RouterLink to="/produits?category=homme"> Homme </RouterLink>
-
-            <RouterLink to="/produits?category=femme"> Femme </RouterLink>
-
-            <RouterLink to="/produits?category=unisex"> Unisexe </RouterLink>
-
-            <RouterLink to="/produits?sort=newest"> Nouveautés </RouterLink>
+          <nav aria-label="Navigation univers">
+            <RouterLink to="/produits">Tous les produits</RouterLink>
+            <RouterLink to="/produits?category=homme">Mode Homme</RouterLink>
+            <RouterLink to="/produits?category=femme">Mode Femme</RouterLink>
+            <RouterLink to="/produits?category=beaute">Beauté & Parfums</RouterLink>
+            <RouterLink to="/produits?category=enfant">Enfant</RouterLink>
+            <RouterLink to="/produits?category=accessoires">Accessoires</RouterLink>
+            <RouterLink to="/produits?category=maison">Maison & High-Tech</RouterLink>
+            <RouterLink to="/produits?sort=newest">Nouveautés</RouterLink>
           </nav>
         </div>
 
-        <!-- SERVICE -->
+        <!-- SERVICES CLIENT -->
         <div class="site-footer__column">
-          <h3>Service</h3>
-
-          <nav>
-            <RouterLink to="/help"> Aide & contact </RouterLink>
-
-            <RouterLink to="/stores"> Livraison & retours </RouterLink>
-
-            <RouterLink to="/account/orders"> Suivre ma commande </RouterLink>
-
-            <RouterLink to="/account/favorites"> Mes favoris </RouterLink>
+          <h3>Service Client</h3>
+          <nav aria-label="Services client">
+            <RouterLink to="/compte">Suivre ma commande</RouterLink>
+            <RouterLink to="/favoris">Mes favoris</RouterLink>
+            <RouterLink to="/panier">Mon panier</RouterLink>
+            <RouterLink to="/legal/retours">Livraison & Retours</RouterLink>
+            <RouterLink to="/legal/cgv">Conditions de vente</RouterLink>
           </nav>
         </div>
 
-        <!-- SIDRA -->
+        <!-- INFORMATIONS & LÉGAL -->
         <div class="site-footer__column">
-          <h3>SIDRA</h3>
-
-          <nav>
-            <RouterLink to="/about"> Notre histoire </RouterLink>
-
-            <RouterLink to="/contact"> Nous contacter </RouterLink>
-
-            <RouterLink to="/faq"> FAQ </RouterLink>
+          <h3>Informations</h3>
+          <nav aria-label="Informations légales">
+            <RouterLink to="/legal/mentions-legales">Mentions légales</RouterLink>
+            <RouterLink to="/legal/confidentialite">Confidentialité & RGPD</RouterLink>
+            <RouterLink to="/legal/cookies">Gestion des cookies</RouterLink>
+            <RouterLink to="/legal/retours">Droit de rétractation</RouterLink>
           </nav>
         </div>
       </div>
 
-      <!-- SEPARATION -->
+      <!-- SÉPARATEUR -->
       <div class="site-footer__separator"></div>
 
-      <!-- INFORMATIONS -->
+      <!-- RÉASSURANCE EN PIED DE PAGE -->
       <div class="site-footer__info">
         <div class="site-footer__shipping">
-          <span class="site-footer__info-title"> Livraison en Europe </span>
-
-          <span> Expédition suivie selon destination </span>
+          <span class="site-footer__info-title">Livraison en Europe</span>
+          <span>Expédition rapide et suivie. Offerte dès 40 € d'achat.</span>
         </div>
 
         <div class="site-footer__payments">
-          <span class="site-footer__info-title"> Paiement sécurisé </span>
-
+          <span class="site-footer__info-title">Paiement sécurisé</span>
           <div class="site-footer__payment-list">
+            <span>CB</span>
             <span>VISA</span>
             <span>Mastercard</span>
-            <span>AMEX</span>
-            <span>STRIPE</span>
+            <span>American Express</span>
+            <span>Stripe</span>
           </div>
         </div>
       </div>
 
-      <!-- BAS DU FOOTER -->
+      <!-- COPYRIGHT -->
       <div class="site-footer__bottom">
         <p>© {{ new Date().getFullYear() }} SIDRA. Tous droits réservés.</p>
-
-        <nav>
-          <RouterLink to="/legal"> Mentions légales </RouterLink>
-
-          <RouterLink to="/privacy"> Confidentialité </RouterLink>
-
-          <RouterLink to="/terms"> CGV </RouterLink>
+        <nav aria-label="Liens réglementaires">
+          <RouterLink to="/legal/mentions-legales">Mentions légales</RouterLink>
+          <RouterLink to="/legal/confidentialite">Données personnelles</RouterLink>
+          <RouterLink to="/legal/cgv">CGV</RouterLink>
         </nav>
       </div>
     </div>
@@ -155,9 +138,10 @@ function subscribe() {
 
 <style scoped>
 .site-footer {
-  margin-top: 36px;
+  margin-top: clamp(48px, 6vw, 96px);
   background: #111111;
   color: #ffffff;
+  font-family: var(--font-body, "Jost", sans-serif);
 }
 
 /* =========================================================
@@ -165,386 +149,295 @@ function subscribe() {
    ========================================================= */
 
 .site-footer__newsletter {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  padding-block: clamp(48px, 6vw, 80px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: #161616;
 }
 
 .site-footer__newsletter-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 500px);
-  align-items: end;
-  gap: 60px;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(32px, 5vw, 64px);
+}
 
-  width: min(calc(100% - (var(--container-padding) * 2)), var(--container-max));
-
-  margin-inline: auto;
-  padding-block: 48px;
+.site-footer__newsletter-eyebrow {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #d8b06d;
+  margin-bottom: 10px;
 }
 
 .site-footer__newsletter-content h2 {
-  max-width: 650px;
-
-  margin: 0;
-
-  font-family: var(--font-display);
-  font-size: clamp(30px, 3.5vw, 48px);
+  margin: 0 0 12px;
+  font-family: var(--font-display, "Bodoni Moda", serif);
+  font-size: clamp(1.6rem, 2.5vw, 2.4rem);
   font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
 .site-footer__newsletter-content p {
-  max-width: 540px;
-  margin: 14px 0 0;
-
-  color: rgba(255, 255, 255, 0.62);
-
-  font-size: 13px;
+  margin: 0;
+  font-size: var(--text-sm, 0.88rem);
   line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 48ch;
 }
 
-/* =========================================================
-   NEWSLETTER FORM
-   ========================================================= */
-
 .site-footer__newsletter-form {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .site-footer__input-wrapper {
   display: flex;
+  gap: 0;
   width: 100%;
-
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .site-footer__input-wrapper input {
-  min-width: 0;
   flex: 1;
-
-  height: 46px;
-  padding: 0;
-
-  border: 0;
-
-  background: transparent;
+  height: 48px;
+  padding: 0 16px;
+  background: #202020;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: none;
+  border-radius: 0;
   color: #ffffff;
-
-  font-size: 13px;
-}
-
-.site-footer__input-wrapper input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  font-family: inherit;
+  font-size: 0.9rem;
 }
 
 .site-footer__input-wrapper input:focus {
   outline: none;
+  border-color: #ffffff;
+  background: #282828;
 }
 
 .site-footer__input-wrapper button {
-  flex-shrink: 0;
-
-  padding: 0 0 0 18px;
-
-  color: #ffffff;
-
-  font-size: 10px;
+  height: 48px;
+  padding: 0 24px;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 0.8rem;
   font-weight: 600;
-
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.site-footer__input-wrapper button:hover {
+  background: #d8b06d;
+  border-color: #d8b06d;
+  color: #000000;
 }
 
 .site-footer__success {
-  margin-top: 10px;
-
-  color: rgba(255, 255, 255, 0.7);
-
-  font-size: 10px;
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: #86efac;
 }
 
 /* =========================================================
-   MAIN
+   CORPS DU FOOTER
    ========================================================= */
 
 .site-footer__main {
-  width: min(calc(100% - (var(--container-padding) * 2)), var(--container-max));
-
-  margin-inline: auto;
-  padding-block: 48px 22px;
+  padding-block: clamp(48px, 6vw, 72px) 36px;
 }
 
 .site-footer__top {
   display: grid;
-
-  grid-template-columns:
-    2fr
-    1fr
-    1fr
-    1fr;
-
-  gap: 40px;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: clamp(28px, 4vw, 56px);
 }
 
-/* =========================================================
-   BRAND
-   ========================================================= */
-
 .site-footer__logo {
-  display: inline-block;
-
+  font-family: var(--font-display, "Bodoni Moda", serif);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   color: #ffffff;
-
-  font-family: var(--font-display);
-
-  font-size: 26px;
-  font-weight: 600;
-
-  line-height: 1;
-  letter-spacing: 0.2em;
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 16px;
 }
 
 .site-footer__brand-description {
-  max-width: 330px;
-  margin-top: 18px;
-
-  color: rgba(255, 255, 255, 0.52);
-
-  font-size: 12px;
-  line-height: 1.7;
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.65);
+  max-width: 36ch;
 }
 
-/* =========================================================
-   COLUMNS
-   ========================================================= */
-
 .site-footer__column h3 {
-  margin: 0 0 16px;
-
-  color: #ffffff;
-
-  font-size: 10px;
+  margin: 0 0 20px;
+  font-family: var(--font-body, "Jost", sans-serif);
+  font-size: 0.78rem;
   font-weight: 600;
-
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: #ffffff;
 }
 
 .site-footer__column nav {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
 
-.site-footer__column nav a {
-  color: rgba(255, 255, 255, 0.58);
-
-  font-size: 12px;
-
-  transition:
-    color var(--transition-fast),
-    padding-left var(--transition-fast);
+.site-footer__column a {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  font-size: 0.86rem;
+  transition: color 0.15s ease;
 }
 
-.site-footer__column nav a:hover {
-  padding-left: 4px;
+.site-footer__column a:hover {
   color: #ffffff;
 }
 
-/* =========================================================
-   SEPARATOR
-   ========================================================= */
-
 .site-footer__separator {
-  width: 100%;
   height: 1px;
-
-  margin-top: 46px;
-
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
+  margin-block: 44px 32px;
 }
 
 /* =========================================================
-   INFORMATIONS
+   INFORMATIONS & PAIEMENTS
    ========================================================= */
 
 .site-footer__info {
   display: flex;
-
   align-items: center;
   justify-content: space-between;
-
-  gap: 30px;
-
-  padding-block: 22px;
-}
-
-.site-footer__shipping,
-.site-footer__payments {
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-  color: rgba(255, 255, 255, 0.45);
-
-  font-size: 10px;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-bottom: 28px;
 }
 
 .site-footer__info-title {
-  color: rgba(255, 255, 255, 0.8);
-
+  display: block;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.site-footer__shipping span:last-child {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .site-footer__payment-list {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .site-footer__payment-list span {
-  padding: 4px 7px;
-
-  border: 1px solid rgba(255, 255, 255, 0.18);
-
-  color: rgba(255, 255, 255, 0.55);
-
-  font-size: 7px;
-  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* =========================================================
-   BOTTOM
+   BAS DU FOOTER
    ========================================================= */
 
 .site-footer__bottom {
   display: flex;
-
   align-items: center;
   justify-content: space-between;
-
-  gap: 24px;
-
-  padding-top: 16px;
-
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.5);
+}
 
-  color: rgba(255, 255, 255, 0.35);
-
-  font-size: 9px;
+.site-footer__bottom p {
+  margin: 0;
 }
 
 .site-footer__bottom nav {
   display: flex;
-  align-items: center;
   gap: 20px;
 }
 
-.site-footer__bottom nav a {
-  transition: color var(--transition-fast);
+.site-footer__bottom a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-.site-footer__bottom nav a:hover {
+.site-footer__bottom a:hover {
   color: #ffffff;
 }
 
 /* =========================================================
-   TABLET
+   RESPONSIVE
    ========================================================= */
 
 @media (max-width: 900px) {
   .site-footer__newsletter-inner {
     grid-template-columns: 1fr;
-    gap: 30px;
-  }
-
-  .site-footer__top {
-    grid-template-columns:
-      1.5fr
-      1fr
-      1fr;
-  }
-
-  .site-footer__brand-column {
-    grid-column: 1 / -1;
-  }
-
-  .site-footer__info {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 18px;
-  }
-}
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 600px) {
-  .site-footer {
-    margin-top: 28px;
-  }
-
-  .site-footer__newsletter-inner {
-    width: calc(100% - 40px);
-    padding-block: 38px;
-  }
-
-  .site-footer__newsletter-content h2 {
-    font-size: 32px;
-  }
-
-  .site-footer__newsletter-content p {
-    font-size: 12px;
-  }
-
-  .site-footer__main {
-    width: calc(100% - 40px);
-    padding-block: 38px 20px;
+    gap: 24px;
   }
 
   .site-footer__top {
     grid-template-columns: 1fr 1fr;
-    gap: 32px 20px;
+    gap: 36px 24px;
   }
 
   .site-footer__brand-column {
-    grid-column: 1 / -1;
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .site-footer__top {
+    grid-template-columns: 1fr;
+    gap: 32px;
   }
 
-  .site-footer__brand-description {
-    max-width: 100%;
+  .site-footer__brand-column {
+    grid-column: span 1;
   }
 
-  .site-footer__separator {
-    margin-top: 36px;
+  .site-footer__input-wrapper {
+    flex-direction: column;
+  }
+
+  .site-footer__input-wrapper input {
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .site-footer__info {
-    gap: 20px;
-    padding-block: 20px;
-  }
-
-  .site-footer__shipping,
-  .site-footer__payments {
-    align-items: flex-start;
     flex-direction: column;
-    gap: 7px;
+    align-items: flex-start;
   }
 
   .site-footer__bottom {
-    align-items: flex-start;
     flex-direction: column;
-    gap: 14px;
-  }
-
-  .site-footer__bottom nav {
-    flex-wrap: wrap;
-    gap: 10px 18px;
+    align-items: flex-start;
+    gap: 12px;
   }
 }
 </style>

@@ -66,7 +66,7 @@ export async function exportPersonalData(): Promise<void> {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = "mes-donnees-shahin.json";
+  link.download = "mes-donnees-sidra.json";
   document.body.appendChild(link);
   link.click();
 

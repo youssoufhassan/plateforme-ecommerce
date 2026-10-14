@@ -6,12 +6,11 @@ import Sidebar from "./Sidebar.vue";
   <div class="admin-shell">
     <Sidebar />
 
-    ```
     <main class="admin-content">
       <header class="admin-topbar">
         <div class="topbar-left">
           <div class="topbar-title">
-            <span class="topbar-eyebrow">SHAHIN</span>
+            <span class="topbar-eyebrow">SIDRA</span>
             <span class="topbar-separator">/</span>
             <span class="topbar-section">Administration</span>
           </div>
@@ -20,10 +19,10 @@ import Sidebar from "./Sidebar.vue";
         <div class="topbar-right">
           <div class="admin-status">
             <span class="status-dot"></span>
-            <span>Administration</span>
+            <span>En ligne</span>
           </div>
 
-          <div class="admin-avatar">A</div>
+          <div class="admin-avatar">S</div>
         </div>
       </header>
 
@@ -31,7 +30,6 @@ import Sidebar from "./Sidebar.vue";
         <router-view />
       </section>
     </main>
-    ```
   </div>
 </template>
 

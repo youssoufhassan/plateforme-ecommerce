@@ -406,7 +406,17 @@ watch(
 
               <div>
                 <dt>Livraison</dt>
-                <dd>Offerte dès 40 € d'achat en France</dd>
+                <dd>Offerte dès 40 € d'achat (expédition suivie)</dd>
+              </div>
+
+              <div>
+                <dt>Retours</dt>
+                <dd>Délai de rétractation de 14 jours</dd>
+              </div>
+
+              <div>
+                <dt>Paiement</dt>
+                <dd>Paiement 100% sécurisé via Stripe</dd>
               </div>
             </dl>
           </section>

@@ -183,7 +183,7 @@ watch(
               v-model="query"
               type="search"
               class="search__input"
-              placeholder="Rechercher un parfum, une marque"
+              placeholder="Rechercher un produit, une marque, une catégorie..."
               aria-label="Rechercher"
               autocomplete="off"
               @keydown.enter="submit"
@@ -227,8 +227,20 @@ watch(
                 </div>
               </section>
 
+              <section class="search__block">
+                <h2 class="search__block-title">Catégories populaires</h2>
+                <div class="search__tags">
+                  <RouterLink to="/produits?category=homme" class="search__tag" @click="close">Mode Homme</RouterLink>
+                  <RouterLink to="/produits?category=femme" class="search__tag" @click="close">Mode Femme</RouterLink>
+                  <RouterLink to="/produits?category=beaute" class="search__tag" @click="close">Beauté & Parfums</RouterLink>
+                  <RouterLink to="/produits?category=enfant" class="search__tag" @click="close">Enfant</RouterLink>
+                  <RouterLink to="/produits?category=accessoires" class="search__tag" @click="close">Accessoires & Maroquinerie</RouterLink>
+                  <RouterLink to="/produits?sort=newest" class="search__tag" @click="close">Nouveautés</RouterLink>
+                </div>
+              </section>
+
               <section v-if="filters?.brands?.length" class="search__block">
-                <h2 class="search__block-title">Maisons</h2>
+                <h2 class="search__block-title">Marques</h2>
 
                 <div class="search__tags">
                   <RouterLink
@@ -247,17 +259,16 @@ watch(
             <!-- Pendant et après la frappe -->
             <template v-else>
               <p v-if="searching && !hasResults" class="search__state">
-                Recherche
+                Recherche en cours...
               </p>
 
               <p v-else-if="searched && !hasResults" class="search__state">
-                Aucun résultat pour « {{ query.trim() }} ». Essayez un nom de
-                parfum ou de maison.
+                Aucun résultat pour « {{ query.trim() }} ». Essayez un autre mot-clé ou parcourez nos catégories.
               </p>
 
               <template v-else>
                 <section v-if="matchingBrands.length" class="search__block">
-                  <h2 class="search__block-title">Maisons</h2>
+                  <h2 class="search__block-title">Marques suggérées</h2>
 
                   <div class="search__tags">
                     <RouterLink

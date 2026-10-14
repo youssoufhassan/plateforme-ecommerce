@@ -11,138 +11,273 @@ const props = defineProps<{
 interface Circle {
   key: string;
   label: string;
-  to: { path: string; query: Record<string, string> };
+  initial: string;
+  to: {
+    path: string;
+    query: Record<string, string>;
+  };
 }
 
-/**
- * Une entrée par univers, plus les nouveautés.
- * Les branches vides sont écartées : un cercle qui mène nulle part
- * déçoit plus qu'il n'attire.
- */
-const circles = computed<Circle[]>(() => {
-  const fromTree = props.tree
-    .filter((node) => node.productCount > 0)
-    .map((node) => ({
-      key: node.id,
-      label: node.name,
-      to: { path: "/produits", query: { category: node.path } },
-    }));
+function slugify(value: string): string {
+  return value
+    .toLocaleLowerCase("fr-FR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
+const defaultUniverses = [
+  { slug: "femme", label: "Mode Femme" },
+  { slug: "homme", label: "Mode Homme" },
+  { slug: "beaute", label: "Beauté" },
+  { slug: "enfant", label: "Enfant" },
+  { slug: "accessoires", label: "Accessoires" },
+  { slug: "maison", label: "Maison" },
+  { slug: "electronique", label: "Électronique" },
+];
+
+const circles = computed<Circle[]>(() => {
+  if (props.tree && props.tree.length > 0) {
+    // Trier selon l'ordre éditorial
+    const orderMap: Record<string, number> = {
+      femme: 1,
+      homme: 2,
+      beaute: 3,
+      enfant: 4,
+      accessoires: 5,
+      maison: 6,
+      electronique: 7,
+    };
+
+    const fromTree: Circle[] = [...props.tree]
+      .sort((a, b) => {
+        const slugA = slugify(a.slug || a.path || a.name);
+        const slugB = slugify(b.slug || b.path || b.name);
+        const orderA = orderMap[slugA] ?? 99;
+        const orderB = orderMap[slugB] ?? 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.name.localeCompare(b.name, "fr-FR");
+      })
+      .slice(0, 7)
+      .map((node) => ({
+        key: String(node.id),
+        label: node.name,
+        initial: node.name.charAt(0).toUpperCase(),
+        to: {
+          path: "/produits",
+          query: {
+            category: node.path || node.slug || slugify(node.name),
+          },
+        },
+      }));
+
+    return [
+      ...fromTree,
+      {
+        key: "newest",
+        label: "Nouveautés",
+        initial: "N",
+        to: {
+          path: "/produits",
+          query: { sort: "newest" },
+        },
+      },
+    ];
+  }
+
+  // Fallback si l'arbre est en cours de chargement ou vide
   return [
-    ...fromTree,
+    ...defaultUniverses.map((item) => ({
+      key: item.slug,
+      label: item.label,
+      initial: item.label.charAt(0).toUpperCase(),
+      to: {
+        path: "/produits",
+        query: { category: item.slug },
+      },
+    })),
     {
       key: "newest",
       label: "Nouveautés",
-      to: { path: "/produits", query: { sort: "newest" } },
+      initial: "N",
+      to: {
+        path: "/produits",
+        query: { sort: "newest" },
+      },
     },
   ];
 });
 </script>
 
 <template>
-  <nav v-if="circles.length > 1" class="universes" aria-label="Univers">
-    <div class="container universes__row">
-      <RouterLink
-        v-for="circle in circles"
-        :key="circle.key"
-        :to="circle.to"
-        class="universe"
-      >
-        <span class="universe__disc">
-          <span class="universe__initial">{{ circle.label.charAt(0) }}</span>
-        </span>
+  <section class="universes" aria-labelledby="universes-title">
+    <div class="container universes__inner">
+      <div class="universes__header">
+        <span class="universes__eyebrow">EXPLORATION</span>
+        <h2 id="universes-title" class="universes__title">
+          Toutes les catégories
+        </h2>
+      </div>
 
-        <span class="universe__label">{{ circle.label }}</span>
-      </RouterLink>
+      <nav class="universes__row" aria-label="Toutes les catégories SIDRA">
+        <RouterLink
+          v-for="circle in circles"
+          :key="circle.key"
+          :to="circle.to"
+          class="universe"
+        >
+          <span class="universe__disc">
+            <span class="universe__initial">
+              {{ circle.initial }}
+            </span>
+          </span>
+
+          <span class="universe__label">
+            {{ circle.label }}
+          </span>
+        </RouterLink>
+      </nav>
     </div>
-  </nav>
+  </section>
 </template>
 
 <style scoped>
 .universes {
-  padding-block: var(--space-10);
-  border-bottom: 1px solid var(--color-line);
+  padding-block: clamp(24px, 3.5vw, 36px);
+  border-bottom: 1px solid var(--color-line, #e0dfdb);
+  background: var(--color-surface, #ffffff);
+}
+
+.universes__inner {
+  width: 100%;
+}
+
+.universes__header {
+  margin-bottom: clamp(16px, 2.5vw, 24px);
+}
+
+.universes__eyebrow {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #767672);
+  margin-bottom: 6px;
+}
+
+.universes__title {
+  margin: 0;
+  color: var(--color-ink, #000);
+  font-family: var(--font-display, "Bodoni Moda", serif);
+  font-size: clamp(1.4rem, 2vw, 1.85rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
 .universes__row {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-8);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.universes__row::-webkit-scrollbar {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(10px, 1.5vw, 20px);
+  width: 100%;
 }
 
 .universe {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-3);
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
+  color: var(--color-ink, #000);
+  transition: transform 0.2s ease;
 }
 
-.universe__disc {
-  display: grid;
-  place-items: center;
-
-  width: 96px;
-  height: 96px;
-
-  border-radius: var(--radius-pill);
-  background: var(--color-plate);
-
-  transition:
-    background var(--transition-base),
-    transform var(--transition-base);
-}
-
-.universe:hover .universe__disc {
-  background: var(--color-ink);
+.universe:hover {
   transform: translateY(-3px);
 }
 
+.universe__disc {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(56px, 5.2vw, 76px);
+  height: clamp(56px, 5.2vw, 76px);
+  border: 1px solid var(--color-line, #e0dfdb);
+  border-radius: 50%;
+  background: var(--color-page, #f2f2f1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
 .universe__initial {
-  font-family: var(--font-display);
-  font-size: 34px;
-  color: var(--color-text);
-  transition: color var(--transition-base);
+  font-family: var(--font-display, "Bodoni Moda", serif);
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--color-ink, #000);
+  transition: color 0.2s ease;
+}
+
+.universe:hover .universe__disc {
+  background: var(--color-ink, #000);
+  border-color: var(--color-ink, #000);
 }
 
 .universe:hover .universe__initial {
-  color: var(--color-text-inverse);
+  color: #ffffff;
 }
 
 .universe__label {
-  color: var(--color-text);
-  font-size: var(--text-sm);
+  display: block;
+  font-family: var(--font-body, "Jost", sans-serif);
+  font-size: clamp(0.75rem, 0.95vw, 0.88rem);
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+  color: var(--color-text-secondary, #3d3d3b);
+  max-width: 100px;
+  overflow-wrap: break-word;
 }
 
-@media (max-width: 767px) {
-  .universes {
-    padding-block: var(--space-6);
-  }
+.universe:hover .universe__label {
+  color: var(--color-ink, #000);
+}
 
+@media (max-width: 900px) {
   .universes__row {
-    justify-content: flex-start;
-    gap: var(--space-5);
-    margin-right: calc(var(--container-padding) * -1);
-    padding-right: var(--container-padding);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px 14px;
   }
 
   .universe__disc {
-    width: 72px;
-    height: 72px;
+    width: 62px;
+    height: 62px;
+  }
+}
+
+@media (max-width: 480px) {
+  .universes__row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px 8px;
+  }
+
+  .universe__disc {
+    width: 50px;
+    height: 50px;
   }
 
   .universe__initial {
-    font-size: 26px;
+    font-size: 19px;
   }
 
   .universe__label {
-    font-size: var(--text-xs);
+    font-size: 0.72rem;
   }
 }
 </style>

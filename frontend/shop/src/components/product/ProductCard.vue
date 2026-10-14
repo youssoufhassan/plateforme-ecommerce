@@ -42,8 +42,8 @@ const options = computed(() => props.product.options ?? []);
 const isOutOfStock = computed(() => !props.product.available);
 
 /**
- * Le choix se fait sur la fiche dès qu'il y a plusieurs axes,
- * plusieurs valeurs sur un axe, ou simplement plusieurs variantes.
+ * Plusieurs axes, plusieurs valeurs ou plusieurs variantes :
+ * le choix se fait sur la fiche produit.
  */
 const needsVariantChoice = computed(() => {
   if (options.value.length > 1) return true;
@@ -56,8 +56,8 @@ const canQuickAdd = computed(
 );
 
 /**
- * Résumé des déclinaisons, adapté au type de produit :
- * « 3 contenances » pour un parfum, « 4 tailles » pour un vêtement.
+ * Résumé des déclinaisons, adapté au produit :
+ * « 3 contenances » pour un parfum, « taille et couleur » pour un vêtement.
  */
 const variantSummary = computed(() => {
   if (options.value.length === 1) {
@@ -83,9 +83,7 @@ const variantSummary = computed(() => {
 
 /** Prix différents entre variantes : afficher « dès ». */
 const hasPriceRange = computed(() => {
-  const prices = new Set(
-    availableVariants.value.map((variant) => variant.price),
-  );
+  const prices = new Set(availableVariants.value.map((v) => v.price));
   return prices.size > 1;
 });
 
@@ -157,9 +155,9 @@ async function handleAdd(event: MouseEvent): Promise<void> {
           {{ product.name.slice(0, 2).toUpperCase() }}
         </div>
 
-        <span v-if="isOutOfStock" class="product-card__unavailable"
-          >Épuisé</span
-        >
+        <span v-if="isOutOfStock" class="product-card__unavailable">
+          Épuisé
+        </span>
       </RouterLink>
 
       <button
@@ -195,9 +193,9 @@ async function handleAdd(event: MouseEvent): Promise<void> {
 
       <div class="product-card__footer">
         <span class="product-card__price">
-          <span v-if="hasPriceRange" class="product-card__price-prefix"
-            >dès</span
-          >
+          <span v-if="hasPriceRange" class="product-card__price-prefix">
+            dès
+          </span>
           {{ formattedPrice }}
         </span>
 
@@ -221,10 +219,6 @@ async function handleAdd(event: MouseEvent): Promise<void> {
         >
           Épuisé
         </span>
-
-        <RouterLink v-else :to="productUrl" class="product-card__add">
-          Choisir
-        </RouterLink>
       </div>
 
       <p v-if="error" class="product-card__error" role="alert">
@@ -253,7 +247,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   flex-shrink: 0;
   aspect-ratio: 1 / 1.05;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--color-paper);
 }
 
 .product-card__image-link {
@@ -267,7 +261,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   height: 100%;
   /* contain : le produit entier reste visible, jamais rogné */
   object-fit: contain;
-  padding: 12px;
+  padding: var(--space-3);
   transition: transform 400ms ease;
 }
 
@@ -280,26 +274,29 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   height: 100%;
   display: grid;
   place-items: center;
-  background: #f4f3f1;
+  background: var(--color-plate);
   color: var(--color-text-muted);
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 0.1em;
 }
 
 .product-card__favorite {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 30px;
-  height: 30px;
+  top: var(--space-2);
+  right: var(--space-2);
+
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.92);
+  width: 32px;
+  height: 32px;
+
   border: none;
-  border-radius: 50%;
-  color: var(--color-text);
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 92%);
   cursor: pointer;
+  color: var(--color-text);
+
   transition:
     background var(--transition-fast),
     transform var(--transition-fast),
@@ -307,7 +304,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
 }
 
 .product-card__favorite:hover {
-  background: var(--color-white);
+  background: var(--color-paper);
   transform: scale(1.08);
 }
 
@@ -325,14 +322,11 @@ async function handleAdd(event: MouseEvent): Promise<void> {
 
 .product-card__unavailable {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 4px 7px;
-  background: rgba(255, 255, 255, 0.94);
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: rgb(255 255 255 / 94%);
+  font-size: var(--text-2xs);
 }
 
 /* =========================================================
@@ -343,7 +337,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding-top: 10px;
+  padding-top: var(--space-3);
 }
 
 .product-card__brand {
@@ -351,10 +345,7 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   /* Hauteur réservée même sans marque : les noms restent alignés */
   min-height: 1.2em;
   color: var(--color-text-muted);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -366,11 +357,13 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 2.5em;
+  min-height: 2.6em;
+
   color: var(--color-text);
-  font-size: 12.5px;
-  line-height: 1.25;
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
   text-decoration: none;
+
   transition: opacity var(--transition-fast);
 }
 
@@ -379,13 +372,13 @@ async function handleAdd(event: MouseEvent): Promise<void> {
 }
 
 .product-card__variants {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--color-text-muted);
-  font-size: 10.5px;
-  /* Les noms d'axes viennent de l'admin : première lettre en majuscule */
+  font-size: var(--text-xs);
   text-transform: lowercase;
 }
 
+/* Les noms d'axes viennent de l'admin : première lettre en majuscule */
 .product-card__variants::first-letter {
   text-transform: uppercase;
 }
@@ -394,76 +387,74 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   /* Pousse le prix en bas : tous les prix s'alignent entre cartes */
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: var(--space-3);
 }
 
 .product-card__price {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .product-card__price-prefix {
-  font-size: 9px;
-  font-weight: 400;
   color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
 }
 
 .product-card__add {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  padding: 6px 9px;
-  background: var(--color-black);
-  color: var(--color-white);
-  border: none;
+
+  height: 30px;
+  padding-inline: var(--space-3);
+
+  border: 1px solid var(--color-ink);
+  background: transparent;
   cursor: pointer;
+
+  color: var(--color-text);
   font-family: inherit;
-  font-size: 8.5px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  text-decoration: none;
+  font-size: var(--text-xs);
+
   transition:
-    opacity var(--transition-fast),
-    transform var(--transition-fast);
+    background var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .product-card__add:hover:not(:disabled):not(.product-card__add--disabled) {
-  opacity: 0.8;
-}
-
-.product-card__add:active:not(:disabled):not(.product-card__add--disabled) {
-  transform: scale(0.96);
+  background: var(--color-ink);
+  color: var(--color-text-inverse);
 }
 
 .product-card__add:disabled,
 .product-card__add--disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  border-color: var(--color-line);
+  color: var(--color-text-muted);
 }
 
 .product-card__add--adding {
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .product-card__error {
-  margin-top: 5px;
-  font-size: 9.5px;
-  line-height: 1.3;
+  margin-top: var(--space-1);
   color: var(--color-error);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
 }
 
-/* Le bouton d'ajout s'efface tant que la carte n'est pas survolée (souris seulement) */
+/* Le bouton se révèle au survol, souris uniquement */
 @media (hover: hover) and (min-width: 1001px) {
   .product-card__add {
     opacity: 0;
-    transition:
-      opacity var(--transition-fast),
-      background var(--transition-fast);
   }
 
   .product-card:hover .product-card__add,
@@ -482,35 +473,43 @@ async function handleAdd(event: MouseEvent): Promise<void> {
   }
 
   .product-card__image {
-    padding: 8px;
+    padding: var(--space-2);
   }
 
   .product-card__favorite {
-    top: 6px;
-    right: 6px;
-    width: 27px;
-    height: 27px;
+    top: var(--space-1);
+    right: var(--space-1);
+    width: 28px;
+    height: 28px;
   }
 
   .product-card__content {
-    padding-top: 8px;
-  }
-
-  .product-card__brand {
-    font-size: 8.5px;
+    padding-top: var(--space-2);
   }
 
   .product-card__name {
-    font-size: 12px;
+    /* Une seule ligne : un nom trop long est coupé proprement */
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    color: var(--color-text);
+    font-size: var(--text-base);
+    line-height: var(--leading-snug);
+    text-decoration: none;
+
+    transition: opacity var(--transition-fast);
   }
 
   .product-card__price {
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   .product-card__add {
-    padding: 5px 8px;
-    font-size: 8px;
+    height: 28px;
+    padding-inline: var(--space-2);
+    font-size: var(--text-2xs);
   }
 }
 </style>

@@ -4,6 +4,7 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import ProductCard from "@/components/product/ProductCard.vue";
 import CatalogFiltersPanel from "@/components/catalog/CatalogFiltersPanel.vue";
+
 import {
   apiMessage,
   fetchBreadcrumb,
@@ -11,6 +12,7 @@ import {
   fetchCategoryTree,
   searchProducts,
 } from "@/services/productService";
+
 import type {
   CatalogFilters,
   CategoryNode,
@@ -45,57 +47,57 @@ const SORT_LABELS: Record<string, string> = {
   name: "Ordre alphabétique",
 };
 
-/** L'URL porte l'état complet : la page reste partageable et restaurable. */
+/** L'URL conserve l'état du catalogue : la page reste partageable. */
 const activeParams = computed<SearchParams>(() => {
   const query = route.query;
 
   return {
-    q: (query.q as string) || undefined,
-    category: (query.category as string) || undefined,
-    brand: (query.brand as string) || undefined,
-    minPrice: query.minPrice ? Number(query.minPrice) : undefined,
-    maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
+    q: typeof query.q === "string" ? query.q : undefined,
+    category: typeof query.category === "string" ? query.category : undefined,
+    brand: typeof query.brand === "string" ? query.brand : undefined,
+    minPrice:
+      typeof query.minPrice === "string" ? Number(query.minPrice) : undefined,
+    maxPrice:
+      typeof query.maxPrice === "string" ? Number(query.maxPrice) : undefined,
     availableOnly: query.availableOnly === "true" ? true : undefined,
-    sort: (query.sort as string) || "relevance",
+    sort: typeof query.sort === "string" ? query.sort : "relevance",
   };
 });
 
-/** La catégorie consultée : le dernier maillon du fil d'Ariane. */
 const currentCategory = computed(
   () => breadcrumb.value[breadcrumb.value.length - 1] ?? null,
 );
 
-/** Le chemin brut ne s'affiche jamais : on montre le nom lisible. */
 const categoryName = computed(() => currentCategory.value?.name ?? null);
 
-/**
- * Sous-catégories proposées : celles de la branche consultée,
- * ou les racines quand on entre dans le catalogue sans filtre.
- */
+/** Rayons proposés : ceux de la branche consultée, ou les univers. */
 const subCategories = computed(() => {
-  if (currentCategory.value) return currentCategory.value.children;
+  if (currentCategory.value) return currentCategory.value.children ?? [];
   if (!activeParams.value.category && !activeParams.value.q) return tree.value;
   return [];
 });
 
-/** Pastilles des filtres appliqués, chacune retirable d'un clic. */
 const activeChips = computed(() => {
   const { category, brand, minPrice, maxPrice, availableOnly } =
     activeParams.value;
+
   const chips: Array<{ key: string; label: string }> = [];
 
-  // Le nom lisible plutôt que le chemin complet
   if (category) {
     chips.push({ key: "category", label: categoryName.value ?? category });
   }
-  if (brand) chips.push({ key: "brand", label: brand });
-  if (availableOnly) chips.push({ key: "availableOnly", label: "En stock" });
+  if (brand) {
+    chips.push({ key: "brand", label: brand });
+  }
+  if (availableOnly) {
+    chips.push({ key: "availableOnly", label: "En stock" });
+  }
 
-  if (minPrice && maxPrice) {
+  if (minPrice != null && maxPrice != null) {
     chips.push({ key: "price", label: `${minPrice} € – ${maxPrice} €` });
-  } else if (minPrice) {
+  } else if (minPrice != null) {
     chips.push({ key: "price", label: `À partir de ${minPrice} €` });
-  } else if (maxPrice) {
+  } else if (maxPrice != null) {
     chips.push({ key: "price", label: `Jusqu'à ${maxPrice} €` });
   }
 
@@ -104,21 +106,27 @@ const activeChips = computed(() => {
 
 const heading = computed(() => {
   const { q, brand } = activeParams.value;
+
   if (q) return q;
   if (brand) return brand;
   if (categoryName.value) return categoryName.value;
+
   return "Tout le catalogue";
 });
 
-/** Une catégorie se passe de sous-titre : son contenu parle pour elle. */
+/** Une recherche mérite un grand titre ; une catégorie, un titre sobre. */
+const isSearch = computed(() =>
+  Boolean(activeParams.value.q || activeParams.value.brand),
+);
+
+/** Une catégorie se passe d'accroche : son contenu parle pour elle. */
 const subheading = computed(() => {
-  const { brand } = activeParams.value;
-  if (brand) return "La maison et ses créations";
+  if (activeParams.value.brand) return "La maison et ses créations";
   if (currentCategory.value) return null;
+
   return "Parfums, beauté, mode et art de vivre";
 });
 
-/** Part du catalogue déjà chargée, pour la barre de progression. */
 const loadedRatio = computed(() =>
   totalElements.value === 0
     ? 0
@@ -127,6 +135,7 @@ const loadedRatio = computed(() =>
 
 async function loadProducts(): Promise<void> {
   loading.value = true;
+  loadingMore.value = false;
   error.value = null;
   currentPage.value = 0;
 
@@ -144,12 +153,12 @@ async function loadProducts(): Promise<void> {
     error.value = apiMessage(e, "Le catalogue n'a pas pu être chargé.");
     products.value = [];
     totalElements.value = 0;
+    hasNext.value = false;
   } finally {
     loading.value = false;
   }
 }
 
-/** Le fil d'Ariane et les sous-catégories suivent la branche consultée. */
 async function loadCategoryContext(): Promise<void> {
   const path = activeParams.value.category;
 
@@ -161,28 +170,25 @@ async function loadCategoryContext(): Promise<void> {
   try {
     breadcrumb.value = await fetchBreadcrumb(path);
   } catch {
-    // Chemin inconnu : on retombe sur un affichage neutre
     breadcrumb.value = [];
   }
 }
 
-/**
- * Les marques et la fourchette de prix se limitent à la branche :
- * proposer Rolex sous « Parfums » n'aurait aucun sens.
- */
+/** Marques et bornes de prix se limitent à la branche consultée. */
 async function loadFilters(): Promise<void> {
   try {
     filters.value = await fetchCatalogFilters(activeParams.value.category);
   } catch {
-    // Sans les filtres, la liste reste utilisable : inutile d'alarmer
+    filters.value = null;
   }
 }
 
-/** Page suivante ajoutée à la suite, la position de lecture est conservée. */
+/** La page suivante s'ajoute : la position de lecture est conservée. */
 async function loadMore(): Promise<void> {
-  if (loadingMore.value || !hasNext.value) return;
+  if (loadingMore.value || loading.value || !hasNext.value) return;
 
   loadingMore.value = true;
+  error.value = null;
 
   try {
     const result = await searchProducts({
@@ -195,23 +201,24 @@ async function loadMore(): Promise<void> {
     currentPage.value = result.page;
     hasNext.value = result.hasNext;
   } catch (e: unknown) {
-    error.value = apiMessage(
-      e,
-      "La suite du catalogue n'a pas pu être chargée.",
-    );
+    error.value = apiMessage(e, "La suite n'a pas pu être chargée.");
   } finally {
     loadingMore.value = false;
   }
 }
 
 function updateQuery(changes: Record<string, string | undefined>): void {
-  const query = { ...route.query, ...changes };
+  const query = { ...route.query } as Record<string, string | string[] | null>;
 
-  Object.keys(query).forEach((key) => {
-    if (query[key] === undefined || query[key] === "") delete query[key];
-  });
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === undefined || value === "") {
+      delete query[key];
+    } else {
+      query[key] = value;
+    }
+  }
 
-  router.push({ path: "/produits", query });
+  void router.push({ path: "/produits", query });
 }
 
 function removeChip(key: string): void {
@@ -220,7 +227,7 @@ function removeChip(key: string): void {
     return;
   }
 
-  // Changer de catégorie invalide la marque : elle peut ne plus exister
+  // Changer de rayon invalide la marque : elle peut ne plus exister
   if (key === "category") {
     updateQuery({ category: undefined, brand: undefined });
     return;
@@ -231,45 +238,51 @@ function removeChip(key: string): void {
 
 function clearFilters(): void {
   const { q, sort } = route.query;
-  router.push({
+
+  void router.push({
     path: "/produits",
-    query: { ...(q ? { q } : {}), ...(sort ? { sort } : {}) },
+    query: {
+      ...(typeof q === "string" && q ? { q } : {}),
+      ...(typeof sort === "string" && sort ? { sort } : {}),
+    },
   });
 }
 
 watch(
   () => route.query,
   () => {
-    loadProducts();
-    loadCategoryContext();
-    loadFilters();
+    void loadProducts();
+    void loadCategoryContext();
+    void loadFilters();
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 );
 
 fetchCategoryTree()
-  .then((data) => (tree.value = data))
+  .then((data) => {
+    tree.value = data;
+  })
   .catch(() => {
-    // Sans arbre, la page reste utilisable
+    tree.value = [];
   });
 </script>
 
 <template>
   <main class="catalog">
-    <!-- Recherche : on va droit aux résultats, sans titre ni fil d'Ariane -->
     <div v-if="!activeParams.q" class="container">
-      <nav class="catalog__breadcrumb" aria-label="Fil d'Ariane">
+      <nav class="trail" aria-label="Fil d'Ariane">
         <RouterLink to="/">Accueil</RouterLink>
-        <span aria-hidden="true">/</span>
 
         <template v-if="breadcrumb.length">
+          <span class="trail__sep" aria-hidden="true">/</span>
           <RouterLink to="/produits">Catalogue</RouterLink>
 
           <template v-for="(node, index) in breadcrumb" :key="node.id">
-            <span aria-hidden="true">/</span>
+            <span class="trail__sep" aria-hidden="true">/</span>
 
-            <!-- Le dernier maillon est la page courante : pas de lien -->
-            <span v-if="index === breadcrumb.length - 1">{{ node.name }}</span>
+            <span v-if="index === breadcrumb.length - 1" aria-current="page">
+              {{ node.name }}
+            </span>
 
             <RouterLink
               v-else
@@ -280,50 +293,58 @@ fetchCategoryTree()
           </template>
         </template>
 
-        <span v-else>Catalogue</span>
+        <template v-else>
+          <span class="trail__sep" aria-hidden="true">/</span>
+          <span aria-current="page">Catalogue</span>
+        </template>
       </nav>
 
-      <header class="catalog__intro">
-        <h1 class="catalog__title">{{ heading }}</h1>
-        <p v-if="subheading" class="catalog__subtitle">{{ subheading }}</p>
+      <header class="intro" :class="{ 'intro--search': isSearch }">
+        <h1 class="intro__title">{{ heading }}</h1>
+
+        <p v-if="subheading" class="intro__text">{{ subheading }}</p>
       </header>
 
-      <!-- Sous-catégories : la navigation continue depuis la page -->
-      <nav
-        v-if="subCategories.length"
-        class="subcategories"
-        aria-label="Sous-catégories"
-      >
+      <nav v-if="subCategories.length" class="rayons" aria-label="Rayons">
         <RouterLink
           v-for="node in subCategories"
           :key="node.id"
           :to="{ path: '/produits', query: { category: node.path } }"
-          class="subcategories__item"
+          class="rayons__link"
         >
           {{ node.name }}
-          <span class="subcategories__count">{{ node.productCount }}</span>
+          <span class="rayons__count numeric">{{ node.productCount }}</span>
         </RouterLink>
       </nav>
     </div>
 
-    <!-- Titre lu par les lecteurs d'écran, invisible à l'écran -->
     <h1 v-else class="sr-only">Résultats pour « {{ heading }} »</h1>
 
-    <!-- Reste accessible au défilement -->
-    <div class="catalog__toolbar">
-      <div class="container catalog__toolbar-inner">
+    <div class="toolbar">
+      <div class="container toolbar__inner">
         <button
           type="button"
-          class="catalog__filter-button"
+          class="toolbar__filter"
+          :aria-expanded="panelOpen"
           @click="panelOpen = true"
         >
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path
+              d="M3 6h14M6 10h8M8.5 14h3"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+            />
+          </svg>
+
           Filtrer
-          <span v-if="activeChips.length" class="catalog__filter-badge">
+
+          <span v-if="activeChips.length" class="toolbar__badge numeric">
             {{ activeChips.length }}
           </span>
         </button>
 
-        <p class="catalog__count" aria-live="polite">
+        <p class="toolbar__count numeric" aria-live="polite">
           <template v-if="loading">Chargement</template>
           <template v-else-if="totalElements === 0">Aucun produit</template>
           <template v-else>
@@ -331,8 +352,9 @@ fetchCategoryTree()
           </template>
         </p>
 
-        <label class="catalog__sort">
-          <span class="catalog__sort-label">Trier</span>
+        <label class="toolbar__sort">
+          <span class="sr-only">Trier</span>
+
           <select
             :value="activeParams.sort"
             @change="
@@ -352,28 +374,37 @@ fetchCategoryTree()
     </div>
 
     <div class="container">
-      <!-- Filtres appliqués -->
-      <div v-if="activeChips.length" class="catalog__chips">
+      <div v-if="activeChips.length" class="chips">
         <button
           v-for="chip in activeChips"
           :key="chip.key"
           type="button"
-          class="catalog__chip"
+          class="chip"
           @click="removeChip(chip.key)"
         >
           {{ chip.label }}
-          <span class="catalog__chip-remove" aria-hidden="true">✕</span>
+
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M4 4l8 8M12 4l-8 8"
+              stroke="currentColor"
+              stroke-width="1.2"
+              stroke-linecap="round"
+            />
+          </svg>
+
           <span class="sr-only">Retirer ce filtre</span>
         </button>
 
-        <button type="button" class="catalog__chip-clear" @click="clearFilters">
+        <button type="button" class="chips__clear" @click="clearFilters">
           Tout effacer
         </button>
       </div>
 
-      <div class="catalog__layout">
+      <div class="layout">
         <CatalogFiltersPanel
           :filters="filters"
+          :categories="tree"
           :active="activeParams"
           :open="panelOpen"
           @update="updateQuery"
@@ -381,46 +412,38 @@ fetchCategoryTree()
           @close="panelOpen = false"
         />
 
-        <div class="catalog__results">
-          <div v-if="loading" class="catalog__grid" aria-busy="true">
-            <div
-              v-for="n in 12"
-              :key="`skeleton-${n}`"
-              class="catalog-skeleton"
-            >
-              <div class="catalog-skeleton__visual"></div>
-              <div
-                class="catalog-skeleton__line catalog-skeleton__line--short"
-              ></div>
-              <div class="catalog-skeleton__line"></div>
-              <div
-                class="catalog-skeleton__line catalog-skeleton__line--price"
-              ></div>
+        <div class="results">
+          <div v-if="loading" class="grid" aria-busy="true">
+            <div v-for="n in 12" :key="`skeleton-${n}`">
+              <div class="skeleton__visual"></div>
+              <div class="skeleton__line skeleton__line--short"></div>
+              <div class="skeleton__line"></div>
+              <div class="skeleton__line skeleton__line--price"></div>
             </div>
           </div>
 
-          <div v-else-if="error" class="catalog__state" role="alert">
-            <p class="catalog__state-title">{{ error }}</p>
-            <button
-              type="button"
-              class="catalog__state-action"
-              @click="loadProducts"
-            >
+          <div v-else-if="error" class="state" role="alert">
+            <p class="state__title">{{ error }}</p>
+
+            <button type="button" class="state__action" @click="loadProducts">
               Réessayer
             </button>
           </div>
 
-          <div v-else-if="products.length === 0" class="catalog__state">
-            <p class="catalog__state-title">
-              Rien ne correspond à cette combinaison.
+          <div v-else-if="products.length === 0" class="state">
+            <p class="state__title">
+              Aucun produit ne correspond à cette sélection.
             </p>
-            <p class="catalog__state-hint">
-              Élargissez la fourchette de prix ou retirez un filtre.
+
+            <p class="state__hint">
+              Essayez d'élargir la fourchette de prix, ou parcourez une autre
+              maison.
             </p>
+
             <button
               v-if="activeChips.length"
               type="button"
-              class="catalog__state-action"
+              class="state__action"
               @click="clearFilters"
             >
               Effacer les filtres
@@ -428,7 +451,7 @@ fetchCategoryTree()
           </div>
 
           <template v-else>
-            <div class="catalog__grid">
+            <div class="grid">
               <ProductCard
                 v-for="(product, index) in products"
                 :key="product.id"
@@ -437,18 +460,18 @@ fetchCategoryTree()
               />
             </div>
 
-            <div v-if="hasNext || loadingMore" class="catalog__more">
-              <div class="catalog__progress" aria-hidden="true">
+            <div v-if="hasNext || loadingMore" class="more">
+              <div class="more__progress" aria-hidden="true">
                 <span :style="{ transform: `scaleX(${loadedRatio})` }"></span>
               </div>
 
-              <p class="catalog__progress-label">
+              <p class="more__label numeric">
                 {{ products.length }} sur {{ totalElements }}
               </p>
 
               <button
                 type="button"
-                class="catalog__more-button"
+                class="more__button"
                 :disabled="loadingMore"
                 @click="loadMore"
               >
@@ -456,7 +479,7 @@ fetchCategoryTree()
               </button>
             </div>
 
-            <p v-else class="catalog__end">Vous avez vu tout le catalogue.</p>
+            <p v-else class="more__end">Vous avez vu tout ce rayon.</p>
           </template>
         </div>
       </div>
@@ -467,236 +490,280 @@ fetchCategoryTree()
 <style scoped>
 .catalog {
   width: 100%;
-  padding-bottom: 72px;
+  padding-bottom: var(--space-20);
+}
+
+/* =========================================================
+   FIL D'ARIANE
+   ========================================================= */
+
+.trail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.trail a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.trail a:hover {
+  color: var(--color-text);
+}
+
+.trail__sep {
+  color: var(--color-line);
 }
 
 /* =========================================================
    INTRODUCTION
    ========================================================= */
 
-.catalog__breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding-top: 22px;
-  color: var(--color-text-muted);
-  font-size: 12px;
+.intro {
+  padding-block: var(--space-5) var(--space-6);
 }
 
-.catalog__breadcrumb a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.catalog__breadcrumb a:hover {
-  color: var(--color-text);
-}
-
-.catalog__intro {
-  padding-block: 18px 26px;
-}
-
-.catalog__title {
+.intro__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(30px, 3.6vw, 46px);
-  font-weight: 400;
-  line-height: 1.02;
-  letter-spacing: -0.035em;
+  font-size: clamp(26px, 2.8vw, 38px);
+  font-weight: var(--weight-regular);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
   color: var(--color-text);
 }
 
-.catalog__subtitle {
-  max-width: 56ch;
-  margin: 10px 0 0;
+/* Une recherche mérite un titre plus ample, pas une catégorie. */
+.intro--search .intro__title {
+  font-size: clamp(32px, 3.6vw, 52px);
+  letter-spacing: -0.035em;
+}
+
+.intro__text {
+  max-width: 54ch;
+  margin: var(--space-3) 0 0;
   color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
 }
 
 /* =========================================================
-   SOUS-CATÉGORIES
+   RAYONS
    ========================================================= */
 
-.subcategories {
+.rayons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: var(--space-3);
+  padding-bottom: var(--space-6);
 }
 
-.subcategories__item {
+.rayons__link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
 
-  padding: 8px 16px;
+  height: 46px;
+  padding-inline: var(--space-6);
 
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
 
   color: var(--color-text);
-  font-size: 13px;
+  font-size: var(--text-md);
   text-decoration: none;
+  white-space: nowrap;
 
   transition:
     border-color var(--transition-fast),
-    background var(--transition-fast);
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
-.subcategories__item:hover {
-  border-color: var(--color-text);
-  background: #f5f4f1;
+.rayons__link:hover {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-text-inverse);
 }
 
-/* Le compteur évite d'ouvrir une rubrique quasi vide */
-.subcategories__count {
+.rayons__count {
   color: var(--color-text-muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  transition: color var(--transition-fast);
+}
+
+.rayons__link:hover .rayons__count {
+  color: var(--color-text-inverse);
+  opacity: 0.7;
 }
 
 /* =========================================================
    BARRE D'OUTILS
    ========================================================= */
 
-.catalog__toolbar {
+.toolbar {
   position: sticky;
-  /* Se cale juste sous l'en-tête : tri et compteur restent à portée */
   top: var(--header-height);
-  z-index: 5;
-  /* Respiration quand la barre est le premier élément de la page */
-  margin-top: 20px;
-  background: var(--color-background);
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  z-index: var(--z-sticky);
+
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-page);
 }
 
-.catalog__toolbar-inner {
+.toolbar__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  height: 56px;
+  gap: var(--space-4);
+  min-height: 48px;
 }
 
-.catalog__count {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.catalog__filter-button {
+.toolbar__filter {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  border: 1px solid var(--color-text);
+  gap: var(--space-2);
+
+  height: 34px;
+  padding-inline: var(--space-4);
+
+  border: 1px solid var(--color-ink);
   background: transparent;
   cursor: pointer;
+
   color: var(--color-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+
   transition:
     background var(--transition-fast),
     color var(--transition-fast);
 }
 
-.catalog__filter-button:hover {
-  background: var(--color-text);
-  color: var(--color-white);
+.toolbar__filter:hover {
+  background: var(--color-ink);
+  color: var(--color-text-inverse);
 }
 
-.catalog__filter-badge {
+.toolbar__filter svg {
+  width: 15px;
+  height: 15px;
+}
+
+.toolbar__badge {
   display: inline-grid;
   place-items: center;
   min-width: 17px;
   height: 17px;
   padding-inline: 5px;
-  border-radius: 9px;
-  background: var(--color-text);
-  color: var(--color-white);
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-text-inverse);
   font-size: 10px;
-  font-variant-numeric: tabular-nums;
 }
 
-.catalog__filter-button:hover .catalog__filter-badge {
-  background: var(--color-white);
+.toolbar__filter:hover .toolbar__badge {
+  background: var(--color-paper);
   color: var(--color-text);
 }
 
-.catalog__sort {
+.toolbar__count {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.toolbar__sort {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
 }
 
-.catalog__sort-label {
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.catalog__sort select {
-  padding: 7px 8px;
+.toolbar__sort select {
+  padding: var(--space-1) 0;
   border: none;
-  border-bottom: 1px solid var(--color-text);
+  border-bottom: 1px solid var(--color-line);
   border-radius: 0;
   background: transparent;
   color: var(--color-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-sm);
   cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.toolbar__sort select:hover,
+.toolbar__sort select:focus {
+  border-bottom-color: var(--color-ink);
+  outline: none;
 }
 
 /* =========================================================
    FILTRES APPLIQUÉS
    ========================================================= */
 
-.catalog__chips {
+.chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding-top: 20px;
+  gap: var(--space-2);
+  padding-top: var(--space-5);
 }
 
-.catalog__chip {
+.chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  border: none;
-  background: var(--color-text);
+  gap: var(--space-2);
+
+  height: 30px;
+  padding-inline: var(--space-3);
+
+  border: 1px solid var(--color-line);
+  background: transparent;
   cursor: pointer;
-  color: var(--color-white);
+
+  color: var(--color-text);
   font-family: inherit;
-  font-size: 11.5px;
-  transition: opacity var(--transition-fast);
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+
+  transition: border-color var(--transition-fast);
 }
 
-.catalog__chip:hover {
-  opacity: 0.78;
+.chip:hover {
+  border-color: var(--color-ink);
 }
 
-.catalog__chip-remove {
-  font-size: 9px;
-  opacity: 0.7;
+.chip svg {
+  width: 11px;
+  height: 11px;
+  opacity: 0.55;
 }
 
-.catalog__chip-clear {
-  padding: 7px 4px;
+.chip:hover svg {
+  opacity: 1;
+}
+
+.chips__clear {
+  height: 30px;
+  padding-inline: var(--space-2);
   border: none;
   background: transparent;
   cursor: pointer;
   color: var(--color-text-muted);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 0.25em;
 }
 
-.catalog__chip-clear:hover {
+.chips__clear:hover {
   color: var(--color-text);
 }
 
@@ -704,106 +771,111 @@ fetchCategoryTree()
    MISE EN PAGE
    ========================================================= */
 
-.catalog__layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 40px;
-  padding-top: 26px;
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-top: var(--space-6);
 }
 
-.catalog__results {
+.results {
   min-width: 0;
 }
 
-.catalog__grid {
+.grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 34px 18px;
+  align-items: stretch;
+  column-gap: var(--grid-gap-x);
+  row-gap: var(--grid-gap-y);
 }
 
 /* =========================================================
    ÉTATS
    ========================================================= */
 
-.catalog__state {
+.state {
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 10px;
-  min-height: 300px;
+  gap: var(--space-3);
+  min-height: 320px;
   text-align: center;
 }
 
-.catalog__state-title {
+.state__title {
   margin: 0;
-  color: var(--color-text);
-  font-size: 15px;
+  font-size: var(--text-lg);
 }
 
-.catalog__state-hint {
+.state__hint {
+  max-width: 40ch;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
 }
 
-.catalog__state-action {
-  margin-top: 6px;
-  padding: 11px 22px;
-  border: 1px solid var(--color-text);
+.state__action {
+  height: 42px;
+  margin-top: var(--space-2);
+  padding-inline: var(--space-6);
+  border: 1px solid var(--color-ink);
   background: transparent;
   cursor: pointer;
   color: var(--color-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
   transition:
     background var(--transition-fast),
     color var(--transition-fast);
 }
 
-.catalog__state-action:hover {
-  background: var(--color-text);
-  color: var(--color-white);
+.state__action:hover {
+  background: var(--color-ink);
+  color: var(--color-text-inverse);
 }
 
 /* =========================================================
    SQUELETTE
    ========================================================= */
 
-.catalog-skeleton__visual {
+.skeleton__visual {
   aspect-ratio: 1 / 1.05;
-  background: #efedea;
+  background: var(--color-sand);
 }
 
-.catalog-skeleton__line {
+.skeleton__line {
   height: 9px;
-  margin-top: 9px;
-  background: #efedea;
+  margin-top: var(--space-2);
+  background: var(--color-sand);
 }
 
-.catalog-skeleton__line--short {
+.skeleton__line--short {
   width: 38%;
   height: 7px;
-  margin-top: 13px;
+  margin-top: var(--space-3);
 }
 
-.catalog-skeleton__line--price {
+.skeleton__line--price {
   width: 26%;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .catalog-skeleton__visual,
-  .catalog-skeleton__line {
-    animation: catalog-pulse 1.5s ease-in-out infinite;
+  .skeleton__visual,
+  .skeleton__line {
+    animation: pulse 1.6s ease-in-out infinite;
   }
 }
 
-@keyframes catalog-pulse {
+@keyframes pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.55;
+    opacity: 0.6;
   }
 }
 
@@ -811,64 +883,64 @@ fetchCategoryTree()
    CHARGEMENT PROGRESSIF
    ========================================================= */
 
-.catalog__more {
+.more {
   display: grid;
   justify-items: center;
-  gap: 12px;
-  margin-top: 54px;
+  gap: var(--space-3);
+  margin-top: var(--space-16);
 }
 
-.catalog__progress {
-  width: 180px;
-  height: 2px;
-  background: var(--color-border);
+.more__progress {
+  width: 160px;
+  height: 1px;
   overflow: hidden;
+  background: var(--color-line);
 }
 
-.catalog__progress span {
+.more__progress span {
   display: block;
   width: 100%;
   height: 100%;
-  background: var(--color-text);
+  background: var(--color-ink);
   transform-origin: left;
   transition: transform var(--transition-base);
 }
 
-.catalog__progress-label {
+.more__label {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
 }
 
-.catalog__more-button {
-  min-width: 260px;
-  padding: 14px 32px;
-  border: 1px solid var(--color-text);
+.more__button {
+  margin-top: var(--space-2);
+  padding: var(--space-1) 0;
+  border: none;
+  border-bottom: 1px solid var(--color-ink);
   background: transparent;
   cursor: pointer;
   color: var(--color-text);
   font-family: inherit;
-  font-size: 12px;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  transition: opacity var(--transition-fast);
 }
 
-.catalog__more-button:hover:not(:disabled) {
-  background: var(--color-text);
-  color: var(--color-white);
+.more__button:hover:not(:disabled) {
+  opacity: 0.6;
 }
 
-.catalog__more-button:disabled {
+.more__button:disabled {
   cursor: wait;
-  opacity: 0.45;
+  opacity: 0.35;
 }
 
-.catalog__end {
-  margin: 48px 0 0;
+.more__end {
+  margin: var(--space-12) 0 0;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
   text-align: center;
 }
 
@@ -876,10 +948,9 @@ fetchCategoryTree()
    TABLETTE
    ========================================================= */
 
-@media (min-width: 768px) {
-  .catalog__grid {
+@media (min-width: 600px) {
+  .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 38px 20px;
   }
 }
 
@@ -888,24 +959,19 @@ fetchCategoryTree()
    ========================================================= */
 
 @media (min-width: 1001px) {
-  .catalog__layout {
-    grid-template-columns: 236px minmax(0, 1fr);
-    gap: 48px;
+  .layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: var(--space-12);
+    align-items: start;
   }
 
-  .catalog__grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  /* Les filtres sont visibles en permanence : le bouton disparaît */
-  .catalog__filter-button {
+  .toolbar__filter {
     display: none;
   }
-}
 
-@media (min-width: 1440px) {
-  .catalog__grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -914,28 +980,46 @@ fetchCategoryTree()
    ========================================================= */
 
 @media (max-width: 767px) {
-  .catalog__intro {
-    padding-block: 14px 20px;
+  .intro {
+    padding-block: var(--space-4) var(--space-5);
   }
 
-  .catalog__subtitle {
-    font-size: 13px;
+  .intro__text {
+    font-size: var(--text-sm);
   }
 
-  .catalog__toolbar-inner {
-    height: 50px;
+  .rayons {
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-right: calc(var(--container-padding) * -1);
+    padding-right: var(--container-padding);
   }
 
-  .catalog__sort-label {
+  .rayons::-webkit-scrollbar {
     display: none;
   }
 
-  .catalog__grid {
-    gap: 28px 14px;
+  .rayons__link {
+    flex-shrink: 0;
+    height: 40px;
+    padding-inline: var(--space-5);
+    font-size: var(--text-base);
   }
 
-  .catalog__more-button {
-    min-width: 100%;
+  .toolbar__inner {
+    min-height: 46px;
+    gap: var(--space-2);
+  }
+
+  .toolbar__count {
+    font-size: var(--text-xs);
+  }
+
+  .more__button {
+    width: 100%;
+    text-align: center;
   }
 }
 </style>

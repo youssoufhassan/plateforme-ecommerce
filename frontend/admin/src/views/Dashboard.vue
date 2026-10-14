@@ -162,7 +162,7 @@ onMounted(() => {
     <PageHeader
       eyebrow="Vue d'ensemble"
       title="Tableau de bord"
-      subtitle="Suivez les performances de votre boutique et l'activité de SHAHIN."
+      subtitle="Suivez les performances de votre boutique et l'activité de SIDRA."
     />
 
     <!-- Loading -->

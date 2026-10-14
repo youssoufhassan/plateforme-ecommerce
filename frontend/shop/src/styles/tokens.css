@@ -34,7 +34,7 @@
 
   /* États */
   --color-error: #9b2226;
-  --color-success: #2f6b४7;
+  --color-success: #2f6b47;
   --color-accent: #b4761a;
 
   /* Alias conservés pour ne rien casser pendant la transition */
@@ -108,7 +108,7 @@
 
   --container-max: 1440px;
   --container-padding: 2rem;
-  --header-height: 76px;
+  --header-height: 116px;
 
   /* Grille produit : gouttières serrées, colonnes larges */
   --grid-gap-x: 1.25rem;

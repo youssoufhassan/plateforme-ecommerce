@@ -1,32 +1,41 @@
 <script setup lang="ts">
 /**
- * Trois engagements, écrits en dur : ils ne dépendent d'aucune donnée.
- * Les textes doivent correspondre exactement aux conditions de vente.
+ * Engagements applicables : livraison, paiement sécurisé Stripe, retours, service client.
+ * Conforme aux conditions réelles de vente de la boutique.
  */
 const items = [
   {
+    icon: "✦",
     title: "Livraison en Europe",
-    text: "Offerte dès 40 € d'achat en France. Expédition suivie vers toute l'Union européenne.",
+    text: "Offerte dès 40 € d'achat. Expédition soignée et suivie vers toute l'Union européenne.",
   },
   {
-    title: "Paiement sécurisé",
-    text: "Carte bancaire via Stripe. Vos données bancaires ne transitent jamais par nos serveurs.",
+    icon: "🔒",
+    title: "Paiement 100% sécurisé",
+    text: "Transactions cryptées via Stripe. Cartes bancaires Visa, Mastercard, American Express.",
   },
   {
+    icon: "↺",
     title: "Retours sous 14 jours",
-    text: "Droit de rétractation de quatorze jours à compter de la réception de votre commande.",
+    text: "Droit de rétractation légal de 14 jours à compter de la réception de vos articles.",
+  },
+  {
+    icon: "💬",
+    title: "Service client attentif",
+    text: "Une assistance réactive pour vous renseigner et suivre vos commandes à tout moment.",
   },
 ];
 </script>
 
 <template>
-  <section class="reassurance" aria-label="Nos engagements">
+  <section class="reassurance" aria-label="Engagements et garanties SIDRA">
     <div class="container reassurance__row">
       <article
         v-for="item in items"
         :key="item.title"
         class="reassurance__item"
       >
+        <span class="reassurance__icon" aria-hidden="true">{{ item.icon }}</span>
         <h2 class="reassurance__title">{{ item.title }}</h2>
         <p class="reassurance__text">{{ item.text }}</p>
       </article>
@@ -36,45 +45,63 @@ const items = [
 
 <style scoped>
 .reassurance {
-  padding-block: var(--space-12);
-  border-top: 1px solid var(--color-line);
+  padding-block: clamp(36px, 5vw, 64px);
+  border-top: 1px solid var(--color-line, #e0dfdb);
+  background: var(--color-surface, #ffffff);
 }
 
 .reassurance__row {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-8);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 36px);
+}
+
+.reassurance__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reassurance__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-page, #f2f2f1);
+  color: var(--color-ink, #000);
+  font-size: 0.95rem;
+  margin-bottom: 4px;
 }
 
 .reassurance__title {
-  margin: 0 0 var(--space-2);
-  font-family: var(--font-body);
-  font-size: var(--text-base);
-  font-weight: var(--weight-medium);
+  margin: 0;
+  font-family: var(--font-body, "Jost", sans-serif);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-ink, #000);
 }
 
 .reassurance__text {
   margin: 0;
-  max-width: 38ch;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted, #767672);
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
 
-@media (min-width: 768px) {
+@media (max-width: 1024px) {
   .reassurance__row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-10);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 20px;
   }
 }
 
-@media (max-width: 767px) {
-  .reassurance {
-    padding-block: var(--space-8);
-  }
-
+@media (max-width: 580px) {
   .reassurance__row {
-    gap: var(--space-6);
+    grid-template-columns: 1fr;
+    gap: 22px;
   }
 }
 </style>

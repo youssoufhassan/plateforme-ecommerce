@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import type { Product, ProductVariant } from "@/types/product";
+import type { Product } from "@/types/product";
 
 const props = defineProps<{
   product: Product;

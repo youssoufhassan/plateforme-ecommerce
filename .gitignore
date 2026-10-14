@@ -24,3 +24,4 @@ Thumbs.db
 # Scripts d'import de donnees de test
 import-*.sql
 generate-import.ps1
+*.zip

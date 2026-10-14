@@ -470,6 +470,17 @@ function handleFilterChange() {
       </article>
 
       <article class="catalogue-stat">
+        <div class="stat-icon">✓</div>
+
+        <div>
+          <span>Disponibles</span>
+          <strong>
+            {{ availableCount }}
+          </strong>
+        </div>
+      </article>
+
+      <article class="catalogue-stat">
         <div class="stat-icon warning">!</div>
 
         <div>

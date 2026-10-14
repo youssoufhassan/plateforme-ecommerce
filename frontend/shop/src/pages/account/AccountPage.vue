@@ -10,6 +10,7 @@ const authStore = useAuthStore();
 
 const sections = [
   { name: "account-orders", path: "/compte", label: "Mes commandes" },
+  { name: "account-favorites", path: "/favoris", label: "Mes favoris" },
   {
     name: "account-profile",
     path: "/compte/informations",

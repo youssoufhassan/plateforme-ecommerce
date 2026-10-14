@@ -26,7 +26,6 @@ withDefaults(
         {{ label }}
       </div>
 
-      ```
       <div v-if="icon" class="stat-icon">
         {{ icon }}
       </div>
@@ -53,7 +52,6 @@ withDefaults(
     <div v-if="unavailable" class="unavailable-note">
       Donnée indisponible pour le moment
     </div>
-    ```
   </article>
 </template>
 

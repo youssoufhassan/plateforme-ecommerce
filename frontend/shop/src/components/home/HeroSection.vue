@@ -1,25 +1,38 @@
 <template>
-  <section class="hero">
+  <section class="hero" aria-label="Campagne principale SIDRA">
     <div class="hero__campaign">
-      <img src="/hero.jpg" alt="Campagne parfum SIDRA" class="hero__image" />
+      <img
+        src="/hero.jpg"
+        alt="Collection SIDRA — Mode, Beauté & Accessoires"
+        class="hero__image"
+        loading="eager"
+        fetchpriority="high"
+      />
 
-      <div class="hero__overlay"></div>
+      <div class="hero__overlay" aria-hidden="true"></div>
 
       <div class="hero__content">
-        <p class="hero__eyebrow">SIDRA COLLECTION</p>
+        <span class="hero__eyebrow">SIDRA MAISON & STYLE</span>
 
         <h1 class="hero__title">
-          Une signature<br />
-          élégante et durable.
+          L'élégance contemporaine,<br />
+          tous univers confondus.
         </h1>
 
-        <p class="hero__price">80,99 €</p>
-
         <p class="hero__description">
-          Une fragrance pensée pour laisser une signature élégante et durable.
+          Mode masculine et féminine, haute parfumerie, maroquinerie et art de vivre :
+          explorez les collections d'une grande enseigne contemporaine.
         </p>
 
-        <RouterLink to="/produits" class="hero__button"> Découvrir </RouterLink>
+        <div class="hero__actions">
+          <RouterLink to="/produits" class="hero__button hero__button--primary">
+            Explorer le catalogue
+          </RouterLink>
+
+          <RouterLink to="/produits?sort=newest" class="hero__button hero__button--outline">
+            Nouveautés
+          </RouterLink>
+        </div>
       </div>
     </div>
   </section>
@@ -28,245 +41,170 @@
 <style scoped>
 .hero {
   width: 100%;
-  background: var(--color-background);
+  background: var(--color-background, #f2f2f1);
 }
-
-/* =========================================================
-   CAMPAGNE
-   ========================================================= */
 
 .hero__campaign {
   position: relative;
   width: 100%;
-  height: clamp(360px, 32vw, 430px);
+  min-height: clamp(420px, 46vw, 620px);
   overflow: hidden;
-  background: #252525;
+  background: #141414;
+  display: flex;
+  align-items: center;
 }
-
-/* =========================================================
-   IMAGE
-   ========================================================= */
 
 .hero__image {
   position: absolute;
   inset: 0;
-
   width: 100%;
   height: 100%;
-
   display: block;
-
   object-fit: cover;
-  object-position: center;
+  object-position: center 38%;
 }
-
-/* =========================================================
-   OVERLAY
-   ========================================================= */
 
 .hero__overlay {
   position: absolute;
   inset: 0;
-
   background: linear-gradient(
     90deg,
-    rgba(0, 0, 0, 0.48) 0%,
-    rgba(0, 0, 0, 0.18) 55%,
-    rgba(0, 0, 0, 0.05) 100%
+    rgba(10, 10, 10, 0.78) 0%,
+    rgba(10, 10, 10, 0.52) 48%,
+    rgba(10, 10, 10, 0.22) 100%
   );
 }
 
-/* =========================================================
-   CONTENU
-   ========================================================= */
-
 .hero__content {
-  position: absolute;
-  inset: 0;
+  position: relative;
   z-index: 2;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-
-  width: min(420px, 45%);
-
-  padding: 32px 48px;
-
-  color: var(--color-white);
+  width: min(640px, 100%);
+  padding: clamp(36px, 5.5vw, 72px) clamp(24px, 4.5vw, 64px);
+  color: #ffffff;
 }
 
 .hero__eyebrow {
-  margin: 0 0 10px;
-
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.2;
+  display: inline-block;
+  margin: 0 0 14px;
+  font-size: 0.72rem;
+  font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+  color: #d8b06d;
 }
 
 .hero__title {
   margin: 0;
-
-  font-size: clamp(26px, 3vw, 40px);
+  font-family: var(--font-display, "Bodoni Moda", serif);
+  font-size: clamp(2rem, 3.8vw, 3.5rem);
   font-weight: 400;
-  line-height: 1.08;
-  letter-spacing: -0.015em;
-}
-
-.hero__price {
-  margin: 14px 0 0;
-
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #ffffff;
 }
 
 .hero__description {
-  max-width: 330px;
+  max-width: 480px;
+  margin: 16px 0 0;
+  font-family: var(--font-body, "Jost", sans-serif);
+  font-size: clamp(0.92rem, 1.2vw, 1.05rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.86);
+}
 
-  margin: 8px 0 0;
-
-  font-size: 13px;
-  line-height: 1.5;
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 26px;
 }
 
 .hero__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  min-height: 40px;
-
-  margin-top: 18px;
-  padding: 0 24px;
-
-  background: var(--color-white);
-  color: var(--color-black);
-
-  font-size: 10px;
+  height: 48px;
+  padding: 0 28px;
+  font-family: var(--font-body, "Jost", sans-serif);
+  font-size: 0.82rem;
   font-weight: 500;
-  line-height: 1;
-
   letter-spacing: 0.12em;
   text-transform: uppercase;
-
+  text-decoration: none;
   transition:
-    background var(--transition-base),
-    color var(--transition-base),
-    transform var(--transition-base);
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
-.hero__button:hover {
-  background: var(--color-black);
-  color: var(--color-white);
-  transform: translateY(-1px);
+.hero__button--primary {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ffffff;
 }
 
-/* =========================================================
-   TABLET
-   ========================================================= */
-
-@media (max-width: 900px) {
-  .hero__campaign {
-    height: 320px;
-  }
-
-  .hero__content {
-    width: 50%;
-    padding: 28px 32px;
-  }
-
-  .hero__title {
-    font-size: 30px;
-  }
+.hero__button--primary:hover {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+  transform: translateY(-2px);
 }
 
-/* =========================================================
-   MOBILE
-   ========================================================= */
+.hero__button--outline {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.hero__button--outline:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #ffffff;
+  transform: translateY(-2px);
+}
 
 @media (max-width: 767px) {
   .hero__campaign {
-    height: 250px;
-  }
-
-  .hero__image {
-    object-position: center;
+    min-height: 380px;
   }
 
   .hero__overlay {
     background: linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.58) 0%,
-      rgba(0, 0, 0, 0.25) 65%,
-      rgba(0, 0, 0, 0.05) 100%
+      180deg,
+      rgba(10, 10, 10, 0.45) 0%,
+      rgba(10, 10, 10, 0.78) 60%,
+      rgba(10, 10, 10, 0.92) 100%
     );
   }
 
   .hero__content {
-    width: 72%;
-    padding: 24px;
+    padding: 32px 20px;
   }
 
   .hero__eyebrow {
-    margin-bottom: 7px;
-
-    font-size: 8px;
-    letter-spacing: 0.18em;
+    font-size: 0.65rem;
+    margin-bottom: 10px;
   }
 
   .hero__title {
-    font-size: 23px;
-    line-height: 1.08;
-  }
-
-  .hero__price {
-    margin-top: 8px;
-    font-size: 15px;
+    font-size: 1.85rem;
   }
 
   .hero__description {
-    max-width: 240px;
+    font-size: 0.88rem;
+    margin-top: 12px;
+  }
 
-    margin-top: 6px;
-
-    font-size: 10px;
-    line-height: 1.45;
+  .hero__actions {
+    gap: 10px;
+    margin-top: 20px;
   }
 
   .hero__button {
-    min-height: 34px;
-
-    margin-top: 12px;
-    padding: 0 18px;
-
-    font-size: 8px;
-  }
-}
-
-/* =========================================================
-   PETITS MOBILES
-   ========================================================= */
-
-@media (max-width: 380px) {
-  .hero__campaign {
-    height: 240px;
-  }
-
-  .hero__content {
-    width: 78%;
-    padding: 20px;
-  }
-
-  .hero__title {
-    font-size: 21px;
-  }
-
-  .hero__description {
-    max-width: 220px;
+    height: 42px;
+    padding: 0 20px;
+    font-size: 0.75rem;
   }
 }
 </style>

@@ -1,11 +1,11 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 /**
  * Favoris conservés dans le navigateur, faute d'endpoint côté serveur.
  * Ils ne suivent donc pas le compte client et sont perdus si l'utilisateur
  * change d'appareil ou vide son stockage.
  */
-const STORAGE_KEY = "shahin:favorites";
+const STORAGE_KEY = "sidra:favorites";
 
 function readStored(): string[] {
   try {
@@ -16,7 +16,7 @@ function readStored(): string[] {
   }
 }
 
-// État partagé par toutes les cartes de la page
+// État partagé par toutes les cartes et pages
 const favorites = ref<string[]>(readStored());
 
 function persist(): void {
@@ -28,11 +28,13 @@ function persist(): void {
 }
 
 export function useFavorites() {
+  const count = computed(() => favorites.value.length);
+
   function isFavorite(productId: string): boolean {
     return favorites.value.includes(productId);
   }
 
-  function toggleFavorite(productId: string, name: string): void {
+  function toggleFavorite(productId: string, _name?: string): void {
     favorites.value = isFavorite(productId)
       ? favorites.value.filter((id) => id !== productId)
       : [...favorites.value, productId];
@@ -40,5 +42,22 @@ export function useFavorites() {
     persist();
   }
 
-  return { favorites, isFavorite, toggleFavorite };
+  function removeFavorite(productId: string): void {
+    favorites.value = favorites.value.filter((id) => id !== productId);
+    persist();
+  }
+
+  function clearFavorites(): void {
+    favorites.value = [];
+    persist();
+  }
+
+  return {
+    favorites,
+    count,
+    isFavorite,
+    toggleFavorite,
+    removeFavorite,
+    clearFavorites,
+  };
 }

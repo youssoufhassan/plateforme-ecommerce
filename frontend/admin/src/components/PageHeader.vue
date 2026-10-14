@@ -1,4 +1,3 @@
-```vue
 <script setup lang="ts">
 withDefaults(
   defineProps<{
@@ -146,4 +145,3 @@ const emit = defineEmits<{
   }
 }
 </style>
-```

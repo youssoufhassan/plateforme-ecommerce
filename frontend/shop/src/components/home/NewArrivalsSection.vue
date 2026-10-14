@@ -9,7 +9,6 @@ withDefaults(
     products: Product[];
     loading?: boolean;
     error?: string | null;
-    /** Paramétrable : la section sert aussi aux meilleures ventes. */
     title?: string;
     subtitle?: string;
     seeAllTo?: string;
@@ -17,19 +16,21 @@ withDefaults(
   {
     loading: false,
     error: null,
-    title: "Nouveautés",
-    subtitle: "Les dernières pièces ajoutées à notre sélection.",
-    seeAllTo: "/produits?sort=newest",
+    title: "Recommandé pour vous",
+    subtitle: "Une sélection à découvrir dans nos différents univers.",
+    seeAllTo: "/produits",
   },
 );
 </script>
 
 <template>
-  <section class="new-arrivals">
+  <section class="new-arrivals" aria-label="Sélection de produits">
     <div class="new-arrivals__container container">
-      <div class="new-arrivals__header">
+      <header class="new-arrivals__header">
         <div class="new-arrivals__content">
-          <h2 class="new-arrivals__title">{{ title }}</h2>
+          <h2 class="new-arrivals__title">
+            {{ title }}
+          </h2>
 
           <p v-if="subtitle" class="new-arrivals__description">
             {{ subtitle }}
@@ -37,11 +38,18 @@ withDefaults(
         </div>
 
         <RouterLink :to="seeAllTo" class="new-arrivals__link">
-          Voir tout
+          <span>Tout découvrir</span>
+          <span class="new-arrivals__link-arrow" aria-hidden="true">↗</span>
         </RouterLink>
-      </div>
+      </header>
 
-      <ProductCarousel :products="products" :loading="loading" :error="error" />
+      <div class="new-arrivals__products">
+        <ProductCarousel
+          :products="products"
+          :loading="loading"
+          :error="error"
+        />
+      </div>
     </div>
   </section>
 </template>
@@ -49,19 +57,20 @@ withDefaults(
 <style scoped>
 .new-arrivals {
   width: 100%;
-  padding-block: var(--space-12) var(--space-6);
+  padding-block: 30px 36px;
 }
 
 .new-arrivals__container {
   width: 100%;
+  min-width: 0;
 }
 
 .new-arrivals__header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-8);
-  margin-bottom: var(--space-6);
+  gap: 24px;
+  margin-bottom: 22px;
 }
 
 .new-arrivals__content {
@@ -70,74 +79,112 @@ withDefaults(
 
 .new-arrivals__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--text-3xl);
-  font-weight: var(--weight-regular);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
   color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: var(--weight-regular);
+  line-height: 1.2;
+  letter-spacing: -0.045em;
 }
 
 .new-arrivals__description {
   max-width: 52ch;
-  margin: var(--space-2) 0 0;
+  margin: 9px 0 0;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
-  line-height: var(--leading-normal);
+  line-height: 1.6;
 }
 
-/* Le soulignement se renforce au survol, sans déplacer le texte */
 .new-arrivals__link {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--color-line);
   color: var(--color-text);
   font-size: var(--text-sm);
-  text-decoration: underline;
-  text-underline-offset: 0.25em;
-  text-decoration-color: var(--color-line);
-  transition: text-decoration-color var(--transition-fast);
+  text-decoration: none;
+  transition:
+    border-color var(--transition-base),
+    color var(--transition-base);
 }
 
 .new-arrivals__link:hover {
-  text-decoration-color: currentColor;
+  border-color: var(--color-ink);
 }
 
-/* =========================================================
-   TABLETTE
-   ========================================================= */
+.new-arrivals__link-arrow {
+  display: inline-block;
+  transition: transform var(--transition-base);
+}
+
+.new-arrivals__link:hover .new-arrivals__link-arrow {
+  transform: translate(2px, -2px);
+}
+
+.new-arrivals__products {
+  min-width: 0;
+  width: 100%;
+}
 
 @media (max-width: 1000px) {
   .new-arrivals {
-    padding-block: var(--space-10) var(--space-6);
+    padding-block: 28px 30px;
   }
 
   .new-arrivals__header {
-    margin-bottom: var(--space-5);
+    margin-bottom: 20px;
   }
 }
 
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
 @media (max-width: 767px) {
   .new-arrivals {
-    padding-block: var(--space-8) var(--space-4);
+    padding-block: 24px 26px;
   }
 
   .new-arrivals__header {
-    align-items: flex-start;
-    gap: var(--space-4);
-    margin-bottom: var(--space-4);
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .new-arrivals__title {
+    font-size: 1.4rem;
+    letter-spacing: -0.035em;
   }
 
   .new-arrivals__description {
-    max-width: 100%;
+    max-width: 34ch;
+    margin-top: 7px;
     font-size: var(--text-xs);
   }
 
   .new-arrivals__link {
-    margin-top: 2px;
+    gap: 6px;
+    margin-bottom: 2px;
     font-size: var(--text-xs);
+  }
+}
+
+@media (max-width: 380px) {
+  .new-arrivals__header {
+    align-items: flex-start;
+  }
+
+  .new-arrivals__link {
+    margin-top: 5px;
+  }
+
+  .new-arrivals__description {
+    max-width: 25ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-arrivals__link,
+  .new-arrivals__link-arrow {
+    transition: none;
   }
 }
 </style>

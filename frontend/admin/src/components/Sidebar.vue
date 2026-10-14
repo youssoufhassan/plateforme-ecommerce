@@ -61,13 +61,12 @@ function closeMobileMenu() {
 
   <aside class="admin-sidebar" :class="{ open: mobileOpen }">
     <div class="sidebar-inner">
-      ```
       <!-- Logo -->
       <div class="sidebar-brand">
         <div class="brand-mark">S</div>
 
         <div class="brand-text">
-          <strong>SHAHIN</strong>
+          <strong>SIDRA</strong>
           <span>ADMINISTRATION</span>
         </div>
       </div>
@@ -96,11 +95,11 @@ function closeMobileMenu() {
         <div class="sidebar-divider"></div>
 
         <div class="admin-profile">
-          <div class="profile-avatar">A</div>
+          <div class="profile-avatar">S</div>
 
           <div class="profile-info">
             <strong>Administrateur</strong>
-            <span>Compte admin</span>
+            <span>SIDRA Store</span>
           </div>
         </div>
 
@@ -110,7 +109,6 @@ function closeMobileMenu() {
         </button>
       </div>
     </div>
-    ```
   </aside>
 
   <div v-if="mobileOpen" class="sidebar-overlay" @click="closeMobileMenu"></div>

@@ -3,7 +3,6 @@ import { computed, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 
 import { useCartStore } from "@/stores/cartStore";
-import { fullImageUrl } from "@/services/productService";
 import type { CartItem } from "@/types/cart";
 
 const cartStore = useCartStore();
@@ -50,7 +49,7 @@ onMounted(() => cartStore.load());
       <div v-else-if="cartStore.isEmpty" class="cart__empty">
         <p class="cart__empty-title">Votre panier est vide.</p>
         <p class="cart__empty-hint">
-          Parcourez le catalogue pour trouver votre prochaine fragrance.
+          Parcourez nos collections pour trouver vos prochains articles.
         </p>
         <RouterLink to="/produits" class="cart__empty-action">
           Découvrir le catalogue
