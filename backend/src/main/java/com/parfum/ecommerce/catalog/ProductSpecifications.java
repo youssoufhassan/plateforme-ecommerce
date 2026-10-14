@@ -38,6 +38,16 @@ public final class ProductSpecifications {
         return (root, query, cb) -> cb.isTrue(root.get("featured"));
     }
 
+    /** Une liste vide ne doit rien remonter, pas tout le catalogue. */
+    public static Specification<Product> idIn(List<UUID> ids) {
+        return (root, query, cb) -> {
+            if (ids == null || ids.isEmpty()) {
+                return cb.disjunction();
+            }
+            return root.get("id").in(ids);
+        };
+    }
+
     // =========================================================
     // DISPONIBILITÉ
     // =========================================================
@@ -159,6 +169,11 @@ public final class ProductSpecifications {
         };
     }
 
+    /** Conservée pour les appels existants : la branche est désormais la règle. */
+    public static Specification<Product> inCategory(String value) {
+        return inCategoryBranch(value);
+    }
+
     // =========================================================
     // ATTRIBUTS
     // =========================================================
@@ -166,6 +181,24 @@ public final class ProductSpecifications {
     public static Specification<Product> hasBrand(String brand) {
         return (root, query, cb) ->
                 cb.equal(cb.lower(root.get("brand")), brand.trim().toLowerCase());
+    }
+
+    /**
+     * Filtre par genre. Un produit unisexe remonte aussi bien
+     * côté homme que côté femme : c'est tout l'intérêt de la facette.
+     * Un produit sans genre (maquillage, lunettes) reste exclu.
+     */
+    public static Specification<Product> hasGender(String gender) {
+        return (root, query, cb) -> {
+            String value = gender.trim().toUpperCase();
+
+            if ("HOMME".equals(value) || "FEMME".equals(value)) {
+                return cb.or(
+                        cb.equal(root.get("gender"), value),
+                        cb.equal(root.get("gender"), "UNISEXE"));
+            }
+            return cb.equal(root.get("gender"), value);
+        };
     }
 
     public static Specification<Product> hasFulfillmentType(String type) {
@@ -231,19 +264,4 @@ public final class ProductSpecifications {
                 .replace("%", "\\%")
                 .replace("_", "\\_");
     }
-    public static Specification<Product> idIn(List<UUID> ids) {
-    return (root, query, cb) -> {
-        if (ids == null || ids.isEmpty()) {
-            return cb.disjunction();
-        }
-
-        return root.get("id").in(ids);
-    };
-}
-/**
- * Filtre par catégorie, compatible avec les appels existants.
- */
-public static Specification<Product> inCategory(String value) {
-    return inCategoryBranch(value);
-}
 }

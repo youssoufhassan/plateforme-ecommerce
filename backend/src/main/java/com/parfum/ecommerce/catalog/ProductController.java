@@ -52,12 +52,12 @@ public class ProductController {
     public List<ProductResponse> getAllProducts() {
         return productService.getAllActiveProducts();
     }
-
     @GetMapping("/search")
     public PageResponse<ProductResponse> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String genre,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(defaultValue = "false") boolean availableOnly,
@@ -65,10 +65,9 @@ public class ProductController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return productSearchService.search(q, category, brand, minPrice, maxPrice,
+        return productSearchService.search(q, category, brand, genre, minPrice, maxPrice,
                 availableOnly, sort, page, size);
     }
-
     /** Les marques et les prix se limitent à la branche consultée. */
     @GetMapping("/filters")
     public Map<String, Object> filters(@RequestParam(required = false) String category) {

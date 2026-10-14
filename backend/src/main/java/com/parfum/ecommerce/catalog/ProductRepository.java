@@ -58,4 +58,10 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
         ORDER BY COUNT(p) DESC, p.brand ASC
     """)
     java.util.List<String> findTopBrands(org.springframework.data.domain.Pageable pageable);
+        @Query("""
+        SELECT DISTINCT p.gender FROM Product p
+        WHERE p.active = true AND p.gender IS NOT NULL
+        ORDER BY p.gender
+    """)
+    java.util.List<String> findDistinctGenders();
 }

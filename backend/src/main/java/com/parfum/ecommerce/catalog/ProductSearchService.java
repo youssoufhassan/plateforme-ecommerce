@@ -34,6 +34,7 @@ public class ProductSearchService {
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> search(String q, String category, String brand,
+                                                 String gender,
                                                  BigDecimal minPrice, BigDecimal maxPrice,
                                                  boolean availableOnly, String sort,
                                                  int page, int size) {
@@ -53,6 +54,9 @@ public class ProductSearchService {
         if (brand != null && !brand.isBlank()) {
             spec = spec.and(ProductSpecifications.hasBrand(brand));
         }
+        if (gender != null && !gender.isBlank()) {
+            spec = spec.and(ProductSpecifications.hasGender(gender));
+        }
         if (minPrice != null) {
             spec = spec.and(ProductSpecifications.priceAtLeast(minPrice));
         }
@@ -71,28 +75,31 @@ public class ProductSearchService {
         return PageResponse.of(productRepository.findAll(spec, pageable), productService::toResponse);
     }
 
-    /** Valeurs disponibles pour construire les filtres côté frontend. */
-       /**
+    /**
      * Valeurs disponibles pour construire les filtres.
      * Quand une catégorie est consultée, les marques et les prix
      * se limitent à cette branche : proposer Rolex sous « Parfums »
-     * n'a pas de sens.
+     * n'aurait aucun sens.
      */
     @Transactional(readOnly = true)
     public Map<String, Object> filters(String category) {
         Map<String, Object> filters = new LinkedHashMap<>();
 
         if (category != null && !category.isBlank()) {
-            filters.put("brands", productRepository.findBrandsInBranch(category.trim().toLowerCase()));
-            filters.put("minPrice", productRepository.findMinPriceInBranch(category.trim().toLowerCase()));
-            filters.put("maxPrice", productRepository.findMaxPriceInBranch(category.trim().toLowerCase()));
+            String path = category.trim().toLowerCase();
+
+            filters.put("brands", productRepository.findBrandsInBranch(path));
+            filters.put("minPrice", productRepository.findMinPriceInBranch(path));
+            filters.put("maxPrice", productRepository.findMaxPriceInBranch(path));
         } else {
             filters.put("brands", productRepository.findActiveBrands());
             filters.put("minPrice", productRepository.findMinActivePrice());
             filters.put("maxPrice", productRepository.findMaxActivePrice());
         }
 
+        filters.put("genders", productRepository.findDistinctGenders());
         filters.put("sorts", List.of("relevance", "price_asc", "price_desc", "newest", "name"));
+
         return filters;
     }
 
@@ -113,6 +120,11 @@ public class ProductSearchService {
                 .and(ProductSpecifications.isAvailable())
                 .and(ProductSpecifications.notId(productId));
 
+        // Un parfum masculin ne doit pas suggérer des parfums féminins
+        if (current.getGender() != null && !current.getGender().isBlank()) {
+            base = base.and(ProductSpecifications.hasGender(current.getGender()));
+        }
+
         // Ordre stable : nouveautés d'abord, puis identifiant
         Sort order = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id"));
 
@@ -127,8 +139,8 @@ public class ProductSearchService {
         }
 
         /*
-         * Le chemin plutôt que le nom : « Parfums » existe sous Homme et sous Femme,
-         * les suggestions doivent rester dans la bonne branche.
+         * Le chemin plutôt que le nom : « Parfums » peut exister sous
+         * plusieurs univers, les suggestions doivent rester dans la bonne branche.
          */
         String branch = current.getCategory() != null ? current.getCategory().getPath() : null;
 

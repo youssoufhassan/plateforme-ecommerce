@@ -4,10 +4,12 @@ import com.parfum.ecommerce.catalog.dto.ProductAdminResponse;
 import com.parfum.ecommerce.catalog.dto.UpdateProductRequest;
 import com.parfum.ecommerce.supplier.Supplier;
 import com.parfum.ecommerce.supplier.SupplierRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class ProductEditService {
 
     private static final List<String> FULFILLMENT_TYPES = List.of("OWN_STOCK", "DROPSHIP");
+    private static final List<String> GENDERS = List.of("HOMME", "FEMME", "UNISEXE", "ENFANT");
 
     private final ProductRepository productRepository;
     private final ProductVariantRepository variantRepository;
@@ -67,6 +70,7 @@ public class ProductEditService {
             product.setSupplierSku(blankToNull(request.getSupplierSku()));
         }
 
+        applyGender(product, request);
         applyFulfillment(product, request);
         applySupplier(product, request);
         applyMainImage(product, request);
@@ -146,7 +150,7 @@ public class ProductEditService {
                 .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
 
         BigDecimal factor = BigDecimal.ONE.add(
-                markupPercent.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP));
+                markupPercent.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
 
         int updated = 0;
         for (ProductVariant variant : product.getVariants()) {
@@ -154,7 +158,7 @@ public class ProductEditService {
                 continue; // sans coût d'achat, aucune marge applicable
             }
             variant.setPrice(variant.getCostPrice().multiply(factor)
-                    .setScale(2, java.math.RoundingMode.HALF_UP));
+                    .setScale(2, RoundingMode.HALF_UP));
             variantRepository.save(variant);
             updated++;
         }
@@ -170,7 +174,40 @@ public class ProductEditService {
         return productService.adminResponseOf(product);
     }
 
-    // ===== Détails =====
+    /** Variantes sans coût d'achat, à compléter pour rendre les marges fiables. */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> variantsMissingCost(int limit) {
+        return variantRepository.findWithoutCostPrice(PageRequest.of(0, limit))
+                .stream()
+                .map(v -> Map.<String, Object>of(
+                        "variantId", v.getId(),
+                        "productId", v.getProduct().getId(),
+                        "productName", v.getProduct().getName(),
+                        "variantLabel", v.getLabel(),
+                        "price", v.getPrice()))
+                .toList();
+    }
+
+    // =========================================================
+    // DÉTAILS
+    // =========================================================
+
+    /**
+     * Le genre est une facette transversale : un parfum unisexe
+     * remonte côté homme comme côté femme. Une chaîne vide le retire.
+     */
+    private void applyGender(Product product, UpdateProductRequest request) {
+        if (request.getGender() == null) return;
+
+        String value = request.getGender().trim().toUpperCase();
+
+        if (!value.isEmpty() && !GENDERS.contains(value)) {
+            throw new IllegalArgumentException(
+                    "Genre invalide : " + value + ". Valeurs acceptées : " + String.join(", ", GENDERS));
+        }
+
+        product.setGender(value.isEmpty() ? null : value);
+    }
 
     private void applyFulfillment(Product product, UpdateProductRequest request) {
         if (!notBlank(request.getFulfillmentType())) return;
@@ -267,18 +304,5 @@ public class ProductEditService {
 
     private String blankToNull(String value) {
         return (value == null || value.isBlank()) ? null : value.trim();
-    }
-        @Transactional(readOnly = true)
-    public List<Map<String, Object>> variantsMissingCost(int limit) {
-        return variantRepository.findWithoutCostPrice(
-                        org.springframework.data.domain.PageRequest.of(0, limit))
-                .stream()
-                .map(v -> Map.<String, Object>of(
-                        "variantId", v.getId(),
-                        "productId", v.getProduct().getId(),
-                        "productName", v.getProduct().getName(),
-                        "variantLabel", v.getLabel(),
-                        "price", v.getPrice()))
-                .toList();
     }
 }
