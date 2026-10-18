@@ -46,8 +46,7 @@ const beautyCards = computed(() => {
     {
       title: "Haute Parfumerie",
       categoryKey: "parfums",
-      tag: "SIGNATURES",
-      desc: "Des sillages mémorables, des notes ambrées, florales et boisées pour révéler votre signature.",
+      desc: "Des sillages aux notes ambrées, florales et boisées pour trouver votre signature.",
       image:
         "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=900&q=85",
       alt: "Flacons de parfum dans une composition élégante",
@@ -61,8 +60,7 @@ const beautyCards = computed(() => {
     {
       title: "Soins du Visage",
       categoryKey: "cremes",
-      tag: "RITUELS",
-      desc: "Crèmes, sérums et soins essentiels pour intégrer un rituel de beauté à votre quotidien.",
+      desc: "Crèmes, sérums et soins essentiels pour votre rituel de beauté.",
       image:
         "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=900&q=85",
       alt: "Produits cosmétiques pour le soin du visage",
@@ -71,8 +69,7 @@ const beautyCards = computed(() => {
     {
       title: "Soins Capillaires",
       categoryKey: "produits-capillaires",
-      tag: "EXPERTISE",
-      desc: "Des huiles, masques et soins nourrissants pour prendre soin de vos cheveux.",
+      desc: "Huiles, masques et soins pour nourrir et entretenir vos cheveux.",
       image:
         "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=85",
       alt: "Produits de beauté et soins capillaires",
@@ -86,8 +83,7 @@ const beautyCards = computed(() => {
     {
       title: "Pommades & Huiles",
       categoryKey: "huiles",
-      tag: "TRADITION",
-      desc: "Huiles corporelles, baumes et textures enveloppantes inspirés des rituels de soin.",
+      desc: "Huiles corporelles, baumes et soins inspirés des rituels traditionnels.",
       image:
         "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=900&q=85",
       alt: "Huiles et soins pour le corps",
@@ -106,7 +102,6 @@ const beautyCards = computed(() => {
 
     return {
       ...def,
-      node,
       targetPath: node?.path || node?.slug || def.categoryKey,
     };
   });
@@ -117,16 +112,7 @@ const beautyCards = computed(() => {
   <section class="beauty-section" aria-labelledby="beauty-title">
     <div class="container">
       <header class="section-head">
-        <div class="section-head__text">
-          <span class="eyebrow">RITUELS & FRAGRANCES</span>
-
-          <h2 id="beauty-title" class="section-title">L'univers Beauté</h2>
-
-          <p class="section-desc">
-            Des sillages mémorables aux soins bienfaisants : découvrez une
-            vision singulière de la beauté et du bien-être.
-          </p>
-        </div>
+        <h2 id="beauty-title" class="section-title">L'univers Beauté</h2>
 
         <RouterLink
           :to="{
@@ -137,19 +123,16 @@ const beautyCards = computed(() => {
           }"
           class="all-link"
         >
-          Explorer toute la Beauté
-          <span aria-hidden="true">↗</span>
+          Tout voir
         </RouterLink>
       </header>
 
-      <!-- Quatre univers illustrés -->
       <div class="beauty-grid">
         <article
           v-for="card in beautyCards"
           :key="card.title"
           class="beauty-card"
         >
-          <!-- Image éditoriale -->
           <RouterLink
             :to="{
               path: '/produits',
@@ -167,14 +150,9 @@ const beautyCards = computed(() => {
             />
 
             <span class="beauty-card__image-overlay" aria-hidden="true"></span>
-
-            <span class="beauty-card__image-arrow" aria-hidden="true"> ↗ </span>
           </RouterLink>
 
-          <!-- Contenu -->
           <div class="beauty-card__content">
-            <span class="beauty-tag">{{ card.tag }}</span>
-
             <RouterLink
               :to="{
                 path: '/produits',
@@ -183,14 +161,14 @@ const beautyCards = computed(() => {
               class="beauty-card__title-link"
             >
               <h3>{{ card.title }}</h3>
-              <span class="arrow-icon" aria-hidden="true">↗</span>
             </RouterLink>
 
-            <p class="beauty-card__desc">
-              {{ card.desc }}
-            </p>
+            <p class="beauty-card__desc">{{ card.desc }}</p>
 
-            <div class="beauty-sublinks">
+            <nav
+              class="beauty-sublinks"
+              :aria-label="`Catégories ${card.title}`"
+            >
               <RouterLink
                 v-for="sub in card.sublinks"
                 :key="sub"
@@ -202,7 +180,7 @@ const beautyCards = computed(() => {
               >
                 {{ sub }}
               </RouterLink>
-            </div>
+            </nav>
 
             <RouterLink
               :to="{
@@ -211,8 +189,7 @@ const beautyCards = computed(() => {
               }"
               class="beauty-card__discover"
             >
-              Découvrir la sélection
-              <span aria-hidden="true">→</span>
+              Voir la sélection
             </RouterLink>
           </div>
         </article>
@@ -230,20 +207,10 @@ const beautyCards = computed(() => {
 
 .section-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: clamp(28px, 4vw, 44px);
-}
-
-.eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  margin-bottom: clamp(24px, 3vw, 36px);
 }
 
 .section-title {
@@ -255,26 +222,14 @@ const beautyCards = computed(() => {
   letter-spacing: -0.03em;
 }
 
-.section-desc {
-  max-width: 52ch;
-  margin: 10px 0 0;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
-
 .all-link {
-  display: inline-flex;
   flex-shrink: 0;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 6px;
+  padding-bottom: 5px;
   border-bottom: 1px solid var(--color-line, #e0dfdb);
   color: var(--color-ink, #000);
   font-size: 0.82rem;
   font-weight: 500;
   text-decoration: none;
-  white-space: nowrap;
   transition: border-color 0.2s ease;
 }
 
@@ -282,7 +237,7 @@ const beautyCards = computed(() => {
   border-color: var(--color-ink, #000);
 }
 
-/* Grille principale */
+/* Grille */
 
 .beauty-grid {
   display: grid;
@@ -310,7 +265,7 @@ const beautyCards = computed(() => {
   transform: translateY(-3px);
 }
 
-/* Photographies */
+/* Images */
 
 .beauty-card__image-link {
   position: relative;
@@ -318,7 +273,6 @@ const beautyCards = computed(() => {
   aspect-ratio: 4 / 4.5;
   overflow: hidden;
   background: #e8e4dc;
-  color: #fff;
 }
 
 .beauty-card__image {
@@ -338,39 +292,14 @@ const beautyCards = computed(() => {
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgb(0 0 0 / 8%) 0%,
-    transparent 42%,
-    rgb(0 0 0 / 12%) 100%
+    rgb(0 0 0 / 5%) 0%,
+    transparent 45%,
+    rgb(0 0 0 / 8%) 100%
   );
   pointer-events: none;
 }
 
-.beauty-card__image-arrow {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 75%);
-  border-radius: 50%;
-  background: rgb(255 255 255 / 90%);
-  color: #171714;
-  font-size: 15px;
-  transition:
-    color 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-
-.beauty-card:hover .beauty-card__image-arrow {
-  transform: translate(2px, -2px);
-  background: #171714;
-  color: #fff;
-}
-
-/* Textes et catégories */
+/* Contenu */
 
 .beauty-card__content {
   display: flex;
@@ -379,20 +308,8 @@ const beautyCards = computed(() => {
   padding: clamp(16px, 2vw, 24px);
 }
 
-.beauty-tag {
-  display: inline-block;
-  margin-bottom: 10px;
-  color: #a66b23;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-}
-
 .beauty-card__title-link {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  display: block;
   margin-bottom: 12px;
   color: var(--color-ink, #000);
   text-decoration: none;
@@ -405,20 +322,6 @@ const beautyCards = computed(() => {
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.25;
-}
-
-.arrow-icon {
-  flex-shrink: 0;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.85rem;
-  transition:
-    transform 0.2s ease,
-    color 0.2s ease;
-}
-
-.beauty-card:hover .arrow-icon {
-  transform: translate(3px, -3px);
-  color: var(--color-ink, #000);
 }
 
 .beauty-card__desc {
@@ -457,13 +360,10 @@ const beautyCards = computed(() => {
   color: var(--color-ink, #000);
 }
 
-/* Lien inférieur */
+/* Lien de collection */
 
 .beauty-card__discover {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: block;
   margin-top: auto;
   padding-top: 20px;
   color: var(--color-ink, #000);
@@ -472,12 +372,10 @@ const beautyCards = computed(() => {
   text-decoration: none;
 }
 
-.beauty-card__discover span {
-  transition: transform 0.2s ease;
-}
-
-.beauty-card__discover:hover span {
-  transform: translateX(4px);
+.beauty-card__discover:hover,
+.beauty-card__title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* Tablettes */
@@ -505,14 +403,13 @@ const beautyCards = computed(() => {
   }
 
   .section-head {
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: baseline;
     gap: 16px;
     margin-bottom: 24px;
   }
 
-  .section-desc {
-    font-size: 0.86rem;
+  .section-title {
+    font-size: 1.8rem;
   }
 
   .beauty-grid {
@@ -537,12 +434,11 @@ const beautyCards = computed(() => {
   }
 }
 
+/* Accessibilité */
+
 @media (prefers-reduced-motion: reduce) {
   .beauty-card,
-  .beauty-card__image,
-  .beauty-card__image-arrow,
-  .arrow-icon,
-  .beauty-card__discover span {
+  .beauty-card__image {
     transition: none;
   }
 }

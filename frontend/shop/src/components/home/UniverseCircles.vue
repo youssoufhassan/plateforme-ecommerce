@@ -39,7 +39,6 @@ const defaultUniverses = [
 
 const circles = computed<Circle[]>(() => {
   if (props.tree && props.tree.length > 0) {
-    // Trier selon l'ordre éditorial
     const orderMap: Record<string, number> = {
       femme: 1,
       homme: 2,
@@ -86,7 +85,6 @@ const circles = computed<Circle[]>(() => {
     ];
   }
 
-  // Fallback si l'arbre est en cours de chargement ou vide
   return [
     ...defaultUniverses.map((item) => ({
       key: item.slug,
@@ -114,7 +112,6 @@ const circles = computed<Circle[]>(() => {
   <section class="universes" aria-labelledby="universes-title">
     <div class="container universes__inner">
       <div class="universes__header">
-        <span class="universes__eyebrow">EXPLORATION</span>
         <h2 id="universes-title" class="universes__title">
           Toutes les catégories
         </h2>
@@ -155,16 +152,6 @@ const circles = computed<Circle[]>(() => {
 
 .universes__header {
   margin-bottom: clamp(16px, 2.5vw, 24px);
-}
-
-.universes__eyebrow {
-  display: block;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-text-muted, #767672);
-  margin-bottom: 6px;
 }
 
 .universes__title {

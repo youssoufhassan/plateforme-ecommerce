@@ -94,18 +94,8 @@ const chaussuresItems = computed(() => {
 <template>
   <section class="women-section" aria-labelledby="women-title">
     <div class="container">
-      <!-- En-tête -->
       <header class="section-head">
-        <div class="section-head__text">
-          <span class="eyebrow">LE VESTIAIRE FÉMININ</span>
-
-          <h2 id="women-title" class="section-title">Mode Femme</h2>
-
-          <p class="section-desc">
-            Des lignes fluides, des étoffes raffinées et des pièces fortes pour
-            composer une garde-robe élégante et singulière.
-          </p>
-        </div>
+        <h2 id="women-title" class="section-title">Mode Femme</h2>
 
         <RouterLink
           :to="{
@@ -114,16 +104,12 @@ const chaussuresItems = computed(() => {
           }"
           class="all-link"
         >
-          Découvrir tout l'univers Femme
-          <span aria-hidden="true">↗</span>
+          Tout voir
         </RouterLink>
       </header>
 
-      <!-- Composition asymétrique -->
       <div class="women-layout">
-        <!-- Vêtements et chaussures -->
         <div class="women-pillars">
-          <!-- Vêtements -->
           <article class="pillar-card">
             <RouterLink
               :to="{
@@ -142,17 +128,11 @@ const chaussuresItems = computed(() => {
                 decoding="async"
               />
 
-              <span class="pillar-image__label">
-                Le vestiaire féminin
-                <span aria-hidden="true">↗</span>
-              </span>
+              <span class="pillar-image__label"> Le vestiaire féminin </span>
             </RouterLink>
 
             <div class="pillar-head">
-              <div>
-                <span class="pillar-eyebrow">SILHOUETTES</span>
-                <h3 class="pillar-title">Vêtements</h3>
-              </div>
+              <h3 class="pillar-title">Vêtements</h3>
 
               <RouterLink
                 :to="{
@@ -163,7 +143,7 @@ const chaussuresItems = computed(() => {
                 }"
                 class="pillar-link"
               >
-                Explorer <span aria-hidden="true">→</span>
+                Tout voir
               </RouterLink>
             </div>
 
@@ -177,13 +157,11 @@ const chaussuresItems = computed(() => {
                 }"
                 class="chip-link"
               >
-                <span>{{ item.name }}</span>
-                <span class="chip-arrow" aria-hidden="true">↗</span>
+                {{ item.name }}
               </RouterLink>
             </div>
           </article>
 
-          <!-- Chaussures -->
           <article class="pillar-card">
             <RouterLink
               :to="{
@@ -202,17 +180,11 @@ const chaussuresItems = computed(() => {
                 decoding="async"
               />
 
-              <span class="pillar-image__label">
-                L'art du détail
-                <span aria-hidden="true">↗</span>
-              </span>
+              <span class="pillar-image__label"> Chaussures </span>
             </RouterLink>
 
             <div class="pillar-head">
-              <div>
-                <span class="pillar-eyebrow">SOULIERS</span>
-                <h3 class="pillar-title">Chaussures</h3>
-              </div>
+              <h3 class="pillar-title">Chaussures</h3>
 
               <RouterLink
                 :to="{
@@ -223,7 +195,7 @@ const chaussuresItems = computed(() => {
                 }"
                 class="pillar-link"
               >
-                Explorer <span aria-hidden="true">→</span>
+                Tout voir
               </RouterLink>
             </div>
 
@@ -237,14 +209,12 @@ const chaussuresItems = computed(() => {
                 }"
                 class="chip-link"
               >
-                <span>{{ item.name }}</span>
-                <span class="chip-arrow" aria-hidden="true">↗</span>
+                {{ item.name }}
               </RouterLink>
             </div>
           </article>
         </div>
 
-        <!-- Grande carte éditoriale -->
         <article class="women-editorial-card">
           <div class="women-editorial-card__bg" aria-hidden="true">
             <img
@@ -256,8 +226,6 @@ const chaussuresItems = computed(() => {
           </div>
 
           <div class="women-editorial-card__content">
-            <span class="card-tag">COLLECTION FEMME</span>
-
             <h3 class="card-title">La grâce en mouvement</h3>
 
             <p class="card-text">
@@ -272,8 +240,7 @@ const chaussuresItems = computed(() => {
               }"
               class="btn btn-primary card-btn"
             >
-              Explorer le vestiaire
-              <span aria-hidden="true">↗</span>
+              Voir la sélection
             </RouterLink>
           </div>
         </article>
@@ -297,16 +264,6 @@ const chaussuresItems = computed(() => {
   margin-bottom: clamp(28px, 4vw, 44px);
 }
 
-.eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
 .section-title {
   margin: 0;
   color: var(--color-ink, #000);
@@ -316,18 +273,9 @@ const chaussuresItems = computed(() => {
   letter-spacing: -0.03em;
 }
 
-.section-desc {
-  max-width: 52ch;
-  margin: 10px 0 0;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
-
 .all-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--color-line, #e0dfdb);
   color: var(--color-ink, #000);
@@ -341,8 +289,6 @@ const chaussuresItems = computed(() => {
 .all-link:hover {
   border-color: var(--color-ink, #000);
 }
-
-/* Composition principale : catégories à gauche, image à droite */
 
 .women-layout {
   display: grid;
@@ -366,8 +312,6 @@ const chaussuresItems = computed(() => {
   border: 1px solid var(--color-line, #e0dfdb);
   background: var(--color-surface, #fff);
 }
-
-/* Photos des sous-univers */
 
 .pillar-image {
   position: relative;
@@ -404,16 +348,10 @@ const chaussuresItems = computed(() => {
   bottom: 14px;
   left: 16px;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.04em;
 }
-
-/* En-tête des catégories */
 
 .pillar-head {
   display: flex;
@@ -422,15 +360,6 @@ const chaussuresItems = computed(() => {
   gap: 14px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--color-line, #e0dfdb);
-}
-
-.pillar-eyebrow {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
 }
 
 .pillar-title {
@@ -444,7 +373,6 @@ const chaussuresItems = computed(() => {
 .pillar-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   color: var(--color-text-secondary, #3d3d3b);
   font-size: 0.78rem;
   font-weight: 500;
@@ -456,8 +384,6 @@ const chaussuresItems = computed(() => {
   color: var(--color-ink, #000);
 }
 
-/* Liens des sous-catégories */
-
 .category-chips {
   display: flex;
   flex-wrap: wrap;
@@ -467,7 +393,6 @@ const chaussuresItems = computed(() => {
 .chip-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   padding: 8px 12px;
   border: 1px solid var(--color-line, #e0dfdb);
   background: var(--color-page, #f8f7f5);
@@ -486,18 +411,6 @@ const chaussuresItems = computed(() => {
   background: #fff;
   color: var(--color-ink, #000);
 }
-
-.chip-arrow {
-  color: var(--color-text-muted, #767672);
-  font-size: 0.7rem;
-  transition: transform 0.2s ease;
-}
-
-.chip-link:hover .chip-arrow {
-  transform: translate(2px, -2px);
-}
-
-/* Grande image éditoriale */
 
 .women-editorial-card {
   position: relative;
@@ -546,15 +459,6 @@ const chaussuresItems = computed(() => {
   padding: clamp(24px, 3vw, 40px);
 }
 
-.card-tag {
-  display: inline-block;
-  margin-bottom: 12px;
-  color: #e5c28b;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-}
-
 .card-title {
   margin: 0 0 12px;
   font-family: var(--font-display, "Bodoni Moda", serif);
@@ -576,7 +480,6 @@ const chaussuresItems = computed(() => {
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   padding: 0 18px;
   font-size: 0.76rem;
   font-weight: 500;
@@ -598,8 +501,6 @@ const chaussuresItems = computed(() => {
   color: #111;
 }
 
-/* Tablettes */
-
 @media (max-width: 1000px) {
   .women-layout {
     grid-template-columns: 1fr;
@@ -620,8 +521,6 @@ const chaussuresItems = computed(() => {
   }
 }
 
-/* Mobiles */
-
 @media (max-width: 767px) {
   .women-section {
     padding-block: 36px;
@@ -630,10 +529,6 @@ const chaussuresItems = computed(() => {
   .section-head {
     gap: 16px;
     margin-bottom: 24px;
-  }
-
-  .section-desc {
-    font-size: 0.86rem;
   }
 
   .all-link {
@@ -679,12 +574,9 @@ const chaussuresItems = computed(() => {
   }
 }
 
-/* Accessibilité : désactive les animations si nécessaire */
-
 @media (prefers-reduced-motion: reduce) {
   .women-editorial-card__bg img,
-  .pillar-image img,
-  .chip-arrow {
+  .pillar-image img {
     transition: none;
   }
 }

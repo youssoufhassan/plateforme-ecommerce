@@ -319,7 +319,8 @@ function categoryLink(category: CategoryNode) {
 .header {
   position: fixed;
   inset: 0 0 auto;
-  z-index: 100;
+  z-index: 1000;
+  isolation: isolate;
   background: #fff;
   border-bottom: 1px solid #e7e5e1;
 }
@@ -415,9 +416,9 @@ function categoryLink(category: CategoryNode) {
 
 .header__nav {
   position: relative;
+  z-index: 1;
   background: #fff;
 }
-
 .header__nav-inner {
   display: flex;
   align-items: stretch;
@@ -460,7 +461,7 @@ function categoryLink(category: CategoryNode) {
   top: 100%;
   right: 0;
   left: 0;
-  z-index: 110;
+  z-index: 2;
   background: #fff;
   border-top: 1px solid #eeeae5;
   border-bottom: 1px solid #dedbd5;

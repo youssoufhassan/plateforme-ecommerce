@@ -119,8 +119,7 @@ onMounted(() => {
 <template>
   <main class="home">
     <!-- 1. Hero principal : grande composition éditoriale avec image et CTA -->
-    <HeroSection />
-
+    <HeroSection :products="recommendedProducts" :loading="loading" />
     <!-- 2. Toutes les catégories : cercles compacts et élégants alignés sur une ligne -->
     <UniverseCircles :tree="tree" />
 

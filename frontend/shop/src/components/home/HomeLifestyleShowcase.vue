@@ -76,23 +76,14 @@ const electroniqueSubcategories = computed(() => {
   <section class="lifestyle-section" aria-labelledby="lifestyle-title">
     <div class="container">
       <header class="section-head">
-        <div class="section-head__text">
-          <span class="eyebrow">ART DE VIVRE & TECHNOLOGIE</span>
-
-          <h2 id="lifestyle-title" class="section-title">
-            Maison & Électronique
-          </h2>
-
-          <p class="section-desc">
-            Des intérieurs inspirés et des innovations soigneusement
-            sélectionnées pour leur esthétique et leurs performances.
-          </p>
-        </div>
+        <h2 id="lifestyle-title" class="section-title">
+          Maison & Électronique
+        </h2>
       </header>
 
       <div class="lifestyle-grid">
         <!-- UNIVERS MAISON -->
-        <article class="lifestyle-card lifestyle-card--home">
+        <article class="lifestyle-card">
           <RouterLink
             :to="{
               path: '/produits',
@@ -114,30 +105,19 @@ const electroniqueSubcategories = computed(() => {
             <span class="lifestyle-card__overlay" aria-hidden="true"></span>
 
             <span class="lifestyle-card__visual-content">
-              <span class="visual-eyebrow">ART DE VIVRE</span>
               <span class="visual-title">La beauté du quotidien</span>
-              <span class="visual-link">
-                Explorer la Maison <span aria-hidden="true">↗</span>
-              </span>
             </span>
           </RouterLink>
 
           <div class="card-inner">
-            <div class="card-heading">
-              <div>
-                <span class="card-eyebrow">CADRE DE VIE</span>
-                <h3 class="card-title">Maison & Art de vivre</h3>
-              </div>
-
-              <span class="card-index" aria-hidden="true">01</span>
-            </div>
+            <h3 class="card-title">Maison & Art de vivre</h3>
 
             <p class="card-desc">
-              Senteurs raffinées, diffuseurs, objets décoratifs et linge de
-              maison pour apporter une touche singulière à votre intérieur.
+              Senteurs raffinées, objets décoratifs et linge de maison pour
+              apporter une touche singulière à votre intérieur.
             </p>
 
-            <div class="card-links">
+            <nav class="card-links" aria-label="Catégories Maison">
               <RouterLink
                 v-for="sub in maisonSubcategories"
                 :key="sub.name"
@@ -147,10 +127,9 @@ const electroniqueSubcategories = computed(() => {
                 }"
                 class="lifestyle-link"
               >
-                <span>{{ sub.name }}</span>
-                <span class="link-arrow" aria-hidden="true">↗</span>
+                {{ sub.name }}
               </RouterLink>
-            </div>
+            </nav>
 
             <RouterLink
               :to="{
@@ -161,14 +140,13 @@ const electroniqueSubcategories = computed(() => {
               }"
               class="card-cta"
             >
-              <span>Explorer l'univers Maison</span>
-              <span class="cta-arrow" aria-hidden="true">→</span>
+              Tout voir
             </RouterLink>
           </div>
         </article>
 
         <!-- UNIVERS ÉLECTRONIQUE -->
-        <article class="lifestyle-card lifestyle-card--tech">
+        <article class="lifestyle-card">
           <RouterLink
             :to="{
               path: '/produits',
@@ -190,30 +168,19 @@ const electroniqueSubcategories = computed(() => {
             <span class="lifestyle-card__overlay" aria-hidden="true"></span>
 
             <span class="lifestyle-card__visual-content">
-              <span class="visual-eyebrow">TECHNOLOGIE & INNOVATION</span>
-              <span class="visual-title">L'essentiel, autrement</span>
-              <span class="visual-link">
-                Explorer la Technologie <span aria-hidden="true">↗</span>
-              </span>
+              <span class="visual-title">La technologie au quotidien</span>
             </span>
           </RouterLink>
 
           <div class="card-inner">
-            <div class="card-heading">
-              <div>
-                <span class="card-eyebrow">PRÉCISION & PERFORMANCE</span>
-                <h3 class="card-title">Électronique & High-Tech</h3>
-              </div>
-
-              <span class="card-index" aria-hidden="true">02</span>
-            </div>
+            <h3 class="card-title">Électronique & High-Tech</h3>
 
             <p class="card-desc">
-              Audio, accessoires connectés et équipements technologiques : des
-              solutions pensées pour accompagner votre quotidien.
+              Audio, accessoires connectés et équipements technologiques pour
+              accompagner votre quotidien.
             </p>
 
-            <div class="card-links">
+            <nav class="card-links" aria-label="Catégories Électronique">
               <RouterLink
                 v-for="sub in electroniqueSubcategories"
                 :key="sub.name"
@@ -223,10 +190,9 @@ const electroniqueSubcategories = computed(() => {
                 }"
                 class="lifestyle-link"
               >
-                <span>{{ sub.name }}</span>
-                <span class="link-arrow" aria-hidden="true">↗</span>
+                {{ sub.name }}
               </RouterLink>
-            </div>
+            </nav>
 
             <RouterLink
               :to="{
@@ -237,8 +203,7 @@ const electroniqueSubcategories = computed(() => {
               }"
               class="card-cta"
             >
-              <span>Explorer l'Électronique</span>
-              <span class="cta-arrow" aria-hidden="true">→</span>
+              Tout voir
             </RouterLink>
           </div>
         </article>
@@ -254,24 +219,8 @@ const electroniqueSubcategories = computed(() => {
   background: var(--color-page, #f8f7f5);
 }
 
-/* En-tête de section */
-
 .section-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: clamp(28px, 4vw, 44px);
-}
-
-.eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  margin-bottom: clamp(24px, 3vw, 36px);
 }
 
 .section-title {
@@ -282,16 +231,6 @@ const electroniqueSubcategories = computed(() => {
   font-weight: 400;
   letter-spacing: -0.03em;
 }
-
-.section-desc {
-  max-width: 56ch;
-  margin: 10px 0 0;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.92rem;
-  line-height: 1.65;
-}
-
-/* Deux univers équilibrés */
 
 .lifestyle-grid {
   display: grid;
@@ -319,7 +258,7 @@ const electroniqueSubcategories = computed(() => {
   transform: translateY(-3px);
 }
 
-/* Grande photographie */
+/* Photographies */
 
 .lifestyle-card__visual {
   position: relative;
@@ -348,9 +287,9 @@ const electroniqueSubcategories = computed(() => {
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgb(0 0 0 / 5%) 0%,
-    rgb(0 0 0 / 4%) 35%,
-    rgb(0 0 0 / 66%) 100%
+    rgb(0 0 0 / 3%) 0%,
+    rgb(0 0 0 / 8%) 35%,
+    rgb(0 0 0 / 60%) 100%
   );
 }
 
@@ -360,20 +299,10 @@ const electroniqueSubcategories = computed(() => {
   bottom: clamp(18px, 3vw, 30px);
   left: clamp(18px, 3vw, 32px);
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 9px;
-}
-
-.visual-eyebrow {
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
 }
 
 .visual-title {
+  display: block;
   max-width: 18ch;
   font-family: var(--font-display, "Bodoni Moda", serif);
   font-size: clamp(1.6rem, 2.7vw, 2.5rem);
@@ -381,50 +310,13 @@ const electroniqueSubcategories = computed(() => {
   line-height: 1.1;
 }
 
-.visual-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 5px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgb(255 255 255 / 65%);
-  font-size: 0.76rem;
-  font-weight: 500;
-}
-
-.visual-link span {
-  transition: transform 0.2s ease;
-}
-
-.lifestyle-card__visual:hover .visual-link span {
-  transform: translate(2px, -2px);
-}
-
-/* Contenu des cartes */
+/* Contenu */
 
 .card-inner {
   display: flex;
   flex: 1;
   flex-direction: column;
   padding: clamp(22px, 3vw, 36px);
-}
-
-.card-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--color-line, #e0dfdb);
-}
-
-.card-eyebrow {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
 }
 
 .card-title {
@@ -436,16 +328,9 @@ const electroniqueSubcategories = computed(() => {
   line-height: 1.2;
 }
 
-.card-index {
-  color: #b7a68b;
-  font-family: var(--font-display, "Bodoni Moda", serif);
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
 .card-desc {
   max-width: 50ch;
-  margin: 18px 0 22px;
+  margin: 14px 0 22px;
   color: var(--color-text-muted, #767672);
   font-size: 0.86rem;
   line-height: 1.7;
@@ -461,10 +346,7 @@ const electroniqueSubcategories = computed(() => {
 }
 
 .lifestyle-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  display: block;
   padding: 11px 13px;
   border: 1px solid var(--color-line, #e0dfdb);
   background: var(--color-page, #f8f7f5);
@@ -484,23 +366,10 @@ const electroniqueSubcategories = computed(() => {
   color: var(--color-ink, #000);
 }
 
-.link-arrow {
-  flex-shrink: 0;
-  color: var(--color-text-muted, #767672);
-  transition: transform 0.2s ease;
-}
-
-.lifestyle-link:hover .link-arrow {
-  transform: translate(2px, -2px);
-}
-
-/* Bouton de fin de carte */
+/* Lien principal */
 
 .card-cta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  display: block;
   margin-top: 24px;
   padding: 14px 16px;
   border: 1px solid var(--color-ink, #000);
@@ -508,6 +377,7 @@ const electroniqueSubcategories = computed(() => {
   color: #fff;
   font-size: 0.76rem;
   font-weight: 500;
+  text-align: center;
   text-decoration: none;
   transition:
     background 0.2s ease,
@@ -517,15 +387,6 @@ const electroniqueSubcategories = computed(() => {
 .card-cta:hover {
   background: transparent;
   color: var(--color-ink, #000);
-}
-
-.cta-arrow {
-  font-size: 1rem;
-  transition: transform 0.2s ease;
-}
-
-.card-cta:hover .cta-arrow {
-  transform: translateX(4px);
 }
 
 /* Tablettes */
@@ -554,10 +415,6 @@ const electroniqueSubcategories = computed(() => {
 
   .section-head {
     margin-bottom: 24px;
-  }
-
-  .section-desc {
-    font-size: 0.86rem;
   }
 
   .lifestyle-grid {
@@ -591,14 +448,11 @@ const electroniqueSubcategories = computed(() => {
   }
 }
 
-/* Respect des préférences d'accessibilité */
+/* Accessibilité */
 
 @media (prefers-reduced-motion: reduce) {
   .lifestyle-card,
-  .lifestyle-card__image,
-  .visual-link span,
-  .link-arrow,
-  .cta-arrow {
+  .lifestyle-card__image {
     transition: none;
   }
 }

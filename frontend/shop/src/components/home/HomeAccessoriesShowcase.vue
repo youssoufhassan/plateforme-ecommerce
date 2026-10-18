@@ -41,7 +41,6 @@ const sides = computed(() => [
   {
     key: "homme",
     title: "Accessoires Homme",
-    eyebrow: "LES DÉTAILS DU VESTIAIRE",
     rootQuery:
       findNode(props.tree, "homme/accessoires")?.path || "homme/accessoires",
     coverImage:
@@ -93,7 +92,6 @@ const sides = computed(() => [
   {
     key: "femme",
     title: "Accessoires Femme",
-    eyebrow: "FINITIONS & JOAILLERIE",
     rootQuery:
       findNode(props.tree, "femme/accessoires")?.path || "femme/accessoires",
     coverImage:
@@ -149,16 +147,7 @@ const sides = computed(() => [
   <section class="accessories-section" aria-labelledby="accessories-title">
     <div class="container">
       <header class="section-head">
-        <div class="section-head__text">
-          <span class="eyebrow">LE SENS DU DÉTAIL</span>
-
-          <h2 id="accessories-title" class="section-title">Les accessoires</h2>
-
-          <p class="section-desc">
-            Montres, maroquinerie, bijoux et pièces de finition : des
-            accessoires choisis pour compléter chaque silhouette.
-          </p>
-        </div>
+        <h2 id="accessories-title" class="section-title">Les accessoires</h2>
 
         <RouterLink
           :to="{
@@ -167,12 +156,10 @@ const sides = computed(() => [
           }"
           class="all-link"
         >
-          Tous les accessoires
-          <span aria-hidden="true">↗</span>
+          Tout voir
         </RouterLink>
       </header>
 
-      <!-- Deux univers, côte à côte sur grand écran -->
       <div class="accessories-columns">
         <article
           v-for="side in sides"
@@ -180,17 +167,8 @@ const sides = computed(() => [
           class="accessory-column"
           :class="`accessory-column--${side.key}`"
         >
-          <!-- En-tête de l'univers -->
           <header class="column-header">
-            <div>
-              <span class="column-eyebrow">
-                {{ side.eyebrow }}
-              </span>
-
-              <h3 class="column-title">
-                {{ side.title }}
-              </h3>
-            </div>
+            <h3 class="column-title">{{ side.title }}</h3>
 
             <RouterLink
               :to="{
@@ -200,17 +178,16 @@ const sides = computed(() => [
               class="column-link"
             >
               Tout voir
-              <span aria-hidden="true">↗</span>
             </RouterLink>
           </header>
 
-          <!-- Grande photo éditoriale -->
           <RouterLink
             :to="{
               path: '/produits',
               query: { category: side.rootQuery },
             }"
             class="column-editorial"
+            :aria-label="`Découvrir ${side.title}`"
           >
             <img
               :src="side.coverImage"
@@ -226,15 +203,9 @@ const sides = computed(() => [
               <span class="column-editorial__title">
                 {{ side.coverTitle }}
               </span>
-
-              <span class="column-editorial__link">
-                Explorer l'univers
-                <span aria-hidden="true">↗</span>
-              </span>
             </span>
           </RouterLink>
 
-          <!-- Groupes de catégories avec miniatures -->
           <div class="groups-list">
             <article
               v-for="group in side.groups"
@@ -266,12 +237,13 @@ const sides = computed(() => [
                   }"
                   class="group-title-link"
                 >
-                  <span>{{ group.title }}</span>
-
-                  <span class="group-arrow" aria-hidden="true">↗</span>
+                  {{ group.title }}
                 </RouterLink>
 
-                <div class="group-chips">
+                <nav
+                  class="group-chips"
+                  :aria-label="`Rechercher ${group.title}`"
+                >
                   <RouterLink
                     v-for="item in group.items"
                     :key="item"
@@ -283,7 +255,7 @@ const sides = computed(() => [
                   >
                     {{ item }}
                   </RouterLink>
-                </div>
+                </nav>
               </div>
             </article>
           </div>
@@ -302,20 +274,10 @@ const sides = computed(() => [
 
 .section-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: clamp(28px, 4vw, 44px);
-}
-
-.eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  margin-bottom: clamp(24px, 3vw, 36px);
 }
 
 .section-title {
@@ -327,34 +289,25 @@ const sides = computed(() => [
   letter-spacing: -0.03em;
 }
 
-.section-desc {
-  max-width: 52ch;
-  margin: 10px 0 0;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
-
-.all-link {
-  display: inline-flex;
+.all-link,
+.column-link {
   flex-shrink: 0;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 6px;
+  padding-bottom: 5px;
   border-bottom: 1px solid var(--color-line, #e0dfdb);
   color: var(--color-ink, #000);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
   transition: border-color 0.2s ease;
 }
 
-.all-link:hover {
+.all-link:hover,
+.column-link:hover {
   border-color: var(--color-ink, #000);
 }
 
-/* Deux colonnes principales */
+/* Univers Homme et Femme */
 
 .accessories-columns {
   display: grid;
@@ -379,24 +332,15 @@ const sides = computed(() => [
   background: var(--color-page, #fcfbf9);
 }
 
-/* En-tête des univers */
+/* En-tête */
 
 .column-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--color-line, #e0dfdb);
-}
-
-.column-eyebrow {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--color-text-muted, #767672);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
 }
 
 .column-title {
@@ -408,23 +352,7 @@ const sides = computed(() => [
   line-height: 1.25;
 }
 
-.column-link {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-text-secondary, #3d3d3b);
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.column-link:hover {
-  color: var(--color-ink, #000);
-}
-
-/* Bannières photographiques */
+/* Images principales */
 
 .column-editorial {
   position: relative;
@@ -455,7 +383,7 @@ const sides = computed(() => [
     180deg,
     rgb(0 0 0 / 3%) 10%,
     rgb(0 0 0 / 12%) 50%,
-    rgb(0 0 0 / 70%) 100%
+    rgb(0 0 0 / 65%) 100%
   );
 }
 
@@ -465,36 +393,18 @@ const sides = computed(() => [
   bottom: 16px;
   left: 16px;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
 }
 
 .column-editorial__title {
+  display: block;
+  max-width: 22ch;
   font-family: var(--font-display, "Bodoni Moda", serif);
-  font-size: clamp(1.15rem, 1.7vw, 1.6rem);
+  font-size: clamp(1.2rem, 1.7vw, 1.6rem);
   font-weight: 400;
   line-height: 1.2;
 }
 
-.column-editorial__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-}
-
-.column-editorial__link span {
-  transition: transform 0.2s ease;
-}
-
-.column-editorial:hover .column-editorial__link span {
-  transform: translate(2px, -2px);
-}
-
-/* Liste des catégories */
+/* Catégories */
 
 .groups-list {
   display: flex;
@@ -518,8 +428,6 @@ const sides = computed(() => [
   padding-bottom: 0;
   border-bottom: none;
 }
-
-/* Petite photo de chaque groupe */
 
 .group-image-link {
   display: block;
@@ -548,10 +456,6 @@ const sides = computed(() => [
 }
 
 .group-title-link {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
   color: var(--color-ink, #000);
   font-size: 0.9rem;
   font-weight: 600;
@@ -560,17 +464,8 @@ const sides = computed(() => [
 }
 
 .group-title-link:hover {
-  color: var(--color-accent, #b4761a);
-}
-
-.group-arrow {
-  flex-shrink: 0;
-  color: var(--color-text-muted, #767672);
-  transition: transform 0.2s ease;
-}
-
-.group-title-link:hover .group-arrow {
-  transform: translate(2px, -2px);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* Liens secondaires */
@@ -618,11 +513,6 @@ const sides = computed(() => [
   .accessory-group {
     grid-template-columns: 120px minmax(0, 1fr);
   }
-
-  .section-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }
 
 /* Mobiles */
@@ -635,10 +525,6 @@ const sides = computed(() => [
   .section-head {
     gap: 16px;
     margin-bottom: 24px;
-  }
-
-  .section-desc {
-    font-size: 0.86rem;
   }
 
   .all-link {
@@ -696,9 +582,7 @@ const sides = computed(() => [
 
 @media (prefers-reduced-motion: reduce) {
   .column-editorial__image,
-  .group-image,
-  .column-editorial__link span,
-  .group-arrow {
+  .group-image {
     transition: none;
   }
 }
