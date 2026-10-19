@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
-
-import type { CatalogFilterState } from "@/types/catalog";
+import type {
+  CatalogFilterState,
+  CategoryFilterDefinition,
+} from "@/types/catalog";
 
 import CatalogGlobalFilters from "./CatalogGlobalFilters.vue";
 import CatalogCategoryFilters from "./CatalogCategoryFilters.vue";
@@ -11,8 +13,7 @@ const props = defineProps<{
   category: string;
   state: CatalogFilterState;
   brands: string[];
-  categoryLabel?: string;
-  specificFilters: import("@/types/catalog").CategoryFilterDefinition[];
+  specificFilters: CategoryFilterDefinition[];
 }>();
 
 const emit = defineEmits<{
@@ -30,6 +31,15 @@ const emit = defineEmits<{
     },
   ];
 }>();
+
+const visibleFilters = computed(() =>
+  props.specificFilters.filter((filter) => {
+    const label = String(filter.label ?? "").toLowerCase();
+    const key = String(filter.key ?? "").toLowerCase();
+
+    return label !== "maison" && key !== "maison";
+  }),
+);
 
 const activeCount = computed(() => {
   let count = 0;
@@ -54,21 +64,30 @@ const activeCount = computed(() => {
 </script>
 
 <template>
-  <div v-if="open" class="catalog-filter-overlay" @click.self="emit('close')">
-    <aside class="catalog-filter-panel" aria-label="Filtres du catalogue">
+  <!--
+    Le wrapper est TOUJOURS monté dans le DOM.
+    - Mobile  : caché par défaut, affiché quand `open === true` (drawer).
+    - Desktop : toujours visible en statique, sert de colonne latérale.
+  -->
+  <div
+    class="catalog-filter-overlay"
+    :class="{ 'is-open': open }"
+    @click.self="emit('close')"
+  >
+    <aside
+      id="catalog-filter-panel"
+      class="catalog-filter-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Filtres"
+    >
       <header class="catalog-filter-panel__header">
-        <div>
-          <p class="catalog-filter-panel__eyebrow">SIDRA</p>
-          <h2>Filtres</h2>
-          <p v-if="categoryLabel" class="catalog-filter-panel__category">
-            {{ categoryLabel }}
-          </p>
-        </div>
+        <h2>Filtres</h2>
 
         <button
           type="button"
           class="catalog-filter-panel__close"
-          aria-label="Fermer"
+          aria-label="Fermer les filtres"
           @click="emit('close')"
         >
           ✕
@@ -86,10 +105,10 @@ const activeCount = computed(() => {
           @update:sort="emit('update:sort', $event)"
         />
 
-        <div class="catalog-filter-panel__divider" />
+        <div class="catalog-filter-panel__divider" aria-hidden="true" />
 
         <CatalogCategoryFilters
-          :fields="specificFilters"
+          :fields="visibleFilters"
           :model-value="state.attributes"
           @update:attribute="emit('update:attribute', $event)"
         />
@@ -118,13 +137,20 @@ const activeCount = computed(() => {
 </template>
 
 <style scoped>
+/* ============================================================
+   ÉTAT PAR DÉFAUT = MOBILE (drawer)
+   ============================================================ */
 .catalog-filter-overlay {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  display: flex;
+  display: none;
   justify-content: flex-end;
   background: rgb(0 0 0 / 38%);
+}
+
+.catalog-filter-overlay.is-open {
+  display: flex;
 }
 
 .catalog-filter-panel {
@@ -132,6 +158,7 @@ const activeCount = computed(() => {
   flex-direction: column;
   width: min(420px, 100%);
   height: 100%;
+  min-width: 0;
   background: #fff;
   color: #202020;
   box-shadow: -8px 0 32px rgb(0 0 0 / 8%);
@@ -141,42 +168,38 @@ const activeCount = computed(() => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 16px;
   padding: 24px;
   border-bottom: 1px solid #eeeae4;
-}
-
-.catalog-filter-panel__eyebrow {
-  margin: 0 0 7px;
-  color: #777;
-  font-size: 10px;
-  letter-spacing: 0.2em;
 }
 
 .catalog-filter-panel__header h2 {
   margin: 0;
   font-size: 22px;
   font-weight: 500;
-}
-
-.catalog-filter-panel__category {
-  margin: 8px 0 0;
-  color: #777;
-  font-size: 12px;
+  /* Couleur figée pour ne plus hériter du #000000 pur du thème global */
+  color: #202020;
 }
 
 .catalog-filter-panel__close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
   width: 34px;
   height: 34px;
   border: 1px solid #e8e5df;
   border-radius: 50%;
   background: #fff;
+  color: inherit;
   cursor: pointer;
 }
 
 .catalog-filter-panel__body {
   flex: 1;
+  min-height: 0;
   padding: 24px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .catalog-filter-panel__divider {
@@ -187,6 +210,7 @@ const activeCount = computed(() => {
 
 .catalog-filter-panel__footer {
   display: grid;
+  flex: 0 0 auto;
   gap: 12px;
   padding: 20px 24px;
   border-top: 1px solid #eeeae4;
@@ -217,14 +241,71 @@ const activeCount = computed(() => {
   background: #383838;
 }
 
+/* ============================================================
+   DESKTOP (>= 1001px) : panneau toujours visible, en colonne
+   ============================================================ */
+@media (min-width: 1001px) {
+  .catalog-filter-overlay {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    display: block !important;
+    min-width: 0;
+    background: transparent;
+  }
+
+  .catalog-filter-panel {
+    position: static;
+    width: 100%;
+    height: auto;
+    box-shadow: none;
+    background: transparent;
+    color: inherit;
+  }
+
+  .catalog-filter-panel__header {
+    padding: 0 0 20px;
+  }
+
+  .catalog-filter-panel__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 20px 0;
+    overflow: visible;
+  }
+
+  .catalog-filter-panel__divider {
+    margin: 4px 0;
+  }
+
+  .catalog-filter-panel__footer {
+    padding: 16px 0 0;
+    background: transparent;
+  }
+
+  /* En desktop, on n'a pas besoin de bouton fermer ni du bouton
+     "Voir les résultats" : le panneau est déjà visible. */
+  .catalog-filter-panel__close {
+    display: none;
+  }
+}
+
+/* ============================================================
+   MOBILE : petites retouches de padding
+   ============================================================ */
 @media (max-width: 600px) {
   .catalog-filter-panel {
-    width: 100%;
+    width: min(420px, 100%);
   }
 
   .catalog-filter-panel__header,
   .catalog-filter-panel__body {
     padding: 20px;
+  }
+
+  .catalog-filter-panel__footer {
+    padding: 16px 20px;
   }
 }
 </style>

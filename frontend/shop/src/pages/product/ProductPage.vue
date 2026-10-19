@@ -224,7 +224,7 @@ function selectImage(index: number): void {
   imgError.value = false;
 }
 
-/* AUTRES UNIVERS DE SIDRA */
+/* AUTRES UNIVERS */
 
 function normalizeCategoryName(name: string): string {
   return name
@@ -326,7 +326,6 @@ onBeforeUnmount(() => {
 
     <!-- ERREUR -->
     <div v-else-if="error || !product" class="container product-error">
-      <span class="product-error__eyebrow">SIDRA BEAUTY & LIFESTYLE</span>
       <h1>Ce produit est indisponible</h1>
       <p>{{ error || "Nous n'avons pas trouvé ce produit." }}</p>
 
@@ -366,10 +365,7 @@ onBeforeUnmount(() => {
 
               <div v-else class="product-gallery__fallback">
                 <span>{{ product.name.slice(0, 2).toUpperCase() }}</span>
-                <small>SIDRA</small>
               </div>
-
-              <span class="product-gallery__signature"> L'ART DU CHOIX </span>
 
               <span v-if="!product.available" class="product-gallery__status">
                 Indisponible
@@ -413,9 +409,14 @@ onBeforeUnmount(() => {
               </button>
             </div>
 
-            <div class="product-gallery__caption">
-              <span>SIDRA</span>
-              <span>Une sélection qui vous ressemble</span>
+            <div
+              v-if="product.description"
+              class="product-gallery__description"
+            >
+              <h2 class="product-gallery__description-title">Description</h2>
+              <p class="product-gallery__description-text">
+                {{ product.description }}
+              </p>
             </div>
           </section>
 
@@ -436,17 +437,13 @@ onBeforeUnmount(() => {
               </RouterLink>
 
               <span v-else class="product-info__brand">
-                {{ product.categoryName || "SIDRA" }}
+                {{ product.categoryName }}
               </span>
             </div>
 
             <h1 class="product-info__title">
               {{ product.name }}
             </h1>
-
-            <p class="product-info__intro">
-              Une sélection pensée pour allier caractère, élégance et plaisir.
-            </p>
 
             <div class="product-info__price-row">
               <p class="product-info__price">{{ formattedPrice }}</p>
@@ -589,16 +586,11 @@ onBeforeUnmount(() => {
               {{ addError }}
             </p>
 
-            <p class="product-info__payment-note">
-              Le prix affiché correspond à la sélection choisie.
-            </p>
-
             <!-- INFORMATIONS DÉPLIABLES -->
             <div class="product-details">
               <details
                 v-if="product.description"
-                class="product-details__item"
-                open
+                class="product-details__item product-details__item--description-mobile"
               >
                 <summary>
                   <span>Description</span>
@@ -742,14 +734,13 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <!-- AUTRES UNIVERS : JUSTE SOUS LES GARANTIES -->
+        <!-- AUTRES UNIVERS -->
         <section
           v-if="relatedCategories.length"
           class="related-categories"
-          aria-label="Découvrir les autres univers SIDRA"
+          aria-label="Découvrir les autres univers"
         >
           <div class="related-categories__heading">
-            <span class="related-categories__eyebrow">EXPLORER SIDRA</span>
             <h2>Et si vous découvriez un autre univers&nbsp;?</h2>
           </div>
 
@@ -803,7 +794,7 @@ onBeforeUnmount(() => {
   gap: 10px;
   padding: 22px 0 26px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .product-breadcrumb a {
@@ -829,7 +820,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* Composition principale — dimensions conservées */
+/* Composition principale */
 
 .product-layout {
   display: grid;
@@ -843,7 +834,7 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-/* Galerie — taille du produit inchangée */
+/* Galerie */
 
 .product-gallery {
   position: relative;
@@ -910,11 +901,6 @@ onBeforeUnmount(() => {
   letter-spacing: 0.08em;
 }
 
-.product-gallery__fallback small {
-  font-size: 10px;
-  letter-spacing: 0.3em;
-}
-
 .product-gallery__status {
   position: absolute;
   top: 18px;
@@ -923,7 +909,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--line);
   background: var(--color-page, #fff);
   color: var(--ink);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -1003,6 +989,30 @@ onBeforeUnmount(() => {
   mix-blend-mode: multiply;
 }
 
+/* Description sous la galerie (desktop uniquement) */
+
+.product-gallery__description {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.product-gallery__description-title {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.product-gallery__description-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.85;
+  white-space: pre-line;
+}
+
 /* Informations produit */
 
 .product-info {
@@ -1023,7 +1033,7 @@ onBeforeUnmount(() => {
 
 .product-info__brand {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.19em;
   text-decoration: none;
@@ -1039,21 +1049,11 @@ a.product-info__brand:hover {
   margin: 20px 0 0;
   color: var(--ink);
   font-family: var(--font-display, Georgia, "Times New Roman", serif);
-  font-size: clamp(35px, 3.7vw, 53px);
+  font-size: clamp(40px, 4.2vw, 60px);
   font-weight: 400;
   line-height: 1.08;
   letter-spacing: -0.04em;
   overflow-wrap: anywhere;
-}
-
-.product-info__intro {
-  max-width: 420px;
-  margin: 15px 0 0;
-  color: var(--muted);
-  font-family: var(--font-display, Georgia, "Times New Roman", serif);
-  font-size: 15px;
-  font-style: italic;
-  line-height: 1.75;
 }
 
 .product-info__price-row {
@@ -1067,7 +1067,7 @@ a.product-info__brand:hover {
 .product-info__price {
   margin: 0;
   color: var(--ink);
-  font-size: 23px;
+  font-size: 27px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -1075,7 +1075,7 @@ a.product-info__brand:hover {
 
 .product-info__price-detail {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .product-info__availability {
@@ -1084,7 +1084,7 @@ a.product-info__brand:hover {
   gap: 8px;
   margin-top: 14px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12.5px;
 }
 
 .product-info__availability-dot {
@@ -1099,6 +1099,10 @@ a.product-info__brand:hover {
   background: #a15a52;
 }
 
+/*
+  Un seul trait de séparation entre la zone prix/dispo et la zone
+  variantes/achat : utile, pas redondant.
+*/
 .product-info__rule {
   height: 1px;
   margin-top: 25px;
@@ -1114,7 +1118,7 @@ a.product-info__brand:hover {
 .product-variants__heading {
   margin: 0 0 14px;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -1125,7 +1129,7 @@ a.product-info__brand:hover {
 .product-variants__hint {
   margin: 11px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 
@@ -1140,18 +1144,18 @@ a.product-info__brand:hover {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .product-quantity__label {
   color: var(--ink);
-  font-size: 11px;
+  font-size: 12.5px;
 }
 
 .product-quantity__control {
   display: flex;
-  width: 118px;
-  height: 43px;
+  width: 132px;
+  height: 48px;
   align-items: center;
   justify-content: space-between;
   border: 1px solid var(--line);
@@ -1160,14 +1164,14 @@ a.product-info__brand:hover {
 
 .product-quantity__control button {
   display: grid;
-  width: 36px;
+  width: 40px;
   height: 100%;
   place-items: center;
   border: 0;
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-size: 17px;
+  font-size: 18px;
   cursor: pointer;
 }
 
@@ -1178,23 +1182,23 @@ a.product-info__brand:hover {
 
 .product-quantity__control span {
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
 .product-add {
   display: flex;
   width: 100%;
-  min-height: 58px;
+  min-height: 62px;
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  padding: 0 22px;
+  padding: 0 24px;
   border: 1px solid var(--color-ink, #262626);
   background: var(--color-ink, #262626);
   color: #fff;
   font-family: inherit;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.11em;
   text-align: left;
@@ -1207,9 +1211,9 @@ a.product-info__brand:hover {
 }
 
 .product-add svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
 }
 
 .product-add:hover:not(:disabled) {
@@ -1229,22 +1233,18 @@ a.product-info__brand:hover {
 .product-info__error {
   margin: 12px 0 0;
   color: var(--color-error, #a33d36);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
-}
-
-.product-info__payment-note {
-  margin: 12px 0 0;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.6;
 }
 
 /* Accordéons */
 
 .product-details {
-  margin-top: 28px;
-  border-top: 1px solid var(--line);
+  margin-top: 32px;
+  /*
+    Pas de border-top ici : chaque item porte son propre border-bottom.
+    On garde donc UN trait par accordéon au lieu de deux.
+  */
 }
 
 .product-details__item {
@@ -1253,13 +1253,13 @@ a.product-info__brand:hover {
 
 .product-details__item summary {
   display: flex;
-  min-height: 55px;
+  min-height: 62px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   list-style: none;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.025em;
   cursor: pointer;
@@ -1297,9 +1297,9 @@ a.product-info__brand:hover {
 }
 
 .product-details__content {
-  padding: 0 0 19px;
+  padding: 0 0 20px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.85;
 }
 
@@ -1310,7 +1310,7 @@ a.product-info__brand:hover {
 
 .product-meta {
   display: grid;
-  gap: 12px;
+  gap: 13px;
   margin: 0;
 }
 
@@ -1323,13 +1323,23 @@ a.product-info__brand:hover {
 
 .product-meta dt {
   color: var(--muted);
+  font-size: 13px;
 }
 
 .product-meta dd {
   margin: 0;
   color: var(--ink);
+  font-size: 13px;
   text-align: right;
   overflow-wrap: anywhere;
+}
+
+/*
+  L'accordéon description est masqué en desktop (≥ 1001px)
+  car la description est déjà visible sous la galerie.
+*/
+.product-details__item--description-mobile {
+  display: none;
 }
 
 /* Services */
@@ -1337,52 +1347,52 @@ a.product-info__brand:hover {
 .product-promises {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 40px;
+  margin-top: 44px;
+  /*
+    On garde UN SEUL trait (border-top) pour séparer la zone
+    services du reste. Pas de border-bottom redondant.
+  */
   border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: transparent;
 }
 
 .product-promises__item {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 15px;
-  padding: 25px clamp(15px, 2.5vw, 32px);
+  gap: 16px;
+  padding: 28px clamp(15px, 2.5vw, 32px);
 }
 
-.product-promises__item + .product-promises__item {
-  border-left: 1px solid var(--line);
-}
+/* Plus de traits verticaux entre les 3 services : design épuré. */
 
 .product-promises__icon {
   display: grid;
-  width: 43px;
-  height: 43px;
-  flex: 0 0 43px;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
   place-items: center;
   background: var(--color-surface, #f7f7f5);
   color: var(--ink);
 }
 
 .product-promises__icon svg {
-  width: 23px;
-  height: 23px;
+  width: 26px;
+  height: 26px;
 }
 
 .product-promises__item h2 {
   margin: 0;
   color: var(--ink);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .product-promises__item p {
-  margin: 7px 0 0;
+  margin: 8px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 
@@ -1393,22 +1403,16 @@ a.product-info__brand:hover {
   grid-template-columns: minmax(190px, 0.8fr) minmax(0, 2fr);
   align-items: center;
   gap: 25px;
-  margin-top: 22px;
-  padding: 20px 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: transparent;
+  /*
+    Plus de border-top ni border-bottom : la section services
+    juste au-dessus fournit déjà le trait de séparation.
+  */
+  margin-top: 28px;
+  padding: 24px 0;
 }
 
 .related-categories__heading {
   min-width: 0;
-}
-
-.related-categories__heading > span {
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
 }
 
 .related-categories__heading h2 {
@@ -1421,13 +1425,6 @@ a.product-info__brand:hover {
   letter-spacing: -0.025em;
 }
 
-.related-categories__heading p {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
-}
-
 .related-categories__links {
   display: flex;
   flex-wrap: wrap;
@@ -1437,14 +1434,14 @@ a.product-info__brand:hover {
 
 .related-categories__link {
   display: inline-flex;
-  min-height: 35px;
+  min-height: 38px;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
+  padding: 9px 14px;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--ink);
-  font-size: 10px;
+  font-size: 11px;
   text-decoration: none;
   transition:
     border-color 180ms ease,
@@ -1531,14 +1528,8 @@ a.product-info__brand:hover {
   text-align: center;
 }
 
-.product-error__eyebrow {
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-}
-
 .product-error h1 {
-  margin: 18px 0 0;
+  margin: 0;
   color: var(--ink);
   font-family: var(--font-display, Georgia, "Times New Roman", serif);
   font-size: clamp(28px, 4vw, 42px);
@@ -1548,20 +1539,20 @@ a.product-info__brand:hover {
 .product-error p {
   margin: 12px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
 .product-error__link {
   display: inline-flex;
-  min-height: 46px;
+  min-height: 48px;
   align-items: center;
   justify-content: center;
   margin-top: 25px;
-  padding: 0 22px;
+  padding: 0 24px;
   border: 1px solid var(--ink);
   color: var(--ink);
-  font-size: 11px;
+  font-size: 12px;
   text-decoration: none;
   transition:
     background 180ms ease,
@@ -1582,19 +1573,27 @@ a.product-info__brand:hover {
   }
 
   .product-info__title {
-    font-size: clamp(30px, 3.6vw, 41px);
+    font-size: clamp(34px, 4vw, 46px);
   }
 
   .product-promises__item {
     align-items: flex-start;
     flex-direction: column;
-    gap: 11px;
-    padding: 21px 17px;
+    gap: 12px;
+    padding: 22px 17px;
   }
 
   .related-categories {
     grid-template-columns: minmax(0, 1fr);
     gap: 17px;
+  }
+
+  .product-gallery__description {
+    display: none;
+  }
+
+  .product-details__item--description-mobile {
+    display: block;
   }
 }
 
@@ -1608,7 +1607,7 @@ a.product-info__brand:hover {
   .product-breadcrumb {
     gap: 7px;
     padding: 17px 0;
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .product-layout {
@@ -1654,13 +1653,8 @@ a.product-info__brand:hover {
 
   .product-info__title {
     margin-top: 15px;
-    font-size: clamp(31px, 8vw, 39px);
+    font-size: clamp(32px, 8.5vw, 42px);
     line-height: 1.12;
-  }
-
-  .product-info__intro {
-    margin-top: 12px;
-    font-size: 14px;
   }
 
   .product-info__price-row {
@@ -1676,37 +1670,36 @@ a.product-info__brand:hover {
   }
 
   .product-add {
-    min-height: 54px;
+    min-height: 58px;
   }
 
   .product-promises {
     grid-template-columns: minmax(0, 1fr);
-    margin-top: 34px;
+    margin-top: 36px;
   }
 
   .product-promises__item {
-    min-height: 79px;
+    min-height: 84px;
     align-items: center;
     flex-direction: row;
-    gap: 14px;
-    padding: 17px 4px;
+    gap: 15px;
+    padding: 18px 4px;
   }
 
   .product-promises__item + .product-promises__item {
     border-top: 1px solid var(--line);
-    border-left: 0;
   }
 
   .product-promises__icon {
-    width: 41px;
-    height: 41px;
-    flex-basis: 41px;
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
   }
 
   .related-categories {
     gap: 16px;
-    margin-top: 19px;
-    padding: 19px 0;
+    margin-top: 20px;
+    padding: 20px 0;
   }
 
   .related-categories__heading h2 {
@@ -1719,9 +1712,9 @@ a.product-info__brand:hover {
   }
 
   .related-categories__link {
-    min-height: 34px;
-    padding: 8px 10px;
-    font-size: 10px;
+    min-height: 36px;
+    padding: 9px 12px;
+    font-size: 11px;
   }
 
   .product-recommendations {
@@ -1751,11 +1744,11 @@ a.product-info__brand:hover {
 
 @media (max-width: 380px) {
   .product-info__title {
-    font-size: 29px;
+    font-size: 30px;
   }
 
   .product-promises__item {
-    gap: 11px;
+    gap: 12px;
   }
 
   .product-promises__item p {
@@ -1767,8 +1760,8 @@ a.product-info__brand:hover {
   }
 
   .related-categories__link {
-    padding-inline: 8px;
-    font-size: 9px;
+    padding-inline: 10px;
+    font-size: 10px;
   }
 }
 
