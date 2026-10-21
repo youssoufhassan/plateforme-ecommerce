@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 
+import { fetchProduct, fullImageUrl } from "@/services/productService";
 import { useCartStore } from "@/stores/cartStore";
 import type { CartItem } from "@/types/cart";
+import type { Product } from "@/types/product";
 
 const cartStore = useCartStore();
 
 const cart = computed(() => cartStore.cart);
+
+/** Image principale par produit (clé : productId), récupérée depuis le catalogue. */
+const productImages = ref<Record<string, string>>({});
+/** Produits dont l'image n'a pas pu s'afficher (repli sur les initiales). */
+const failedImages = ref<Record<string, boolean>>({});
 
 function money(value: number | null | undefined): string {
   return new Intl.NumberFormat("fr-FR", {
@@ -25,6 +32,49 @@ function displayName(item: CartItem): string {
     return item.productName;
   return `${item.productName} — ${item.variantLabel}`;
 }
+
+/** Même ordre que la page produit : imageUrls d'abord, puis imageUrl. */
+function pickImage(product: Product): string {
+  const first = [...(product.imageUrls ?? []), product.imageUrl].find((image) =>
+    image?.trim(),
+  );
+
+  return first ? fullImageUrl(first) : "";
+}
+
+async function loadImages(items: CartItem[]): Promise<void> {
+  const ids = [...new Set(items.map((item) => item.productId))].filter(
+    (id) => !(id in productImages.value),
+  );
+
+  // On réserve la clé tout de suite pour ne pas lancer deux fois la même requête
+  for (const id of ids) productImages.value[id] = "";
+
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        productImages.value[id] = pickImage(await fetchProduct(id));
+      } catch {
+        productImages.value[id] = "";
+      }
+    }),
+  );
+}
+
+function itemImage(item: CartItem): string {
+  if (failedImages.value[item.productId]) return "";
+  return productImages.value[item.productId] ?? "";
+}
+
+function markImageFailed(item: CartItem): void {
+  failedImages.value[item.productId] = true;
+}
+
+watch(
+  () => cartStore.items,
+  (items) => void loadImages(items),
+  { immediate: true },
+);
 
 onMounted(() => cartStore.load());
 </script>
@@ -85,7 +135,15 @@ onMounted(() => cartStore.load());
                 :to="`/produits/${item.productId}`"
                 class="cart-line__visual"
               >
-                <span class="cart-line__initials">
+                <img
+                  v-if="itemImage(item)"
+                  :src="itemImage(item)"
+                  :alt="item.productName"
+                  class="cart-line__image"
+                  loading="lazy"
+                  @error="markImageFailed(item)"
+                />
+                <span v-else class="cart-line__initials">
                   {{ item.productName.slice(0, 2).toUpperCase() }}
                 </span>
               </RouterLink>
@@ -191,13 +249,9 @@ onMounted(() => cartStore.load());
             </p>
 
             <div class="summary__total">
-              <span>Total</span>
+              <span>Total TTC</span>
               <strong>{{ money(cart?.total) }}</strong>
             </div>
-
-            <p class="summary__vat">
-              dont {{ money(cart?.vat) }} de TVA ({{ cart?.vatRate }} %)
-            </p>
 
             <RouterLink
               v-if="!cartStore.checkoutBlocked"
@@ -357,8 +411,20 @@ onMounted(() => cartStore.load());
   display: grid;
   place-items: center;
   aspect-ratio: 1 / 1.1;
-  background: #f4f3f1;
+  overflow: hidden;
+  background: var(--color-surface, #f7f7f5);
   text-decoration: none;
+}
+
+/* Même rendu que la galerie de la page produit */
+.cart-line__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+  object-fit: contain;
+  object-position: center;
+  mix-blend-mode: multiply;
 }
 
 .cart-line__initials {
@@ -522,12 +588,6 @@ onMounted(() => cartStore.load());
   font-size: 19px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-}
-
-.summary__vat {
-  margin: 5px 0 0;
-  color: var(--color-text-muted);
-  font-size: 11.5px;
 }
 
 .summary__checkout {

@@ -9,18 +9,19 @@ import {
   createAddress,
   createPaymentSession,
   fetchAddresses,
-  fetchShippingCountries,
 } from "@/services/orderService";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
 import type { Address, AddressPayload } from "@/types/order";
+
+/** La livraison n'est disponible qu'en France pour le moment. */
+const COUNTRY_CODE = "FR";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const cartStore = useCartStore();
 
 const addresses = ref<Address[]>([]);
-const countries = ref<string[]>([]);
 const selectedAddressId = ref<string | null>(null);
 const showAddressForm = ref(false);
 
@@ -31,7 +32,7 @@ const form = ref<AddressPayload>({
   complement: "",
   city: "",
   postalCode: "",
-  countryCode: "FR",
+  countryCode: COUNTRY_CODE,
   phone: "",
 });
 
@@ -45,7 +46,7 @@ const verificationSent = ref(false);
 
 const cart = computed(() => cartStore.cart);
 
-/** Noms de pays en français, à partir des codes fournis par le backend. */
+/** Noms de pays en français, à partir des codes des adresses. */
 const countryNames = new Intl.DisplayNames(["fr"], { type: "region" });
 
 function countryLabel(code: string): string {
@@ -92,13 +93,8 @@ async function loadData(): Promise<void> {
   try {
     await cartStore.load();
 
-    const [addressList, countryList] = await Promise.all([
-      fetchAddresses(),
-      fetchShippingCountries(),
-    ]);
-
+    const addressList = await fetchAddresses();
     addresses.value = addressList;
-    countries.value = countryList;
 
     if (addressList.length > 0) {
       selectedAddressId.value = addressList[0].id;
@@ -122,6 +118,7 @@ async function handleSaveAddress(): Promise<void> {
   try {
     const created = await createAddress({
       ...form.value,
+      countryCode: COUNTRY_CODE,
       complement: form.value.complement || undefined,
       phone: form.value.phone || undefined,
     });
@@ -324,11 +321,15 @@ onMounted(async () => {
 
               <label class="field">
                 <span class="field__label">Pays</span>
-                <select v-model="form.countryCode" required>
-                  <option v-for="code in countries" :key="code" :value="code">
-                    {{ countryLabel(code) }}
-                  </option>
-                </select>
+                <input
+                  :value="countryLabel(COUNTRY_CODE)"
+                  type="text"
+                  readonly
+                  class="field__readonly"
+                />
+                <span class="field__hint"
+                  >Livraison disponible uniquement en France</span
+                >
               </label>
 
               <label class="field">
@@ -424,13 +425,9 @@ onMounted(async () => {
           </dl>
 
           <div class="summary__total">
-            <span>Total</span>
+            <span>Total TTC</span>
             <strong>{{ money(cart?.total) }}</strong>
           </div>
-
-          <p class="summary__vat">
-            dont {{ money(cart?.vat) }} de TVA ({{ cart?.vatRate }} %)
-          </p>
 
           <p v-if="error" class="summary__error" role="alert">{{ error }}</p>
 
@@ -671,8 +668,7 @@ onMounted(async () => {
   letter-spacing: 0.06em;
 }
 
-.field input,
-.field select {
+.field input {
   height: 44px;
   padding-inline: 12px;
   border: 1px solid var(--color-border-strong);
@@ -682,10 +678,15 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.field input:focus,
-.field select:focus {
+.field input:focus {
   border-color: var(--color-text);
   outline: none;
+}
+
+.field__readonly {
+  background: var(--color-surface, #f7f7f5);
+  color: var(--color-text-muted);
+  cursor: default;
 }
 
 .field__hint {
@@ -810,12 +811,6 @@ onMounted(async () => {
   font-size: 19px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-}
-
-.summary__vat {
-  margin: 5px 0 0;
-  color: var(--color-text-muted);
-  font-size: 11.5px;
 }
 
 .summary__error {

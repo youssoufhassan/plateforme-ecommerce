@@ -2,27 +2,29 @@
 import { onMounted, ref } from "vue";
 
 import { apiMessage } from "@/services/productService";
-import {
-  createAddress,
-  fetchAddresses,
-  fetchShippingCountries,
-} from "@/services/orderService";
+import { createAddress, fetchAddresses } from "@/services/orderService";
 import type { Address, AddressPayload } from "@/types/order";
 
+/** La livraison n'est disponible qu'en France pour le moment. */
+const COUNTRY_CODE = "FR";
+
 const addresses = ref<Address[]>([]);
-const countries = ref<string[]>([]);
 const showForm = ref(false);
 
-const form = ref<AddressPayload>({
-  firstName: "",
-  lastName: "",
-  street: "",
-  complement: "",
-  city: "",
-  postalCode: "",
-  countryCode: "FR",
-  phone: "",
-});
+function emptyForm(): AddressPayload {
+  return {
+    firstName: "",
+    lastName: "",
+    street: "",
+    complement: "",
+    city: "",
+    postalCode: "",
+    countryCode: COUNTRY_CODE,
+    phone: "",
+  };
+}
+
+const form = ref<AddressPayload>(emptyForm());
 
 const loading = ref(true);
 const saving = ref(false);
@@ -45,23 +47,14 @@ async function handleSubmit(): Promise<void> {
   try {
     const created = await createAddress({
       ...form.value,
+      countryCode: COUNTRY_CODE,
       complement: form.value.complement || undefined,
       phone: form.value.phone || undefined,
     });
 
     addresses.value = [...addresses.value, created];
     showForm.value = false;
-
-    form.value = {
-      firstName: "",
-      lastName: "",
-      street: "",
-      complement: "",
-      city: "",
-      postalCode: "",
-      countryCode: "FR",
-      phone: "",
-    };
+    form.value = emptyForm();
   } catch (e: unknown) {
     error.value = apiMessage(e, "L'adresse n'a pas pu être enregistrée.");
   } finally {
@@ -71,12 +64,7 @@ async function handleSubmit(): Promise<void> {
 
 onMounted(async () => {
   try {
-    const [list, countryList] = await Promise.all([
-      fetchAddresses(),
-      fetchShippingCountries(),
-    ]);
-    addresses.value = list;
-    countries.value = countryList;
+    addresses.value = await fetchAddresses();
   } catch (e: unknown) {
     error.value = apiMessage(e, "Vos adresses n'ont pas pu être chargées.");
   } finally {
@@ -159,11 +147,12 @@ onMounted(async () => {
 
         <label class="field">
           <span class="field__label">Pays</span>
-          <select v-model="form.countryCode" required>
-            <option v-for="code in countries" :key="code" :value="code">
-              {{ countryLabel(code) }}
-            </option>
-          </select>
+          <input
+            :value="countryLabel(COUNTRY_CODE)"
+            type="text"
+            readonly
+            class="field__readonly"
+          />
         </label>
 
         <label class="field">
@@ -265,8 +254,7 @@ onMounted(async () => {
   letter-spacing: 0.06em;
 }
 
-.field input,
-.field select {
+.field input {
   height: 44px;
   padding-inline: 12px;
   border: 1px solid var(--color-border-strong);
@@ -276,10 +264,15 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.field input:focus,
-.field select:focus {
+.field input:focus {
   border-color: var(--color-text);
   outline: none;
+}
+
+.field__readonly {
+  background: var(--color-surface, #f7f7f5);
+  color: var(--color-text-muted);
+  cursor: default;
 }
 
 .form__actions {

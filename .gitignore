@@ -25,3 +25,7 @@ Thumbs.db
 import-*.sql
 generate-import.ps1
 *.zip
+
+# Sauvegardes locales SIDRA
+backend/*.dump
+backend/cleanup_sidra_catalog.sql

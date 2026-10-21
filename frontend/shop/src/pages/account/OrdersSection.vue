@@ -3,11 +3,7 @@ import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { apiMessage } from "@/services/productService";
-import {
-  downloadInvoice,
-  fetchShipment,
-  type Shipment,
-} from "@/services/accountService";
+import { fetchShipment, type Shipment } from "@/services/accountService";
 import { fetchOrders } from "@/services/orderService";
 import type { Order } from "@/types/order";
 
@@ -17,7 +13,6 @@ const expanded = ref<string | null>(null);
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const downloading = ref<string | null>(null);
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "En attente de paiement",
@@ -68,19 +63,6 @@ async function toggle(order: Order): Promise<void> {
     } catch {
       // Pas d'expédition enregistrée : la section reste simplement absente
     }
-  }
-}
-
-async function handleInvoice(order: Order): Promise<void> {
-  downloading.value = order.id;
-  error.value = null;
-
-  try {
-    await downloadInvoice(order.id, orderNumber(order));
-  } catch (e: unknown) {
-    error.value = apiMessage(e, "La facture n'est pas disponible.");
-  } finally {
-    downloading.value = null;
   }
 }
 
@@ -213,23 +195,8 @@ onMounted(async () => {
             </p>
           </div>
 
-          <div class="order__actions">
-            <button
-              v-if="order.status !== 'PENDING' && order.status !== 'CANCELLED'"
-              type="button"
-              class="order__action"
-              :disabled="downloading === order.id"
-              @click="handleInvoice(order)"
-            >
-              {{
-                downloading === order.id
-                  ? "Téléchargement"
-                  : "Télécharger la facture"
-              }}
-            </button>
-
+          <div v-if="order.status === 'PENDING'" class="order__actions">
             <RouterLink
-              v-if="order.status === 'PENDING'"
               :to="`/panier`"
               class="order__action order__action--primary"
             >
@@ -539,13 +506,8 @@ onMounted(async () => {
   text-decoration: none;
 }
 
-.order__action:hover:not(:disabled) {
+.order__action:hover {
   border-color: var(--color-text);
-}
-
-.order__action:disabled {
-  cursor: wait;
-  opacity: 0.5;
 }
 
 .order__action--primary {
